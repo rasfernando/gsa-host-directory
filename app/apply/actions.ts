@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { notifyGsa } from "@/lib/notify";
 
 // Creates the school (if first time), links it to the user,
 // and submits the host application with form answers stored as JSON.
@@ -78,6 +79,13 @@ export async function submitApplication(formData: FormData) {
     submitted_at: new Date().toISOString(),
   });
   if (appError) throw new Error(`Could not submit application: ${appError.message}`);
+
+  await notifyGsa(
+    `New host application: ${formData.get("school_name") || "a school"}`,
+    `<p><strong>${formData.get("school_name")}</strong> (${formData.get("country")}) has applied to become a GSA host school.</p>
+     <p>Contact: ${formData.get("contact_name")} — ${user.email}</p>
+     <p><a href="https://gsa-host-directory.vercel.app/admin">Open the review queue</a></p>`
+  );
 
   redirect("/apply/submitted");
 }

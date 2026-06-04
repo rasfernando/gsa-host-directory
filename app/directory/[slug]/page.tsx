@@ -43,11 +43,19 @@ export default async function ProfilePage({
             {profile.country}
           </p>
         </div>
-        <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700">
-          GSA verified host
-          {profile.accredited_at &&
-            ` · since ${new Date(profile.accredited_at).getFullYear()}`}
-        </span>
+        <div className="flex flex-col items-end gap-1.5">
+          <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700">
+            GSA verified host
+            {profile.accredited_at &&
+              ` · since ${new Date(profile.accredited_at).getFullYear()}`}
+          </span>
+          <Link
+            href={`/directory/${profile.slug}/verification`}
+            className="text-xs text-gray-400 underline hover:text-gray-700"
+          >
+            Verification statement for trip approval →
+          </Link>
+        </div>
       </div>
 
       {profile.headline && (

@@ -74,6 +74,19 @@ export async function approveApplication(formData: FormData) {
     .eq("id", applicationId);
   if (updateError) throw new Error(updateError.message);
 
+  // Build the public verification summary: outcome + date only, never notes
+  const { data: checks } = await supabase
+    .from("verification_checks")
+    .select("check_key, status, checked_at")
+    .eq("application_id", applicationId);
+  const verificationSummary = (checks ?? [])
+    .filter((c) => ["passed", "waived"].includes(c.status))
+    .map((c) => ({
+      key: c.check_key,
+      status: c.status,
+      date: c.checked_at,
+    }));
+
   const school = Array.isArray(app.schools) ? app.schools[0] : app.schools;
   const answers = (app.answers ?? {}) as Record<string, unknown>;
   const slug = (school?.name ?? "school")
@@ -98,6 +111,7 @@ export async function approveApplication(formData: FormData) {
     homestay: Boolean(answers.homestay),
     capacity: (answers.capacity as number) ?? null,
     typical_hosting_windows: (answers.typical_hosting_windows as string) ?? null,
+    verification_summary: verificationSummary,
     accredited_at: new Date().toISOString(),
   });
   if (profileError) throw new Error(profileError.message);
