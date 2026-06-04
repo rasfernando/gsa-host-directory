@@ -84,6 +84,7 @@ export async function approveApplication(formData: FormData) {
   // Profile starts unpublished — GSA publishes once content is complete
   const { error: profileError } = await supabase.from("host_profiles").insert({
     school_id: app.school_id,
+    name: school?.name ?? "",
     slug: `${slug}-${applicationId.slice(0, 4)}`,
     published: false,
     country: school?.country ?? "",
@@ -103,6 +104,39 @@ export async function approveApplication(formData: FormData) {
 
   revalidatePath("/admin");
   revalidatePath(`/admin/applications/${applicationId}`);
+}
+
+// Publish / unpublish a directory profile
+export async function togglePublish(formData: FormData) {
+  const { supabase } = await requireAdmin();
+  const profileId = String(formData.get("profile_id"));
+  const publish = formData.get("publish") === "true";
+
+  const { error } = await supabase
+    .from("host_profiles")
+    .update({ published: publish })
+    .eq("id", profileId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/admin/profiles");
+  revalidatePath("/directory");
+}
+
+// Update enquiry status / notes
+export async function updateEnquiry(formData: FormData) {
+  const { supabase } = await requireAdmin();
+  const enquiryId = String(formData.get("enquiry_id"));
+
+  const { error } = await supabase
+    .from("enquiries")
+    .update({
+      status: String(formData.get("status")),
+      gsa_notes: String(formData.get("gsa_notes") || ""),
+    })
+    .eq("id", enquiryId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/admin/enquiries");
 }
 
 // Reject with notes

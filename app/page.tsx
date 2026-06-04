@@ -18,12 +18,12 @@ export default function Home() {
         >
           Apply to host
         </Link>
-        <span
-          className="cursor-not-allowed rounded-lg border border-gray-200 px-5 py-2.5 text-sm font-medium text-gray-400"
-          title="Directory launches once the first host schools are verified"
+        <Link
+          href="/directory"
+          className="rounded-lg border border-gray-200 px-5 py-2.5 text-sm font-medium text-gray-700 hover:border-gray-400"
         >
-          Browse directory — coming soon
-        </span>
+          Browse directory
+        </Link>
       </div>
     </div>
   );

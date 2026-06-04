@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
@@ -30,5 +31,20 @@ export default async function AdminLayout({
     );
   }
 
-  return <>{children}</>;
+  return (
+    <div>
+      <nav className="mb-8 flex gap-4 border-b border-gray-100 pb-3 text-sm">
+        <Link href="/admin" className="font-medium text-gray-700 hover:text-gray-900">
+          Review queue
+        </Link>
+        <Link href="/admin/profiles" className="font-medium text-gray-700 hover:text-gray-900">
+          Profiles
+        </Link>
+        <Link href="/admin/enquiries" className="font-medium text-gray-700 hover:text-gray-900">
+          Enquiries
+        </Link>
+      </nav>
+      {children}
+    </div>
+  );
 }
