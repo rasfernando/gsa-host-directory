@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { notifyGsa } from "@/lib/notify";
+import { notifyGsa, sendEmail } from "@/lib/notify";
 import { logEvent } from "@/lib/events";
 
 // Submits an enquiry about a host school. Works for signed-out visitors —
@@ -39,6 +39,21 @@ export async function submitEnquiry(formData: FormData) {
      <p>Dates: ${formData.get("preferred_dates") || "not specified"} · Group: ${formData.get("group_size") || "not specified"}</p>
      <blockquote>${formData.get("message")}</blockquote>
      <p><a href="https://gsa-host-directory.vercel.app/admin/enquiries">Open enquiries</a></p>`
+  );
+
+  // Confirmation copy to the enquirer
+  await sendEmail(
+    String(formData.get("enquirer_email")),
+    "Your enquiry to the Global School Alliance",
+    `<p>Hi ${formData.get("enquirer_name")},</p>
+     <p>Thanks for your enquiry — a member of the GSA team will review it and
+     contact you within 2–3 working days to discuss the visit and introduce
+     you to the school.</p>
+     <p><strong>Your enquiry:</strong></p>
+     <blockquote>${formData.get("message")}</blockquote>
+     <p>Preferred dates: ${formData.get("preferred_dates") || "not specified"} ·
+     Group size: ${formData.get("group_size") || "not specified"}</p>
+     <p>— The Global School Alliance team</p>`
   );
 
   redirect(`/directory/${slug}?enquiry=sent`);

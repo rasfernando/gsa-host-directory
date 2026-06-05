@@ -51,7 +51,10 @@ export default async function DirectoryPage({
       <p className="mt-1 text-sm text-gray-500">
         <span className="font-medium text-green-700">GSA Accredited</span>{" "}
         schools have passed GSA&apos;s gold-standard verification and are
-        actively promoted. Listed hosts are reviewed members of the network.
+        actively promoted. Listed hosts are reviewed members of the network.{" "}
+        <Link href="/accreditation" className="underline hover:text-gray-900">
+          How accreditation works
+        </Link>
       </p>
 
       {/* Filters — a plain GET form, no JavaScript needed */}

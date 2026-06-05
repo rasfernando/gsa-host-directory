@@ -2,8 +2,18 @@
 // Gracefully does nothing if RESEND_API_KEY isn't configured —
 // submissions must never fail because email is down or unconfigured.
 export async function notifyGsa(subject: string, html: string) {
+  return sendEmail(process.env.NOTIFY_EMAIL, subject, html);
+}
+
+// Generic sender — also used for enquirer confirmation emails.
+// NOTE: until a sending domain is verified in Resend, free-tier accounts can
+// only deliver to the account owner's address; external sends fail silently here.
+export async function sendEmail(
+  to: string | undefined,
+  subject: string,
+  html: string
+) {
   const apiKey = process.env.RESEND_API_KEY;
-  const to = process.env.NOTIFY_EMAIL;
 
   if (!apiKey || !to) {
     console.log(`[notify skipped — RESEND_API_KEY/NOTIFY_EMAIL not set] ${subject}`);

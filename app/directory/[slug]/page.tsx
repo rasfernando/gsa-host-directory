@@ -53,15 +53,15 @@ export default async function ProfilePage({
           </p>
         </div>
         {profile.tier === "accredited" ? (
-          <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700">
+          <Link href="/accreditation" className="rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700 hover:bg-green-100">
             GSA Accredited host
             {profile.accredited_at &&
               ` · since ${new Date(profile.accredited_at).getFullYear()}`}
-          </span>
+          </Link>
         ) : (
-          <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-500">
+          <Link href="/accreditation" className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-500 hover:bg-gray-200">
             Listed host · not yet GSA Accredited
-          </span>
+          </Link>
         )}
       </div>
 
@@ -132,9 +132,14 @@ export default async function ProfilePage({
         </p>
 
         {enquiry === "sent" ? (
-          <p className="mt-4 rounded-lg bg-green-50 p-4 text-sm text-green-700">
-            Enquiry sent — the GSA team will be in touch shortly.
-          </p>
+          <div className="mt-4 rounded-lg bg-green-50 p-4 text-sm text-green-800">
+            <p className="font-medium">Enquiry sent — here&apos;s what happens next:</p>
+            <ol className="mt-2 list-decimal space-y-1 pl-5">
+              <li>You&apos;ll get a confirmation email with a copy of your enquiry.</li>
+              <li>A member of the GSA team reviews it and contacts you within 2–3 working days.</li>
+              <li>GSA introduces you to the school and supports planning from there — you&apos;re never left to arrange things alone.</li>
+            </ol>
+          </div>
         ) : (
           <form action={submitEnquiry} className="mt-5 space-y-4">
             <input type="hidden" name="host_profile_id" value={profile.id} />
