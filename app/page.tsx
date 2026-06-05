@@ -4,12 +4,12 @@ export default function Home() {
   return (
     <div className="mx-auto max-w-2xl py-16 text-center">
       <h1 className="text-4xl font-semibold tracking-tight">
-        Verified host schools, worldwide
+        Welcome the world to your school
       </h1>
       <p className="mt-4 text-lg text-gray-500">
-        The Global School Alliance accredits schools to host visiting groups
-        for immersions, exchanges and cultural visits. Apply to become a
-        verified host school.
+        Host visiting school groups from around the world — build global
+        citizenship at your school and get paid for hosting. Or find a
+        GSA-verified school for your next trip abroad.
       </p>
       <div className="mt-8 flex justify-center gap-4">
         <Link

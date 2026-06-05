@@ -180,8 +180,11 @@ export default async function ProfilePage({
               />
             </div>
             <button className="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-gray-700">
-              Send enquiry
+              Send enquiry to the GSA team
             </button>
+            <p className="mt-2 text-xs text-gray-500">
+              No commitment — this starts a conversation, not a booking.
+            </p>
           </form>
         )}
       </section>

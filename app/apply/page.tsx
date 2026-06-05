@@ -190,8 +190,12 @@ export default async function ApplyPage() {
           type="submit"
           className="w-full rounded-lg bg-gray-900 px-4 py-3 text-sm font-medium text-white hover:bg-gray-700"
         >
-          Submit application
+          Submit for verification
         </button>
+        <p className="text-center text-xs text-gray-500">
+          A member of the GSA team will contact you to arrange the
+          verification steps — nothing is automated.
+        </p>
       </form>
     </div>
   );

@@ -80,7 +80,7 @@ export default async function DirectoryPage({
           GSA Accredited only
         </label>
         <button className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700">
-          Filter
+          Show matching schools
         </button>
         {(params.q || params.country || params.focus || params.boarding || params.homestay) && (
           <Link href="/directory" className="text-sm text-gray-500 underline">

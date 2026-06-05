@@ -148,8 +148,12 @@ export default async function ListYourSchoolPage() {
           type="submit"
           className="w-full rounded-lg bg-gray-900 px-4 py-3 text-sm font-medium text-white hover:bg-gray-700"
         >
-          Create listing
+          Submit my listing for review
         </button>
+        <p className="text-center text-xs text-gray-500">
+          The GSA team reviews every listing — yours will be live within a
+          couple of days.
+        </p>
       </form>
     </div>
   );
