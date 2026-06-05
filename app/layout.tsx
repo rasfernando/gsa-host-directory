@@ -19,6 +19,16 @@ export default async function RootLayout({
     data: { user },
   } = await supabase.auth.getUser();
 
+  let isAdmin = false;
+  if (user) {
+    const { data: profile } = await supabase
+      .from("user_profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+    isAdmin = profile?.role === "gsa_admin";
+  }
+
   return (
     <html lang="en">
       <body className="min-h-screen bg-white text-gray-900 antialiased">
@@ -34,6 +44,11 @@ export default async function RootLayout({
               <Link href="/apply" className="hover:text-gray-900">
                 Become a host
               </Link>
+              {isAdmin && (
+                <Link href="/admin" className="hover:text-gray-900">
+                  Admin
+                </Link>
+              )}
               {user ? (
                 <form action={signOut}>
                   <button className="hover:text-gray-900" title={user.email}>
