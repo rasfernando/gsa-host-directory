@@ -56,9 +56,25 @@ export async function submitListing(formData: FormData) {
     "-" +
     Math.random().toString(36).slice(2, 6);
 
+  // Optional cover photo → public school-media bucket, path scoped to the school
+  let media: { url: string; type: string }[] = [];
+  const photo = formData.get("photo") as File | null;
+  if (photo && photo.size > 0 && photo.size <= 5 * 1024 * 1024) {
+    const ext = photo.name.split(".").pop()?.toLowerCase() || "jpg";
+    const path = `${schoolId}/cover-${Date.now()}.${ext}`;
+    const { error: uploadError } = await supabase.storage
+      .from("school-media")
+      .upload(path, photo, { contentType: photo.type });
+    if (!uploadError) {
+      const { data: pub } = supabase.storage.from("school-media").getPublicUrl(path);
+      media = [{ url: pub.publicUrl, type: "image" }];
+    }
+  }
+
   const { data: newProfile, error: profileError } = await supabase
     .from("host_profiles")
     .insert({
+      media,
       school_id: schoolId,
       name: schoolName,
       slug,

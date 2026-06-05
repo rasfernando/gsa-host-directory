@@ -25,7 +25,7 @@ export default function Home() {
           Browse directory
         </Link>
       </div>
-      <p className="mt-6 text-sm text-gray-400">
+      <p className="mt-6 text-sm text-gray-500">
         Already listed?{" "}
         <Link href="/apply" className="underline hover:text-gray-600">
           Apply for GSA accreditation

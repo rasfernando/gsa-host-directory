@@ -23,7 +23,7 @@ export default async function DirectoryPage({
   let query = supabase
     .from("host_profiles")
     .select(
-      "id, name, slug, headline, country, city, languages, age_range_min, age_range_max, focus_tags, boarding, homestay, capacity, tier"
+      "id, name, slug, headline, country, city, languages, age_range_min, age_range_max, focus_tags, boarding, homestay, capacity, tier, media"
     )
     .eq("published", true)
     // Accredited schools first — they're the actively promoted catalog
@@ -80,14 +80,14 @@ export default async function DirectoryPage({
           Filter
         </button>
         {(params.q || params.country || params.focus || params.boarding || params.homestay) && (
-          <Link href="/directory" className="text-sm text-gray-400 underline">
+          <Link href="/directory" className="text-sm text-gray-500 underline">
             Clear
           </Link>
         )}
       </form>
 
       {results.length === 0 ? (
-        <p className="mt-10 rounded-lg border border-dashed border-gray-200 p-10 text-center text-sm text-gray-400">
+        <p className="mt-10 rounded-lg border border-dashed border-gray-200 p-10 text-center text-sm text-gray-500">
           No host schools match these filters yet. The network is growing —
           check back soon.
         </p>
@@ -97,8 +97,23 @@ export default async function DirectoryPage({
             <li key={p.id}>
               <Link
                 href={`/directory/${p.slug}`}
-                className="block rounded-xl border border-gray-100 p-5 transition hover:border-gray-300"
+                className="block overflow-hidden rounded-xl border border-gray-100 transition hover:border-gray-300"
               >
+                {(p.media as { url: string }[] | null)?.[0]?.url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={(p.media as { url: string }[])[0].url}
+                    alt={`${p.name} campus`}
+                    className="aspect-video w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex aspect-video w-full items-center justify-center bg-gradient-to-br from-gray-50 to-gray-200">
+                    <span className="text-4xl font-semibold text-gray-300">
+                      {p.name.charAt(0)}
+                    </span>
+                  </div>
+                )}
+                <div className="p-5">
                 <div className="flex items-start justify-between">
                   <h2 className="text-base font-semibold">{p.name}</h2>
                   {p.tier === "accredited" ? (
@@ -123,6 +138,7 @@ export default async function DirectoryPage({
                   {(p.focus_tags ?? []).slice(0, 3).map((t: string) => (
                     <Tag key={t}>{t}</Tag>
                   ))}
+                </div>
                 </div>
               </Link>
             </li>

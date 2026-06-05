@@ -30,7 +30,7 @@ export default async function AdminEnquiries() {
       </p>
 
       {list.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-gray-200 p-10 text-center text-sm text-gray-400">
+        <p className="rounded-lg border border-dashed border-gray-200 p-10 text-center text-sm text-gray-500">
           No enquiries yet. They&apos;ll appear here when schools enquire via the
           directory.
         </p>
@@ -47,7 +47,7 @@ export default async function AdminEnquiries() {
                     <p className="text-sm font-medium">
                       {e.enquirer_school_name} → {host?.name ?? "Unknown host"}
                     </p>
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs text-gray-500">
                       {e.enquirer_name} ·{" "}
                       <a href={`mailto:${e.enquirer_email}`} className="underline">
                         {e.enquirer_email}

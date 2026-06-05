@@ -72,7 +72,7 @@ export default async function ListYourSchoolPage() {
           <label className={labelCls} htmlFor="school_name">School name</label>
           <input className={inputCls} id="school_name" name="school_name" required />
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label className={labelCls} htmlFor="country">Country</label>
             <input className={inputCls} id="country" name="country" required />
@@ -82,7 +82,7 @@ export default async function ListYourSchoolPage() {
             <input className={inputCls} id="city" name="city" />
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label className={labelCls} htmlFor="contact_name">Your name</label>
             <input className={inputCls} id="contact_name" name="contact_name" required />
@@ -98,7 +98,7 @@ export default async function ListYourSchoolPage() {
           </label>
           <input className={inputCls} id="headline" name="headline" placeholder="e.g. Bilingual secondary school with a strong arts programme" />
         </div>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
             <label className={labelCls} htmlFor="age_range_min">Ages from</label>
             <input className={inputCls} id="age_range_min" name="age_range_min" type="number" min={3} max={19} />
@@ -131,6 +131,18 @@ export default async function ListYourSchoolPage() {
             When can you typically host?
           </label>
           <input className={inputCls} id="typical_hosting_windows" name="typical_hosting_windows" placeholder="e.g. Term time, September–November best" />
+        </div>
+        <div>
+          <label className={labelCls} htmlFor="photo">
+            A photo of your school <span className="font-normal text-gray-500">(optional, but listings with photos get far more interest)</span>
+          </label>
+          <input
+            className="mt-1 w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-gray-100 file:px-4 file:py-2 file:text-sm file:font-medium file:text-gray-700 hover:file:bg-gray-200"
+            id="photo"
+            name="photo"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+          />
         </div>
         <button
           type="submit"

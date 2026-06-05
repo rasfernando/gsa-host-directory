@@ -28,7 +28,7 @@ export default async function AdminQueue() {
       </p>
 
       {queue.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-gray-200 p-10 text-center text-sm text-gray-400">
+        <p className="rounded-lg border border-dashed border-gray-200 p-10 text-center text-sm text-gray-500">
           No applications yet. They&apos;ll appear here as schools apply.
         </p>
       ) : (
@@ -44,7 +44,7 @@ export default async function AdminQueue() {
                 >
                   <div>
                     <p className="text-sm font-medium">{school?.name ?? "Unknown school"}</p>
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs text-gray-500">
                       {school?.country} ·{" "}
                       {app.submitted_at
                         ? `submitted ${new Date(app.submitted_at).toLocaleDateString("en-GB")}`

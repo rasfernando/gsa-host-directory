@@ -44,7 +44,7 @@ export default async function ApplicationDetail({
 
   return (
     <div className="mx-auto max-w-3xl">
-      <Link href="/admin" className="text-sm text-gray-400 hover:text-gray-900">
+      <Link href="/admin" className="text-sm text-gray-500 hover:text-gray-900">
         ← Review queue
       </Link>
 
@@ -71,13 +71,13 @@ export default async function ApplicationDetail({
 
       {/* Application answers */}
       <section className="mt-8">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-400">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
           Application
         </h2>
         <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-3 rounded-lg border border-gray-100 p-5 text-sm">
           {Object.entries(answers).map(([key, value]) => (
             <div key={key}>
-              <dt className="text-xs uppercase tracking-wide text-gray-400">
+              <dt className="text-xs uppercase tracking-wide text-gray-500">
                 {key.replace(/_/g, " ")}
               </dt>
               <dd className="mt-0.5 text-gray-800">
@@ -94,7 +94,7 @@ export default async function ApplicationDetail({
 
       {/* Verification checklist */}
       <section className="mt-8">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-400">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
           Verification checklist
         </h2>
         <ul className="mt-3 space-y-3">
@@ -106,7 +106,7 @@ export default async function ApplicationDetail({
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium">{check.label}</p>
-                    <p className="text-xs text-gray-400">{check.description}</p>
+                    <p className="text-xs text-gray-500">{check.description}</p>
                     {result?.notes && (
                       <p className="mt-1 text-xs text-gray-600">Note: {result.notes}</p>
                     )}
@@ -149,7 +149,7 @@ export default async function ApplicationDetail({
       {/* Decision */}
       {!decided && (
         <section className="mt-8 rounded-lg border border-gray-100 p-5">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-400">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
             Decision
           </h2>
           {!allPassed && (
@@ -157,7 +157,7 @@ export default async function ApplicationDetail({
               All checks must be passed or waived before approval.
             </p>
           )}
-          <div className="mt-4 grid grid-cols-2 gap-4">
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
             <form action={approveApplication}>
               <input type="hidden" name="application_id" value={app.id} />
               <input

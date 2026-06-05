@@ -21,7 +21,7 @@ export default async function AdminProfiles() {
       </p>
 
       {list.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-gray-200 p-10 text-center text-sm text-gray-400">
+        <p className="rounded-lg border border-dashed border-gray-200 p-10 text-center text-sm text-gray-500">
           No profiles yet — approve an application to create the first one.
         </p>
       ) : (
@@ -41,7 +41,7 @@ export default async function AdminProfiles() {
                     {p.tier}
                   </span>
                 </p>
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-gray-500">
                   {p.city ? `${p.city}, ` : ""}
                   {p.country}
                   {" · "}

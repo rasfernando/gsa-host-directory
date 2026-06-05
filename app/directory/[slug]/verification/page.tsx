@@ -40,7 +40,7 @@ export default async function VerificationStatement({
       <div className="flex items-center justify-between print:hidden">
         <Link
           href={`/directory/${profile.slug}`}
-          className="text-sm text-gray-400 hover:text-gray-900"
+          className="text-sm text-gray-500 hover:text-gray-900"
         >
           ← Back to {profile.name}
         </Link>
@@ -48,7 +48,7 @@ export default async function VerificationStatement({
       </div>
 
       <div className="mt-8 print:mt-0">
-        <p className="text-sm font-semibold uppercase tracking-wide text-gray-400">
+        <p className="text-sm font-semibold uppercase tracking-wide text-gray-500">
           Global School Alliance · Verification statement
         </p>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight">{profile.name}</h1>
@@ -69,7 +69,7 @@ export default async function VerificationStatement({
 
         <table className="mt-8 w-full text-sm">
           <thead>
-            <tr className="border-b border-gray-200 text-left text-xs uppercase tracking-wide text-gray-400">
+            <tr className="border-b border-gray-200 text-left text-xs uppercase tracking-wide text-gray-500">
               <th className="pb-2 pr-4 font-medium">Verification step</th>
               <th className="pb-2 pr-4 font-medium">Outcome</th>
               <th className="pb-2 font-medium">Date</th>

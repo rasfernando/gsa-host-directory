@@ -35,7 +35,7 @@ export default async function RootLayout({
         <header className="border-b border-gray-100">
           <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
             <Link href="/" className="text-sm font-semibold tracking-tight">
-              GSA <span className="text-gray-400">Host Schools</span>
+              GSA <span className="text-gray-500">Host Schools</span>
             </Link>
             <nav className="flex items-center gap-6 text-sm text-gray-500">
               <Link href="/directory" className="hover:text-gray-900">
@@ -64,6 +64,33 @@ export default async function RootLayout({
           </div>
         </header>
         <main className="mx-auto max-w-5xl px-6 py-10">{children}</main>
+        <footer className="mt-16 border-t border-gray-100 print:hidden">
+          <div className="mx-auto flex max-w-5xl flex-col gap-3 px-6 py-8 text-xs text-gray-500 sm:flex-row sm:items-center sm:justify-between">
+            <p>
+              © {new Date().getFullYear()} Global School Alliance ·{" "}
+              <a
+                href="https://www.globalschoolalliance.com"
+                className="underline hover:text-gray-900"
+              >
+                globalschoolalliance.com
+              </a>
+            </p>
+            <nav className="flex gap-4">
+              <Link href="/privacy" className="underline hover:text-gray-900">
+                Privacy
+              </Link>
+              <Link href="/terms" className="underline hover:text-gray-900">
+                Terms
+              </Link>
+              <a
+                href="mailto:hello@globalschoolalliance.com"
+                className="underline hover:text-gray-900"
+              >
+                Contact
+              </a>
+            </nav>
+          </div>
+        </footer>
       </body>
     </html>
   );

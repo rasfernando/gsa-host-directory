@@ -64,14 +64,14 @@ export default async function ApplyPage() {
 
       <form action={submitApplication} className="space-y-8">
         <section className="space-y-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-400">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
             Your school
           </h2>
           <div>
             <label className={labelCls} htmlFor="school_name">School name</label>
             <input className={inputCls} id="school_name" name="school_name" required />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className={labelCls} htmlFor="country">Country</label>
               <input className={inputCls} id="country" name="country" required />
@@ -85,7 +85,7 @@ export default async function ApplyPage() {
             <label className={labelCls} htmlFor="website">Website</label>
             <input className={inputCls} id="website" name="website" type="url" placeholder="https://" />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className={labelCls} htmlFor="contact_name">Your name</label>
               <input className={inputCls} id="contact_name" name="contact_name" required />
@@ -98,10 +98,10 @@ export default async function ApplyPage() {
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-400">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
             Hosting capability
           </h2>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div>
               <label className={labelCls} htmlFor="age_range_min">Ages from</label>
               <input className={inputCls} id="age_range_min" name="age_range_min" type="number" min={3} max={19} required />
@@ -153,10 +153,10 @@ export default async function ApplyPage() {
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-400">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
             Safeguarding
           </h2>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className={labelCls} htmlFor="safeguarding_lead_name">Designated safeguarding lead</label>
               <input className={inputCls} id="safeguarding_lead_name" name="safeguarding_lead_name" required />
@@ -169,7 +169,7 @@ export default async function ApplyPage() {
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-400">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
             About your hosting
           </h2>
           <div>

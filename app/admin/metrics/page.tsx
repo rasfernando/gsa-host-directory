@@ -55,7 +55,7 @@ export default async function AdminMetrics() {
         everything in the database.
       </p>
 
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-400">
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
         Current state
       </h2>
       <div className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-5">
@@ -67,7 +67,7 @@ export default async function AdminMetrics() {
         ))}
       </div>
 
-      <h2 className="mt-10 text-sm font-semibold uppercase tracking-wide text-gray-400">
+      <h2 className="mt-10 text-sm font-semibold uppercase tracking-wide text-gray-500">
         Funnel activity
       </h2>
       <ul className="mt-3 divide-y divide-gray-100 rounded-lg border border-gray-100">
@@ -82,7 +82,7 @@ export default async function AdminMetrics() {
               <span className="text-sm">
                 <span className="font-semibold">{value}</span>
                 {rate != null && (
-                  <span className="ml-2 text-xs text-gray-400">
+                  <span className="ml-2 text-xs text-gray-500">
                     {rate}% of previous step
                   </span>
                 )}
@@ -92,7 +92,7 @@ export default async function AdminMetrics() {
         })}
       </ul>
 
-      <p className="mt-6 text-xs text-gray-400">
+      <p className="mt-6 text-xs text-gray-500">
         Note: step-to-step rates are indicative — steps can be skipped (e.g.
         schools applying for accreditation directly without listing first).
       </p>
