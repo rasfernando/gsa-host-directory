@@ -12,11 +12,50 @@ export default async function ListYourSchoolPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Already listed? Show status instead of the form.
-  const { data: existing } = await supabase
-    .from("host_profiles")
-    .select("id, name, slug, published, tier")
-    .limit(1);
+  // Not signed in? Show the pitch and a sign-in prompt — the public
+  // "published" RLS policy means an unfiltered query here would return
+  // other schools' listings.
+  if (!user) {
+    return (
+      <div className="mx-auto max-w-xl py-16 text-center">
+        <p className="text-xs font-semibold uppercase tracking-widest text-stone-500">
+          Become a host
+        </p>
+        <h1 className="mt-2 text-3xl font-bold tracking-tight">
+          List your school as a host
+        </h1>
+        <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-stone-600">
+          Join the global directory in a few minutes. Welcome overseas groups,
+          build global citizenship at your school, and get paid for hosting.
+        </p>
+        <Link
+          href="/login?next=/list-your-school"
+          className="mt-8 inline-block rounded-lg bg-brand-700 px-6 py-3 text-sm font-semibold text-white transition-colors duration-150 hover:bg-brand-800"
+        >
+          Sign in to get started
+        </Link>
+        <p className="mt-3 text-xs text-stone-500">
+          No password needed — we&apos;ll email you a sign-in link.
+        </p>
+      </div>
+    );
+  }
+
+  // Already listed? Show status instead of the form — but only this
+  // school's own listing, never the first row RLS happens to return.
+  const { data: profile } = await supabase
+    .from("user_profiles")
+    .select("school_id")
+    .eq("id", user.id)
+    .single();
+
+  const { data: existing } = profile?.school_id
+    ? await supabase
+        .from("host_profiles")
+        .select("id, name, slug, published, tier")
+        .eq("school_id", profile.school_id)
+        .limit(1)
+    : { data: null };
 
   if (existing && existing.length > 0) {
     const p = existing[0];
