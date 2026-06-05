@@ -12,8 +12,10 @@ const FOCUS_AREAS = [
 ];
 
 const inputCls =
-  "mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none";
+  "mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm focus:border-brand-600 focus:outline-none";
 const labelCls = "block text-sm font-medium";
+const sectionHeadingCls =
+  "text-xs font-semibold uppercase tracking-widest text-brand-700";
 
 export default async function ApplyPage() {
   const supabase = await createClient();
@@ -32,17 +34,20 @@ export default async function ApplyPage() {
     const app = existing[0];
     return (
       <div className="mx-auto max-w-xl py-16 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">
+        <h1 className="text-3xl font-bold tracking-tight">
           Application {app.status.replace("_", " ")}
         </h1>
-        <p className="mt-3 text-gray-500">
+        <p className="mt-3 leading-relaxed text-stone-500">
           {app.status === "approved"
             ? "Congratulations — your school is an accredited GSA host school."
             : app.status === "rejected"
               ? "Your application was not approved this time. GSA will be in touch with feedback."
               : "Your application is with the GSA team. We review every school personally and will contact you to arrange verification."}
         </p>
-        <Link href="/" className="mt-6 inline-block text-sm text-gray-500 underline">
+        <Link
+          href="/"
+          className="mt-6 inline-block text-sm text-stone-500 underline transition-colors duration-150 hover:text-stone-900"
+        >
           Back to home
         </Link>
       </div>
@@ -51,10 +56,13 @@ export default async function ApplyPage() {
 
   return (
     <div className="mx-auto max-w-xl">
-      <h1 className="text-2xl font-semibold tracking-tight">
+      <p className="text-xs font-semibold uppercase tracking-widest text-stone-500">
+        Accreditation
+      </p>
+      <h1 className="mt-2 text-3xl font-bold tracking-tight">
         Apply for GSA accreditation
       </h1>
-      <p className="mb-8 mt-2 text-sm text-gray-500">
+      <p className="mt-3 text-sm leading-relaxed text-stone-500">
         Signed in as {user?.email}. GSA Accredited schools are the gold
         standard of the network — fully verified, actively promoted to
         visiting groups worldwide, and issued a verification statement
@@ -62,11 +70,9 @@ export default async function ApplyPage() {
         complete verification after you submit.
       </p>
 
-      <form action={submitApplication} className="space-y-8">
-        <section className="space-y-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-            Your school
-          </h2>
+      <form action={submitApplication} className="mt-8 space-y-6">
+        <section className="space-y-4 rounded-2xl border border-stone-200/70 bg-white p-6 shadow-sm sm:p-8">
+          <h2 className={sectionHeadingCls}>Your school</h2>
           <div>
             <label className={labelCls} htmlFor="school_name">School name</label>
             <input className={inputCls} id="school_name" name="school_name" required />
@@ -97,10 +103,8 @@ export default async function ApplyPage() {
           </div>
         </section>
 
-        <section className="space-y-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-            Hosting capability
-          </h2>
+        <section className="space-y-4 rounded-2xl border border-stone-200/70 bg-white p-6 shadow-sm sm:p-8">
+          <h2 className={sectionHeadingCls}>Hosting capability</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div>
               <label className={labelCls} htmlFor="age_range_min">Ages from</label>
@@ -127,20 +131,20 @@ export default async function ApplyPage() {
             <legend className={labelCls}>Focus areas</legend>
             <div className="mt-2 grid grid-cols-2 gap-2">
               {FOCUS_AREAS.map((area) => (
-                <label key={area} className="flex items-center gap-2 text-sm text-gray-700">
-                  <input type="checkbox" name="focus_areas" value={area} className="rounded border-gray-300" />
+                <label key={area} className="flex items-center gap-2 text-sm text-stone-700">
+                  <input type="checkbox" name="focus_areas" value={area} className="rounded border-stone-300" />
                   {area}
                 </label>
               ))}
             </div>
           </fieldset>
           <div className="flex gap-6">
-            <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input type="checkbox" name="boarding" className="rounded border-gray-300" />
+            <label className="flex items-center gap-2 text-sm text-stone-700">
+              <input type="checkbox" name="boarding" className="rounded border-stone-300" />
               Boarding available
             </label>
-            <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input type="checkbox" name="homestay" className="rounded border-gray-300" />
+            <label className="flex items-center gap-2 text-sm text-stone-700">
+              <input type="checkbox" name="homestay" className="rounded border-stone-300" />
               Homestay available
             </label>
           </div>
@@ -152,10 +156,8 @@ export default async function ApplyPage() {
           </div>
         </section>
 
-        <section className="space-y-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-            Safeguarding
-          </h2>
+        <section className="space-y-4 rounded-2xl border border-stone-200/70 bg-white p-6 shadow-sm sm:p-8">
+          <h2 className={sectionHeadingCls}>Safeguarding</h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className={labelCls} htmlFor="safeguarding_lead_name">Designated safeguarding lead</label>
@@ -168,10 +170,8 @@ export default async function ApplyPage() {
           </div>
         </section>
 
-        <section className="space-y-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-            About your hosting
-          </h2>
+        <section className="space-y-4 rounded-2xl border border-stone-200/70 bg-white p-6 shadow-sm sm:p-8">
+          <h2 className={sectionHeadingCls}>About your hosting</h2>
           <div>
             <label className={labelCls} htmlFor="hosting_experience">
               Previous hosting / exchange experience
@@ -188,11 +188,11 @@ export default async function ApplyPage() {
 
         <button
           type="submit"
-          className="w-full rounded-lg bg-gray-900 px-4 py-3 text-sm font-medium text-white hover:bg-gray-700"
+          className="w-full rounded-lg bg-brand-700 px-4 py-3 text-sm font-semibold text-white transition-colors duration-150 hover:bg-brand-800"
         >
           Submit for verification
         </button>
-        <p className="text-center text-xs text-gray-500">
+        <p className="text-center text-xs text-stone-500">
           A member of the GSA team will contact you to arrange the
           verification steps — nothing is automated.
         </p>

@@ -31,32 +31,43 @@ export default async function RootLayout({
 
   return (
     <html lang="en">
-      <body className="min-h-screen bg-white text-gray-900 antialiased">
-        <header className="border-b border-gray-100">
+      <body className="min-h-screen bg-stone-50 text-stone-900 antialiased">
+        <header className="border-b border-stone-200/70 bg-white">
           <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
-            <Link href="/" className="text-sm font-semibold tracking-tight">
-              GSA <span className="text-gray-500">Host Schools</span>
+            <Link href="/" className="flex items-center gap-2.5">
+              <span
+                aria-hidden
+                className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-700 text-[13px] font-bold text-white"
+              >
+                G
+              </span>
+              <span className="text-sm font-semibold tracking-tight">
+                GSA <span className="font-normal text-stone-500">Host Schools</span>
+              </span>
             </Link>
-            <nav className="flex items-center gap-6 text-sm text-gray-500">
-              <Link href="/directory" className="hover:text-gray-900">
+            <nav className="flex items-center gap-6 text-sm text-stone-600">
+              <Link href="/directory" className="transition-colors duration-150 hover:text-stone-900">
                 Directory
               </Link>
-              <Link href="/list-your-school" className="hover:text-gray-900">
+              <Link href="/list-your-school" className="transition-colors duration-150 hover:text-stone-900">
                 Become a host
               </Link>
               {isAdmin && (
-                <Link href="/admin" className="hover:text-gray-900">
+                <Link href="/admin" className="transition-colors duration-150 hover:text-stone-900">
                   Admin
                 </Link>
               )}
               {user ? (
                 <form action={signOut}>
-                  <button className="hover:text-gray-900" title={user.email}>
+                  <button
+                    className="transition-colors duration-150 hover:text-stone-900"
+                    title={user.email}
+                  >
                     Sign out
                   </button>
                 </form>
               ) : (
-                <Link href="/login" className="hover:text-gray-900">
+                <Link href="/login" className="transition-colors duration-150 hover:text-stone-900">
                   Sign in
                 </Link>
               )}
@@ -64,27 +75,27 @@ export default async function RootLayout({
           </div>
         </header>
         <main className="mx-auto max-w-5xl px-6 py-10">{children}</main>
-        <footer className="mt-16 border-t border-gray-100 print:hidden">
-          <div className="mx-auto flex max-w-5xl flex-col gap-3 px-6 py-8 text-xs text-gray-500 sm:flex-row sm:items-center sm:justify-between">
+        <footer className="mt-16 border-t border-stone-200/70 bg-white print:hidden">
+          <div className="mx-auto flex max-w-5xl flex-col gap-3 px-6 py-8 text-xs text-stone-500 sm:flex-row sm:items-center sm:justify-between">
             <p>
               © {new Date().getFullYear()} Global School Alliance ·{" "}
               <a
                 href="https://www.globalschoolalliance.com"
-                className="underline hover:text-gray-900"
+                className="underline transition-colors duration-150 hover:text-stone-900"
               >
                 globalschoolalliance.com
               </a>
             </p>
             <nav className="flex gap-4">
-              <Link href="/privacy" className="underline hover:text-gray-900">
+              <Link href="/privacy" className="underline transition-colors duration-150 hover:text-stone-900">
                 Privacy
               </Link>
-              <Link href="/terms" className="underline hover:text-gray-900">
+              <Link href="/terms" className="underline transition-colors duration-150 hover:text-stone-900">
                 Terms
               </Link>
               <a
                 href="mailto:hello@globalschoolalliance.com"
-                className="underline hover:text-gray-900"
+                className="underline transition-colors duration-150 hover:text-stone-900"
               >
                 Contact
               </a>

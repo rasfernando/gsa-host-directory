@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { submitListing } from "./actions";
 
 const inputCls =
-  "mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none";
+  "mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm focus:border-brand-600 focus:outline-none";
 const labelCls = "block text-sm font-medium";
 
 export default async function ListYourSchoolPage() {
@@ -22,19 +22,19 @@ export default async function ListYourSchoolPage() {
     const p = existing[0];
     return (
       <div className="mx-auto max-w-xl py-16 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">
+        <h1 className="text-3xl font-bold tracking-tight">
           {p.name} is {p.published ? "live" : "awaiting review"}
         </h1>
-        <p className="mt-3 text-gray-500">
+        <p className="mt-3 leading-relaxed text-stone-500">
           {p.published
             ? "Your listing is live in the directory."
             : "The GSA team gives every new listing a quick review before it goes live — usually within a couple of days."}
         </p>
         {p.tier === "listed" && (
-          <p className="mt-4 rounded-lg bg-gray-50 p-4 text-sm text-gray-600">
+          <p className="mt-6 rounded-xl border border-stone-200/70 bg-white p-5 text-sm leading-relaxed text-stone-600 shadow-sm">
             Want to be actively promoted by GSA and earn the gold-standard
             accreditation badge?{" "}
-            <Link href="/apply" className="underline">
+            <Link href="/apply" className="font-semibold text-brand-700 underline">
               Apply for GSA accreditation →
             </Link>
           </p>
@@ -42,7 +42,7 @@ export default async function ListYourSchoolPage() {
         {p.published && (
           <Link
             href={`/directory/${p.slug}`}
-            className="mt-6 inline-block text-sm text-gray-500 underline"
+            className="mt-6 inline-block text-sm text-stone-500 underline transition-colors duration-150 hover:text-stone-900"
           >
             View your listing
           </Link>
@@ -53,21 +53,27 @@ export default async function ListYourSchoolPage() {
 
   return (
     <div className="mx-auto max-w-xl">
-      <h1 className="text-2xl font-semibold tracking-tight">
+      <p className="text-xs font-semibold uppercase tracking-widest text-stone-500">
+        Become a host
+      </p>
+      <h1 className="mt-2 text-3xl font-bold tracking-tight">
         List your school as a host
       </h1>
-      <p className="mb-2 mt-2 text-sm text-gray-500">
+      <p className="mt-3 text-sm leading-relaxed text-stone-600">
         Join the global directory in a few minutes. Welcome overseas groups,
         build global citizenship at your school, and get paid for hosting.
       </p>
-      <p className="mb-8 text-sm text-gray-500">
+      <p className="mt-2 text-sm leading-relaxed text-stone-500">
         Signed in as {user?.email}. Listings get a quick review from the GSA
         team before going live. You can apply for full{" "}
         <Link href="/apply" className="underline">GSA accreditation</Link>{" "}
         — the gold standard, actively promoted by GSA — at any time.
       </p>
 
-      <form action={submitListing} className="space-y-4">
+      <form
+        action={submitListing}
+        className="mt-8 space-y-4 rounded-2xl border border-stone-200/70 bg-white p-6 shadow-sm sm:p-8"
+      >
         <div>
           <label className={labelCls} htmlFor="school_name">School name</label>
           <input className={inputCls} id="school_name" name="school_name" required />
@@ -117,12 +123,12 @@ export default async function ListYourSchoolPage() {
           <input className={inputCls} id="languages" name="languages" placeholder="English, Spanish" />
         </div>
         <div className="flex gap-6">
-          <label className="flex items-center gap-2 text-sm text-gray-700">
-            <input type="checkbox" name="boarding" className="rounded border-gray-300" />
+          <label className="flex items-center gap-2 text-sm text-stone-700">
+            <input type="checkbox" name="boarding" className="rounded border-stone-300" />
             Boarding available
           </label>
-          <label className="flex items-center gap-2 text-sm text-gray-700">
-            <input type="checkbox" name="homestay" className="rounded border-gray-300" />
+          <label className="flex items-center gap-2 text-sm text-stone-700">
+            <input type="checkbox" name="homestay" className="rounded border-stone-300" />
             Homestay available
           </label>
         </div>
@@ -134,10 +140,10 @@ export default async function ListYourSchoolPage() {
         </div>
         <div>
           <label className={labelCls} htmlFor="photo">
-            A photo of your school <span className="font-normal text-gray-500">(optional, but listings with photos get far more interest)</span>
+            A photo of your school <span className="font-normal text-stone-500">(optional, but listings with photos get far more interest)</span>
           </label>
           <input
-            className="mt-1 w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-gray-100 file:px-4 file:py-2 file:text-sm file:font-medium file:text-gray-700 hover:file:bg-gray-200"
+            className="mt-1 w-full text-sm text-stone-600 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-brand-700 hover:file:bg-brand-100"
             id="photo"
             name="photo"
             type="file"
@@ -146,11 +152,11 @@ export default async function ListYourSchoolPage() {
         </div>
         <button
           type="submit"
-          className="w-full rounded-lg bg-gray-900 px-4 py-3 text-sm font-medium text-white hover:bg-gray-700"
+          className="w-full rounded-lg bg-brand-700 px-4 py-3 text-sm font-semibold text-white transition-colors duration-150 hover:bg-brand-800"
         >
           Submit my listing for review
         </button>
-        <p className="text-center text-xs text-gray-500">
+        <p className="text-center text-xs text-stone-500">
           The GSA team reviews every listing — yours will be live within a
           couple of days.
         </p>

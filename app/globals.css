@@ -1,5 +1,19 @@
 @import "tailwindcss";
 
+/*
+ * Brand accent — deep institutional blue. Placeholder until GSA supplies
+ * official brand colours: swap these six values and the whole site follows.
+ */
+@theme {
+  --color-brand-50: #eff4fb;
+  --color-brand-100: #dbe6f6;
+  --color-brand-200: #b3c9e9;
+  --color-brand-600: #24509e;
+  --color-brand-700: #1d4286;
+  --color-brand-800: #17356c;
+  --color-brand-900: #122a54;
+}
+
 body {
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
@@ -23,7 +37,7 @@ button:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 2px solid #111827;
+  outline: 2px solid var(--color-brand-600);
   outline-offset: 2px;
   border-radius: 4px;
 }

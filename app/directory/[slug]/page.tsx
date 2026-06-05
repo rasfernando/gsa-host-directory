@@ -6,7 +6,7 @@ import { submitEnquiry } from "./actions";
 export const dynamic = "force-dynamic";
 
 const inputCls =
-  "mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none";
+  "mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm focus:border-brand-600 focus:outline-none";
 const labelCls = "block text-sm font-medium";
 
 export default async function ProfilePage({
@@ -31,7 +31,10 @@ export default async function ProfilePage({
 
   return (
     <div className="mx-auto max-w-3xl">
-      <Link href="/directory" className="text-sm text-gray-500 hover:text-gray-900">
+      <Link
+        href="/directory"
+        className="text-sm text-stone-500 transition-colors duration-150 hover:text-stone-900"
+      >
         ← All host schools
       </Link>
 
@@ -40,41 +43,49 @@ export default async function ProfilePage({
         <img
           src={(profile.media as { url: string }[])[0].url}
           alt={`${profile.name} campus`}
-          className="mt-4 aspect-[2/1] w-full rounded-xl object-cover"
+          className="mt-5 aspect-[2/1] w-full rounded-2xl object-cover shadow-sm"
         />
       )}
 
-      <div className="mt-4 flex items-start justify-between">
+      <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">{profile.name}</h1>
-          <p className="mt-1 text-gray-500">
+          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+            {profile.name}
+          </h1>
+          <p className="mt-1.5 text-stone-500">
             {profile.city ? `${profile.city}, ` : ""}
             {profile.country}
           </p>
         </div>
         {profile.tier === "accredited" ? (
-          <Link href="/accreditation" className="rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700 hover:bg-green-100">
+          <Link
+            href="/accreditation"
+            className="shrink-0 self-start rounded-full bg-emerald-100 px-3.5 py-1.5 text-xs font-semibold text-emerald-800 transition-colors duration-150 hover:bg-emerald-200"
+          >
             GSA Accredited host
             {profile.accredited_at &&
               ` · since ${new Date(profile.accredited_at).getFullYear()}`}
           </Link>
         ) : (
-          <Link href="/accreditation" className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-500 hover:bg-gray-200">
+          <Link
+            href="/accreditation"
+            className="shrink-0 self-start rounded-full bg-stone-100 px-3.5 py-1.5 text-xs font-medium text-stone-500 transition-colors duration-150 hover:bg-stone-200"
+          >
             Listed host · not yet GSA Accredited
           </Link>
         )}
       </div>
 
       {profile.tier === "accredited" && (
-        <div className="mt-5 flex flex-col gap-3 rounded-xl border border-green-100 bg-green-50/50 p-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-gray-700">
+        <div className="mt-6 flex flex-col gap-3 rounded-2xl border border-emerald-200/70 bg-emerald-50/60 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm leading-relaxed text-stone-700">
             <strong>Need sign-off for a trip?</strong> Download the GSA
             verification statement — what we checked and when, ready to hand
             to your head, governors, or EVC.
           </p>
           <Link
             href={`/directory/${profile.slug}/verification`}
-            className="shrink-0 rounded-lg bg-gray-900 px-4 py-2.5 text-center text-sm font-medium text-white hover:bg-gray-700"
+            className="shrink-0 rounded-lg bg-brand-700 px-4 py-2.5 text-center text-sm font-semibold text-white transition-colors duration-150 hover:bg-brand-800"
           >
             Verification statement
           </Link>
@@ -82,15 +93,17 @@ export default async function ProfilePage({
       )}
 
       {profile.headline && (
-        <p className="mt-4 text-lg text-gray-700">{profile.headline}</p>
+        <p className="mt-6 text-lg leading-relaxed text-stone-700">
+          {profile.headline}
+        </p>
       )}
       {profile.description && (
-        <p className="mt-3 whitespace-pre-line text-sm text-gray-600">
+        <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-stone-600">
           {profile.description}
         </p>
       )}
 
-      <dl className="mt-8 grid grid-cols-2 gap-x-6 gap-y-4 rounded-xl border border-gray-100 p-6 text-sm sm:grid-cols-3">
+      <dl className="mt-8 grid grid-cols-2 gap-x-6 gap-y-5 rounded-2xl border border-stone-200/70 bg-white p-6 text-sm shadow-sm sm:grid-cols-3">
         <Fact label="Age range">
           {profile.age_range_min != null
             ? `${profile.age_range_min}–${profile.age_range_max}`
@@ -114,9 +127,12 @@ export default async function ProfilePage({
       </dl>
 
       {(profile.focus_tags ?? []).length > 0 && (
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mt-5 flex flex-wrap gap-2">
           {profile.focus_tags.map((t: string) => (
-            <span key={t} className="rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-600">
+            <span
+              key={t}
+              className="rounded-full bg-stone-100 px-3 py-1 text-xs font-medium text-stone-600"
+            >
               {t}
             </span>
           ))}
@@ -124,24 +140,28 @@ export default async function ProfilePage({
       )}
 
       {/* Enquiry form */}
-      <section className="mt-10 rounded-xl border border-gray-100 p-6">
-        <h2 className="text-lg font-semibold">Enquire about visiting</h2>
-        <p className="mt-1 text-sm text-gray-500">
+      <section className="mt-12 rounded-2xl border border-stone-200/70 bg-white p-6 shadow-sm sm:p-8">
+        <h2 className="text-xl font-bold tracking-tight">
+          Enquire about visiting
+        </h2>
+        <p className="mt-1.5 text-sm leading-relaxed text-stone-500">
           Enquiries go to the GSA team, who facilitate every visit and will
           come back to you within a few days.
         </p>
 
         {enquiry === "sent" ? (
-          <div className="mt-4 rounded-lg bg-green-50 p-4 text-sm text-green-800">
-            <p className="font-medium">Enquiry sent — here&apos;s what happens next:</p>
-            <ol className="mt-2 list-decimal space-y-1 pl-5">
+          <div className="mt-5 rounded-xl bg-emerald-50 p-5 text-sm text-emerald-900">
+            <p className="font-semibold">
+              Enquiry sent — here&apos;s what happens next:
+            </p>
+            <ol className="mt-2 list-decimal space-y-1.5 pl-5">
               <li>You&apos;ll get a confirmation email with a copy of your enquiry.</li>
               <li>A member of the GSA team reviews it and contacts you within 2–3 working days.</li>
               <li>GSA introduces you to the school and supports planning from there — you&apos;re never left to arrange things alone.</li>
             </ol>
           </div>
         ) : (
-          <form action={submitEnquiry} className="mt-5 space-y-4">
+          <form action={submitEnquiry} className="mt-6 space-y-4">
             <input type="hidden" name="host_profile_id" value={profile.id} />
             <input type="hidden" name="slug" value={profile.slug} />
             <div className="grid gap-4 sm:grid-cols-2">
@@ -179,10 +199,10 @@ export default async function ProfilePage({
                 placeholder="Tell us about your group, what kind of visit you have in mind, and anything else useful."
               />
             </div>
-            <button className="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-gray-700">
+            <button className="rounded-lg bg-brand-700 px-5 py-3 text-sm font-semibold text-white transition-colors duration-150 hover:bg-brand-800">
               Send enquiry to the GSA team
             </button>
-            <p className="mt-2 text-xs text-gray-500">
+            <p className="mt-2 text-xs text-stone-500">
               No commitment — this starts a conversation, not a booking.
             </p>
           </form>
@@ -195,8 +215,10 @@ export default async function ProfilePage({
 function Fact({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <dt className="text-xs uppercase tracking-wide text-gray-500">{label}</dt>
-      <dd className="mt-0.5 text-gray-800">{children}</dd>
+      <dt className="text-[11px] font-semibold uppercase tracking-wider text-stone-500">
+        {label}
+      </dt>
+      <dd className="mt-1 text-stone-800">{children}</dd>
     </div>
   );
 }

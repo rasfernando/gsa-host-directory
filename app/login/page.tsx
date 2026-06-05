@@ -33,9 +33,9 @@ function LoginForm() {
 
   if (status === "sent") {
     return (
-      <p className="text-gray-600">
+      <p className="text-stone-600">
         Check your inbox — we&apos;ve sent a sign-in link to{" "}
-        <span className="font-medium text-gray-900">{email}</span>.
+        <span className="font-medium text-stone-900">{email}</span>.
       </p>
     );
   }
@@ -52,7 +52,7 @@ function LoginForm() {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none"
+          className="mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm focus:border-brand-600 focus:outline-none"
           placeholder="you@yourschool.edu"
         />
       </div>
@@ -60,7 +60,7 @@ function LoginForm() {
       <button
         type="submit"
         disabled={status === "sending"}
-        className="w-full rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-50"
+        className="w-full rounded-lg bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-brand-800 disabled:opacity-50"
       >
         {status === "sending" ? "Sending…" : "Email me a sign-in link"}
       </button>
@@ -71,8 +71,8 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <div className="mx-auto max-w-sm py-16">
-      <h1 className="text-2xl font-semibold tracking-tight">Sign in</h1>
-      <p className="mb-6 mt-2 text-sm text-gray-500">
+      <h1 className="text-3xl font-bold tracking-tight">Sign in</h1>
+      <p className="mb-6 mt-2 text-sm text-stone-500">
         No password needed — we&apos;ll email you a sign-in link.
       </p>
       <Suspense>
