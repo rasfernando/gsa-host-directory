@@ -41,7 +41,7 @@ export default async function RootLayout({
               <Link href="/directory" className="hover:text-gray-900">
                 Directory
               </Link>
-              <Link href="/apply" className="hover:text-gray-900">
+              <Link href="/list-your-school" className="hover:text-gray-900">
                 Become a host
               </Link>
               {isAdmin && (

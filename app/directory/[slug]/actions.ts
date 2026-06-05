@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { notifyGsa } from "@/lib/notify";
+import { logEvent } from "@/lib/events";
 
 // Submits an enquiry about a host school. Works for signed-out visitors —
 // RLS only allows inserts against published profiles.
@@ -28,6 +29,9 @@ export async function submitEnquiry(formData: FormData) {
   });
   if (error) throw new Error(`Could not send enquiry: ${error.message}`);
 
+  await logEvent("enquiry_submitted", {
+    profile_id: String(formData.get("host_profile_id")),
+  });
   await notifyGsa(
     `New enquiry: ${formData.get("enquirer_school_name")} → ${slug}`,
     `<p><strong>${formData.get("enquirer_school_name")}</strong> has enquired about a visit.</p>

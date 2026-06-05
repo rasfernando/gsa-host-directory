@@ -21,6 +21,7 @@ export default async function VerificationStatement({
     .select("name, slug, country, city, accredited_at, verification_summary")
     .eq("slug", slug)
     .eq("published", true)
+    .eq("tier", "accredited")
     .single();
 
   if (!profile) notFound();

@@ -13,10 +13,10 @@ export default function Home() {
       </p>
       <div className="mt-8 flex justify-center gap-4">
         <Link
-          href="/apply"
+          href="/list-your-school"
           className="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-gray-700"
         >
-          Apply to host
+          List your school
         </Link>
         <Link
           href="/directory"
@@ -25,6 +25,13 @@ export default function Home() {
           Browse directory
         </Link>
       </div>
+      <p className="mt-6 text-sm text-gray-400">
+        Already listed?{" "}
+        <Link href="/apply" className="underline hover:text-gray-600">
+          Apply for GSA accreditation
+        </Link>{" "}
+        — the gold standard, actively promoted worldwide.
+      </p>
     </div>
   );
 }

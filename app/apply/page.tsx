@@ -52,11 +52,14 @@ export default async function ApplyPage() {
   return (
     <div className="mx-auto max-w-xl">
       <h1 className="text-2xl font-semibold tracking-tight">
-        Apply to become a GSA host school
+        Apply for GSA accreditation
       </h1>
       <p className="mb-8 mt-2 text-sm text-gray-500">
-        Signed in as {user?.email}. GSA verifies every school before listing —
-        you&apos;ll be contacted to complete verification after submitting.
+        Signed in as {user?.email}. GSA Accredited schools are the gold
+        standard of the network — fully verified, actively promoted to
+        visiting groups worldwide, and issued a verification statement
+        schools can use for trip approval. The GSA team will contact you to
+        complete verification after you submit.
       </p>
 
       <form action={submitApplication} className="space-y-8">

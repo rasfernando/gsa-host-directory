@@ -23,9 +23,11 @@ export default async function DirectoryPage({
   let query = supabase
     .from("host_profiles")
     .select(
-      "id, name, slug, headline, country, city, languages, age_range_min, age_range_max, focus_tags, boarding, homestay, capacity"
+      "id, name, slug, headline, country, city, languages, age_range_min, age_range_max, focus_tags, boarding, homestay, capacity, tier"
     )
     .eq("published", true)
+    // Accredited schools first — they're the actively promoted catalog
+    .order("tier", { ascending: false })
     .order("name");
 
   if (params.q) query = query.ilike("name", `%${params.q}%`);
@@ -33,6 +35,7 @@ export default async function DirectoryPage({
   if (params.focus) query = query.contains("focus_tags", [params.focus]);
   if (params.boarding === "on") query = query.eq("boarding", true);
   if (params.homestay === "on") query = query.eq("homestay", true);
+  if (params.accredited === "on") query = query.eq("tier", "accredited");
 
   const { data: profiles } = await query;
   const results = profiles ?? [];
@@ -43,10 +46,12 @@ export default async function DirectoryPage({
   return (
     <div>
       <h1 className="text-2xl font-semibold tracking-tight">
-        Verified host schools
+        Host schools worldwide
       </h1>
       <p className="mt-1 text-sm text-gray-500">
-        Every school here has been personally verified and accredited by GSA.
+        <span className="font-medium text-green-700">GSA Accredited</span>{" "}
+        schools have passed GSA&apos;s gold-standard verification and are
+        actively promoted. Listed hosts are reviewed members of the network.
       </p>
 
       {/* Filters — a plain GET form, no JavaScript needed */}
@@ -66,6 +71,10 @@ export default async function DirectoryPage({
         <label className="flex items-center gap-1.5 text-sm text-gray-600">
           <input type="checkbox" name="homestay" defaultChecked={params.homestay === "on"} className="rounded border-gray-300" />
           Homestay
+        </label>
+        <label className="flex items-center gap-1.5 text-sm text-gray-600">
+          <input type="checkbox" name="accredited" defaultChecked={params.accredited === "on"} className="rounded border-gray-300" />
+          GSA Accredited only
         </label>
         <button className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700">
           Filter
@@ -92,9 +101,15 @@ export default async function DirectoryPage({
               >
                 <div className="flex items-start justify-between">
                   <h2 className="text-base font-semibold">{p.name}</h2>
-                  <span className="ml-3 shrink-0 rounded-full bg-green-50 px-2 py-0.5 text-[11px] font-medium text-green-700">
-                    GSA verified
-                  </span>
+                  {p.tier === "accredited" ? (
+                    <span className="ml-3 shrink-0 rounded-full bg-green-50 px-2 py-0.5 text-[11px] font-medium text-green-700">
+                      GSA Accredited
+                    </span>
+                  ) : (
+                    <span className="ml-3 shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-500">
+                      Listed host
+                    </span>
+                  )}
                 </div>
                 <p className="mt-0.5 text-sm text-gray-500">
                   {p.city ? `${p.city}, ` : ""}{p.country}

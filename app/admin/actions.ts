@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { logEvent } from "@/lib/events";
 
 async function requireAdmin() {
   const supabase = await createClient();
@@ -94,27 +95,42 @@ export async function approveApplication(formData: FormData) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 
-  // Profile starts unpublished — GSA publishes once content is complete
-  const { error: profileError } = await supabase.from("host_profiles").insert({
-    school_id: app.school_id,
-    name: school?.name ?? "",
-    slug: `${slug}-${applicationId.slice(0, 4)}`,
-    published: false,
-    country: school?.country ?? "",
-    city: school?.city ?? "",
-    languages: (answers.languages as string[]) ?? [],
-    age_range_min: (answers.age_range_min as number) ?? null,
-    age_range_max: (answers.age_range_max as number) ?? null,
-    subject_strengths: (answers.subject_strengths as string[]) ?? [],
-    focus_tags: (answers.focus_areas as string[]) ?? [],
-    boarding: Boolean(answers.boarding),
-    homestay: Boolean(answers.homestay),
-    capacity: (answers.capacity as number) ?? null,
-    typical_hosting_windows: (answers.typical_hosting_windows as string) ?? null,
-    verification_summary: verificationSummary,
-    accredited_at: new Date().toISOString(),
-  });
+  // Upsert: a school upgrading from a Tier 1 listing keeps its existing
+  // profile (and slug); a school applying directly gets a new one.
+  // Either way the profile becomes accredited. Publishing stays manual.
+  const { data: upserted, error: profileError } = await supabase
+    .from("host_profiles")
+    .upsert(
+      {
+        school_id: app.school_id,
+        name: school?.name ?? "",
+        slug: `${slug}-${applicationId.slice(0, 4)}`,
+        tier: "accredited",
+        published: false,
+        country: school?.country ?? "",
+        city: school?.city ?? "",
+        languages: (answers.languages as string[]) ?? [],
+        age_range_min: (answers.age_range_min as number) ?? null,
+        age_range_max: (answers.age_range_max as number) ?? null,
+        subject_strengths: (answers.subject_strengths as string[]) ?? [],
+        focus_tags: (answers.focus_areas as string[]) ?? [],
+        boarding: Boolean(answers.boarding),
+        homestay: Boolean(answers.homestay),
+        capacity: (answers.capacity as number) ?? null,
+        typical_hosting_windows: (answers.typical_hosting_windows as string) ?? null,
+        verification_summary: verificationSummary,
+        accredited_at: new Date().toISOString(),
+      },
+      { onConflict: "school_id" }
+    )
+    .select("id")
+    .single();
   if (profileError) throw new Error(profileError.message);
+
+  await logEvent("application_approved", {
+    school_id: app.school_id,
+    profile_id: upserted?.id,
+  });
 
   revalidatePath("/admin");
   revalidatePath(`/admin/applications/${applicationId}`);
@@ -126,11 +142,20 @@ export async function togglePublish(formData: FormData) {
   const profileId = String(formData.get("profile_id"));
   const publish = formData.get("publish") === "true";
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from("host_profiles")
     .update({ published: publish })
-    .eq("id", profileId);
+    .eq("id", profileId)
+    .select("school_id")
+    .single();
   if (error) throw new Error(error.message);
+
+  if (publish) {
+    await logEvent("profile_published", {
+      school_id: updated?.school_id,
+      profile_id: profileId,
+    });
+  }
 
   revalidatePath("/admin/profiles");
   revalidatePath("/directory");
@@ -141,14 +166,24 @@ export async function updateEnquiry(formData: FormData) {
   const { supabase } = await requireAdmin();
   const enquiryId = String(formData.get("enquiry_id"));
 
-  const { error } = await supabase
+  const newStatus = String(formData.get("status"));
+  const { data: updated, error } = await supabase
     .from("enquiries")
     .update({
-      status: String(formData.get("status")),
+      status: newStatus,
       gsa_notes: String(formData.get("gsa_notes") || ""),
     })
-    .eq("id", enquiryId);
+    .eq("id", enquiryId)
+    .select("host_profile_id, status")
+    .single();
   if (error) throw new Error(error.message);
+
+  if (newStatus === "converted") {
+    await logEvent("enquiry_converted", {
+      profile_id: updated?.host_profile_id,
+      meta: { enquiry_id: enquiryId },
+    });
+  }
 
   revalidatePath("/admin/enquiries");
 }

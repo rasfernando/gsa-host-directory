@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { notifyGsa } from "@/lib/notify";
+import { logEvent } from "@/lib/events";
 
 // Creates the school (if first time), links it to the user,
 // and submits the host application with form answers stored as JSON.
@@ -80,6 +81,7 @@ export async function submitApplication(formData: FormData) {
   });
   if (appError) throw new Error(`Could not submit application: ${appError.message}`);
 
+  await logEvent("accreditation_applied", { school_id: schoolId });
   await notifyGsa(
     `New host application: ${formData.get("school_name") || "a school"}`,
     `<p><strong>${formData.get("school_name")}</strong> (${formData.get("country")}) has applied to become a GSA host school.</p>

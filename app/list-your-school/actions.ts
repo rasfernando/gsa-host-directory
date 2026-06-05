@@ -1,0 +1,100 @@
+"use server";
+
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { notifyGsa } from "@/lib/notify";
+import { logEvent } from "@/lib/events";
+
+// Tier 1 self-serve listing: creates the school and an unpublished "listed"
+// profile in one step. GSA does a light sanity check (real school, real
+// person) and publishes from the admin Profiles tab — no full accreditation
+// checklist required at this tier.
+export async function submitListing(formData: FormData) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login?next=/list-your-school");
+
+  const { data: profile } = await supabase
+    .from("user_profiles")
+    .select("school_id")
+    .eq("id", user.id)
+    .single();
+
+  let schoolId = profile?.school_id as string | null;
+  const schoolName = String(formData.get("school_name"));
+
+  if (!schoolId) {
+    const { data: school, error: schoolError } = await supabase
+      .from("schools")
+      .insert({
+        name: schoolName,
+        country: String(formData.get("country")),
+        city: String(formData.get("city") || ""),
+        website: String(formData.get("website") || ""),
+        contact_name: String(formData.get("contact_name")),
+        contact_email: user.email,
+      })
+      .select("id")
+      .single();
+    if (schoolError) throw new Error(`Could not create school: ${schoolError.message}`);
+    schoolId = school.id;
+
+    await supabase
+      .from("user_profiles")
+      .update({ school_id: schoolId, full_name: String(formData.get("contact_name")) })
+      .eq("id", user.id);
+  }
+
+  const slug =
+    schoolName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "") +
+    "-" +
+    Math.random().toString(36).slice(2, 6);
+
+  const { data: newProfile, error: profileError } = await supabase
+    .from("host_profiles")
+    .insert({
+      school_id: schoolId,
+      name: schoolName,
+      slug,
+      tier: "listed",
+      published: false,
+      headline: String(formData.get("headline") || ""),
+      country: String(formData.get("country")),
+      city: String(formData.get("city") || ""),
+      languages: String(formData.get("languages") || "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean),
+      age_range_min: formData.get("age_range_min") ? Number(formData.get("age_range_min")) : null,
+      age_range_max: formData.get("age_range_max") ? Number(formData.get("age_range_max")) : null,
+      boarding: formData.get("boarding") === "on",
+      homestay: formData.get("homestay") === "on",
+      capacity: formData.get("capacity") ? Number(formData.get("capacity")) : null,
+      typical_hosting_windows: String(formData.get("typical_hosting_windows") || "") || null,
+    })
+    .select("id")
+    .single();
+  if (profileError) {
+    throw new Error(
+      profileError.code === "23505"
+        ? "Your school already has a listing."
+        : `Could not create listing: ${profileError.message}`
+    );
+  }
+
+  await logEvent("listing_created", { school_id: schoolId, profile_id: newProfile.id });
+  await notifyGsa(
+    `New host listing: ${schoolName}`,
+    `<p><strong>${schoolName}</strong> (${formData.get("country")}) has listed as a host school (Tier 1 — needs a quick review before publishing).</p>
+     <p>Contact: ${formData.get("contact_name")} — ${user.email}</p>
+     <p><a href="https://gsa-host-directory.vercel.app/admin/profiles">Review listings</a></p>`
+  );
+
+  redirect("/list-your-school/submitted");
+}

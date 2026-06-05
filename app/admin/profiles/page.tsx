@@ -7,7 +7,7 @@ export default async function AdminProfiles() {
 
   const { data: profiles } = await supabase
     .from("host_profiles")
-    .select("id, name, slug, country, city, published, accredited_at")
+    .select("id, name, slug, country, city, published, tier, accredited_at")
     .order("created_at", { ascending: false });
 
   const list = profiles ?? [];
@@ -29,7 +29,18 @@ export default async function AdminProfiles() {
           {list.map((p) => (
             <li key={p.id} className="flex items-center justify-between px-5 py-4">
               <div>
-                <p className="text-sm font-medium">{p.name}</p>
+                <p className="text-sm font-medium">
+                  {p.name}{" "}
+                  <span
+                    className={
+                      p.tier === "accredited"
+                        ? "ml-1 rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-700"
+                        : "ml-1 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-500"
+                    }
+                  >
+                    {p.tier}
+                  </span>
+                </p>
                 <p className="text-xs text-gray-400">
                   {p.city ? `${p.city}, ` : ""}
                   {p.country}
