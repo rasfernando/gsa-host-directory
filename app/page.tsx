@@ -7,7 +7,7 @@ export default async function Home() {
   const supabase = await createClient();
   const { data: featured } = await supabase
     .from("host_profiles")
-    .select("id, name, slug, headline, country, city, tier, media")
+    .select("id, name, slug, headline, country, city, tier, media, focus_tags, boarding, homestay")
     .eq("published", true)
     .order("tier", { ascending: false })
     .order("accredited_at", { ascending: true })
@@ -15,19 +15,16 @@ export default async function Home() {
 
   return (
     <div>
-      {/* Full-bleed hero — breaks out of the centred <main> container */}
+      {/* Full-bleed hero — discovery-led: the main action is to look */}
       <section className="relative -mt-10 mb-16 ml-[calc(50%-50vw)] w-screen overflow-hidden bg-brand-900">
-        {/* warm glow, top-right */}
         <div
           aria-hidden
           className="absolute inset-0 bg-[radial-gradient(110%_120%_at_82%_-10%,#c8612f_0%,transparent_52%)] opacity-60"
         />
-        {/* keep the left side dark enough for the headline to read */}
         <div
           aria-hidden
           className="absolute inset-0 bg-gradient-to-r from-brand-900 via-brand-900/80 to-transparent"
         />
-        {/* illustrated "connected world" scene along the bottom */}
         <WorldScene className="pointer-events-none absolute inset-x-0 bottom-0 h-[62%] w-full" />
 
         <div className="relative mx-auto max-w-5xl px-6 py-24 sm:py-32">
@@ -36,27 +33,45 @@ export default async function Home() {
               Global School Alliance
             </p>
             <h1 className="mt-4 text-4xl font-bold leading-tight tracking-tight text-white sm:text-6xl">
-              Welcome the world to your school
+              Explore host schools around the world
             </h1>
             <p className="mt-5 max-w-lg text-base leading-relaxed text-brand-100 sm:text-lg">
-              Host a visiting class from the other side of the planet — or find a
-              school abroad ready to welcome yours. Every connection is looked
-              after, start to finish, by the GSA team.
+              See the schools welcoming visiting groups worldwide — what they
+              offer, where they are, and how they host. Every one is reviewed by
+              the GSA team.
             </p>
-            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-              <Link
-                href="/list-your-school"
-                className="rounded-lg bg-warm-600 px-6 py-3 text-center text-sm font-semibold text-white shadow-sm transition-colors duration-150 hover:bg-warm-700"
-              >
-                List your school
-              </Link>
+
+            {/* Primary action: search the directory */}
+            <form
+              method="get"
+              action="/directory"
+              className="mt-8 flex max-w-md gap-2 rounded-xl bg-white/10 p-2 ring-1 ring-white/20 backdrop-blur-sm"
+            >
+              <input
+                name="country"
+                placeholder="Search by country…"
+                aria-label="Search host schools by country"
+                className="min-w-0 flex-1 rounded-lg bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none"
+              />
+              <button className="shrink-0 rounded-lg bg-warm-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-warm-700">
+                Search
+              </button>
+            </form>
+            <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
               <Link
                 href="/directory"
-                className="rounded-lg border border-white/25 bg-white/5 px-6 py-3 text-center text-sm font-semibold text-white backdrop-blur-sm transition-colors duration-150 hover:bg-white/10"
+                className="font-semibold text-white underline-offset-4 hover:underline"
               >
-                Browse the directory
+                Browse all host schools →
+              </Link>
+              <Link
+                href="/list-your-school"
+                className="text-brand-200 transition-colors duration-150 hover:text-white"
+              >
+                Run a school? List as a host
               </Link>
             </div>
+
             <p className="mt-8 text-xs text-brand-200">
               Part of a network of 8,000+ schools across 142 countries.
             </p>
@@ -64,16 +79,16 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Featured host schools — real listings, real photos */}
+      {/* Featured schools — the product, framed for sizing up the field */}
       {featured && featured.length > 0 && (
         <section className="mt-16">
           <div className="flex items-end justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-widest text-warm-700">
-                From the directory
+                In the directory
               </p>
               <h2 className="mt-2 text-2xl font-bold tracking-tight">
-                Schools ready to welcome you
+                See what host schools offer
               </h2>
             </div>
             <Link
@@ -119,6 +134,13 @@ export default async function Home() {
                       {p.city ? `${p.city}, ` : ""}
                       {p.country}
                     </p>
+                    <div className="mt-2.5 flex flex-wrap gap-1.5">
+                      {p.boarding && <Tag>Boarding</Tag>}
+                      {p.homestay && <Tag>Homestay</Tag>}
+                      {((p.focus_tags as string[] | null) ?? []).slice(0, 2).map((t) => (
+                        <Tag key={t}>{t}</Tag>
+                      ))}
+                    </div>
                   </div>
                 </Link>
               </li>
@@ -157,8 +179,27 @@ export default async function Home() {
         </ol>
       </section>
 
-      {/* Two audiences */}
+      {/* Become a host — the natural next step after looking around */}
       <section className="mt-16 grid gap-4 sm:grid-cols-2">
+        <div className="flex flex-col rounded-2xl border border-stone-200/70 bg-white p-7 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-widest text-warm-700">
+            For host schools
+          </p>
+          <h3 className="mt-2 text-xl font-bold tracking-tight">
+            Seen what others offer? Add your school
+          </h3>
+          <p className="mt-3 flex-1 text-sm leading-relaxed text-stone-600">
+            If your school can welcome a visiting group, you belong here. Join
+            the directory in a few minutes, build global citizenship at your
+            school, and get paid for hosting.
+          </p>
+          <Link
+            href="/list-your-school"
+            className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-warm-700 transition-colors duration-150 hover:text-warm-600"
+          >
+            List your school <span aria-hidden>→</span>
+          </Link>
+        </div>
         <div className="flex flex-col rounded-2xl border border-stone-200/70 bg-white p-7 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-widest text-warm-700">
             For visiting schools
@@ -167,7 +208,6 @@ export default async function Home() {
             Plan a trip your leadership team can sign off
           </h3>
           <p className="mt-3 flex-1 text-sm leading-relaxed text-stone-600">
-            Find verified host schools by country, age range, and focus area.
             GSA Accredited schools come with a printable verification statement
             — what we checked and when — ready for your head, governors, or
             EVC.
@@ -177,25 +217,6 @@ export default async function Home() {
             className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-warm-700 transition-colors duration-150 hover:text-warm-600"
           >
             Browse host schools <span aria-hidden>→</span>
-          </Link>
-        </div>
-        <div className="flex flex-col rounded-2xl border border-stone-200/70 bg-white p-7 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-widest text-warm-700">
-            For host schools
-          </p>
-          <h3 className="mt-2 text-xl font-bold tracking-tight">
-            Open your doors to the world
-          </h3>
-          <p className="mt-3 flex-1 text-sm leading-relaxed text-stone-600">
-            Join the directory in a few minutes. Welcome overseas groups, give
-            your students a global experience without leaving campus, and get
-            paid for hosting.
-          </p>
-          <Link
-            href="/list-your-school"
-            className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-warm-700 transition-colors duration-150 hover:text-warm-600"
-          >
-            List your school <span aria-hidden>→</span>
           </Link>
         </div>
       </section>
@@ -230,6 +251,14 @@ export default async function Home() {
         </div>
       </section>
     </div>
+  );
+}
+
+function Tag({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-medium text-stone-600">
+      {children}
+    </span>
   );
 }
 
@@ -289,8 +318,6 @@ function WorldScene({ className }: { className?: string }) {
         <circle cx="1010" cy="232" r="4" />
         <circle cx="1240" cy="240" r="4" />
       </g>
-
-      {/* — schools across cultures (simple silhouettes) — */}
 
       {/* schoolhouse with flag */}
       <g>
