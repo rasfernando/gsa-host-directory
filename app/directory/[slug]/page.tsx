@@ -85,7 +85,7 @@ export default async function ProfilePage({
           </p>
           <Link
             href={`/directory/${profile.slug}/verification`}
-            className="shrink-0 rounded-lg bg-brand-700 px-4 py-2.5 text-center text-sm font-semibold text-white transition-colors duration-150 hover:bg-brand-800"
+            className="shrink-0 rounded-lg bg-warm-600 px-4 py-2.5 text-center text-sm font-semibold text-white transition-colors duration-150 hover:bg-warm-700"
           >
             Verification statement
           </Link>
@@ -199,7 +199,7 @@ export default async function ProfilePage({
                 placeholder="Tell us about your group, what kind of visit you have in mind, and anything else useful."
               />
             </div>
-            <button className="rounded-lg bg-brand-700 px-5 py-3 text-sm font-semibold text-white transition-colors duration-150 hover:bg-brand-800">
+            <button className="rounded-lg bg-warm-600 px-5 py-3 text-sm font-semibold text-white transition-colors duration-150 hover:bg-warm-700">
               Send enquiry to the GSA team
             </button>
             <p className="mt-2 text-xs text-stone-500">

@@ -30,7 +30,7 @@ export default async function ListYourSchoolPage() {
         </p>
         <Link
           href="/login?next=/list-your-school"
-          className="mt-8 inline-block rounded-lg bg-brand-700 px-6 py-3 text-sm font-semibold text-white transition-colors duration-150 hover:bg-brand-800"
+          className="mt-8 inline-block rounded-lg bg-warm-600 px-6 py-3 text-sm font-semibold text-white transition-colors duration-150 hover:bg-warm-700"
         >
           Sign in to get started
         </Link>
@@ -191,7 +191,7 @@ export default async function ListYourSchoolPage() {
         </div>
         <button
           type="submit"
-          className="w-full rounded-lg bg-brand-700 px-4 py-3 text-sm font-semibold text-white transition-colors duration-150 hover:bg-brand-800"
+          className="w-full rounded-lg bg-warm-600 px-4 py-3 text-sm font-semibold text-white transition-colors duration-150 hover:bg-warm-700"
         >
           Submit my listing for review
         </button>

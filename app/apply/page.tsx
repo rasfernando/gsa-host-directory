@@ -188,7 +188,7 @@ export default async function ApplyPage() {
 
         <button
           type="submit"
-          className="w-full rounded-lg bg-brand-700 px-4 py-3 text-sm font-semibold text-white transition-colors duration-150 hover:bg-brand-800"
+          className="w-full rounded-lg bg-warm-600 px-4 py-3 text-sm font-semibold text-white transition-colors duration-150 hover:bg-warm-700"
         >
           Submit for verification
         </button>

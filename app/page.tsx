@@ -15,44 +15,52 @@ export default async function Home() {
 
   return (
     <div>
-      {/* Hero */}
-      <section className="relative overflow-hidden rounded-3xl bg-brand-800 px-6 py-16 sm:px-12 sm:py-20">
-        {/* layered background: radial glow + connection-arc globe */}
+      {/* Full-bleed hero — breaks out of the centred <main> container */}
+      <section className="relative -mt-10 mb-16 ml-[calc(50%-50vw)] w-screen overflow-hidden bg-brand-900">
+        {/* warm glow, top-right */}
         <div
           aria-hidden
-          className="absolute inset-0 bg-[radial-gradient(80%_90%_at_85%_10%,#24509e_0%,transparent_60%)]"
+          className="absolute inset-0 bg-[radial-gradient(110%_120%_at_82%_-10%,#c8612f_0%,transparent_52%)] opacity-60"
         />
-        <GlobeArt className="absolute -right-24 -top-24 h-[34rem] w-[34rem] text-brand-200 opacity-[0.18] sm:-right-12 sm:-top-16" />
-        <div className="relative max-w-2xl">
-          <p className="text-xs font-semibold uppercase tracking-widest text-brand-200">
-            Global School Alliance
-          </p>
-          <h1 className="mt-4 text-4xl font-bold tracking-tight text-white sm:text-5xl">
-            Welcome the world to your school
-          </h1>
-          <p className="mt-5 max-w-xl text-base leading-relaxed text-brand-100 sm:text-lg">
-            Host visiting school groups from around the world — build global
-            citizenship at your school and get paid for hosting. Or find a
-            GSA-verified school for your next trip abroad.
-          </p>
-          <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-            <Link
-              href="/list-your-school"
-              className="rounded-lg bg-white px-6 py-3 text-center text-sm font-semibold text-brand-800 transition-colors duration-150 hover:bg-brand-50"
-            >
-              List your school
-            </Link>
-            <Link
-              href="/directory"
-              className="rounded-lg border border-brand-600 px-6 py-3 text-center text-sm font-semibold text-white transition-colors duration-150 hover:bg-brand-700"
-            >
-              Browse the directory
-            </Link>
+        {/* keep the left side dark enough for the headline to read */}
+        <div
+          aria-hidden
+          className="absolute inset-0 bg-gradient-to-r from-brand-900 via-brand-900/80 to-transparent"
+        />
+        {/* illustrated "connected world" scene along the bottom */}
+        <WorldScene className="pointer-events-none absolute inset-x-0 bottom-0 h-[62%] w-full" />
+
+        <div className="relative mx-auto max-w-5xl px-6 py-24 sm:py-32">
+          <div className="max-w-xl">
+            <p className="text-xs font-semibold uppercase tracking-widest text-warm-200">
+              Global School Alliance
+            </p>
+            <h1 className="mt-4 text-4xl font-bold leading-tight tracking-tight text-white sm:text-6xl">
+              Welcome the world to your school
+            </h1>
+            <p className="mt-5 max-w-lg text-base leading-relaxed text-brand-100 sm:text-lg">
+              Host a visiting class from the other side of the planet — or find a
+              school abroad ready to welcome yours. Every connection is looked
+              after, start to finish, by the GSA team.
+            </p>
+            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+              <Link
+                href="/list-your-school"
+                className="rounded-lg bg-warm-600 px-6 py-3 text-center text-sm font-semibold text-white shadow-sm transition-colors duration-150 hover:bg-warm-700"
+              >
+                List your school
+              </Link>
+              <Link
+                href="/directory"
+                className="rounded-lg border border-white/25 bg-white/5 px-6 py-3 text-center text-sm font-semibold text-white backdrop-blur-sm transition-colors duration-150 hover:bg-white/10"
+              >
+                Browse the directory
+              </Link>
+            </div>
+            <p className="mt-8 text-xs text-brand-200">
+              Part of a network of 8,000+ schools across 142 countries.
+            </p>
           </div>
-          <p className="mt-8 text-xs text-brand-200">
-            Part of the Global School Alliance — a network of 8,000+ schools
-            across 142 countries.
-          </p>
         </div>
       </section>
 
@@ -61,16 +69,16 @@ export default async function Home() {
         <section className="mt-16">
           <div className="flex items-end justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-stone-500">
+              <p className="text-xs font-semibold uppercase tracking-widest text-warm-700">
                 From the directory
               </p>
               <h2 className="mt-2 text-2xl font-bold tracking-tight">
-                Host schools ready to welcome you
+                Schools ready to welcome you
               </h2>
             </div>
             <Link
               href="/directory"
-              className="hidden shrink-0 text-sm font-semibold text-brand-700 transition-colors duration-150 hover:text-brand-800 sm:inline-flex sm:items-center sm:gap-1"
+              className="hidden shrink-0 text-sm font-semibold text-warm-700 transition-colors duration-150 hover:text-warm-600 sm:inline-flex sm:items-center sm:gap-1"
             >
               Browse all <span aria-hidden>→</span>
             </Link>
@@ -90,15 +98,15 @@ export default async function Home() {
                       className="aspect-[3/2] w-full object-cover"
                     />
                   ) : (
-                    <div className="flex aspect-[3/2] w-full items-center justify-center bg-gradient-to-br from-brand-50 to-brand-100">
-                      <span className="text-4xl font-bold text-brand-200">
+                    <div className="flex aspect-[3/2] w-full items-center justify-center bg-gradient-to-br from-warm-50 to-warm-100">
+                      <span className="text-4xl font-bold text-warm-300">
                         {p.name.charAt(0)}
                       </span>
                     </div>
                   )}
                   <div className="p-4">
                     <div className="flex items-start justify-between gap-2">
-                      <h3 className="text-sm font-semibold leading-snug group-hover:text-brand-800">
+                      <h3 className="text-sm font-semibold leading-snug group-hover:text-warm-700">
                         {p.name}
                       </h3>
                       {p.tier === "accredited" && (
@@ -118,7 +126,7 @@ export default async function Home() {
           </ul>
           <Link
             href="/directory"
-            className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-brand-700 sm:hidden"
+            className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-warm-700 sm:hidden"
           >
             Browse all host schools <span aria-hidden>→</span>
           </Link>
@@ -127,11 +135,11 @@ export default async function Home() {
 
       {/* How it works */}
       <section className="mt-16">
-        <p className="text-center text-xs font-semibold uppercase tracking-widest text-stone-500">
+        <p className="text-center text-xs font-semibold uppercase tracking-widest text-warm-700">
           How it works
         </p>
         <h2 className="mt-2 text-center text-2xl font-bold tracking-tight">
-          Every visit is facilitated by the GSA team
+          Every visit is looked after by the GSA team
         </h2>
         <ol className="mt-8 grid gap-4 sm:grid-cols-3">
           <Step n={1} title="Find a host school">
@@ -152,7 +160,7 @@ export default async function Home() {
       {/* Two audiences */}
       <section className="mt-16 grid gap-4 sm:grid-cols-2">
         <div className="flex flex-col rounded-2xl border border-stone-200/70 bg-white p-7 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-widest text-stone-500">
+          <p className="text-xs font-semibold uppercase tracking-widest text-warm-700">
             For visiting schools
           </p>
           <h3 className="mt-2 text-xl font-bold tracking-tight">
@@ -166,13 +174,13 @@ export default async function Home() {
           </p>
           <Link
             href="/directory"
-            className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-brand-700 transition-colors duration-150 hover:text-brand-800"
+            className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-warm-700 transition-colors duration-150 hover:text-warm-600"
           >
             Browse host schools <span aria-hidden>→</span>
           </Link>
         </div>
         <div className="flex flex-col rounded-2xl border border-stone-200/70 bg-white p-7 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-widest text-stone-500">
+          <p className="text-xs font-semibold uppercase tracking-widest text-warm-700">
             For host schools
           </p>
           <h3 className="mt-2 text-xl font-bold tracking-tight">
@@ -185,7 +193,7 @@ export default async function Home() {
           </p>
           <Link
             href="/list-your-school"
-            className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-brand-700 transition-colors duration-150 hover:text-brand-800"
+            className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-warm-700 transition-colors duration-150 hover:text-warm-600"
           >
             List your school <span aria-hidden>→</span>
           </Link>
@@ -209,7 +217,7 @@ export default async function Home() {
         <div className="flex shrink-0 flex-col gap-2 sm:items-end">
           <Link
             href="/apply"
-            className="rounded-lg bg-brand-700 px-5 py-2.5 text-center text-sm font-semibold text-white transition-colors duration-150 hover:bg-brand-800"
+            className="rounded-lg bg-warm-600 px-5 py-2.5 text-center text-sm font-semibold text-white transition-colors duration-150 hover:bg-warm-700"
           >
             Apply for accreditation
           </Link>
@@ -236,7 +244,7 @@ function Step({
 }) {
   return (
     <li className="rounded-2xl border border-stone-200/70 bg-white p-6 shadow-sm">
-      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-50 text-sm font-bold text-brand-700">
+      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-warm-100 text-sm font-bold text-warm-700">
         {n}
       </span>
       <h3 className="mt-4 text-base font-semibold">{title}</h3>
@@ -245,29 +253,96 @@ function Step({
   );
 }
 
-/* Abstract globe with connection arcs — decorative only */
-function GlobeArt({ className }: { className?: string }) {
+/*
+ * Decorative "connected world" scene: a warm horizon with schools of
+ * different cultures linked by connection arcs. Hand-built, warm-toned,
+ * deliberately simple — placeholder until GSA supplies real photography.
+ */
+function WorldScene({ className }: { className?: string }) {
   return (
     <svg
       className={className}
-      viewBox="0 0 400 400"
+      viewBox="0 0 1440 380"
+      preserveAspectRatio="xMidYMax slice"
       fill="none"
       aria-hidden
     >
-      <circle cx="200" cy="200" r="160" stroke="currentColor" strokeWidth="1.5" />
-      <ellipse cx="200" cy="200" rx="160" ry="62" stroke="currentColor" strokeWidth="1.5" />
-      <ellipse cx="200" cy="200" rx="160" ry="118" stroke="currentColor" strokeWidth="1" opacity="0.6" />
-      <ellipse cx="200" cy="200" rx="62" ry="160" stroke="currentColor" strokeWidth="1.5" />
-      <ellipse cx="200" cy="200" rx="118" ry="160" stroke="currentColor" strokeWidth="1" opacity="0.6" />
-      <line x1="40" y1="200" x2="360" y2="200" stroke="currentColor" strokeWidth="1.5" />
-      {/* connection arcs */}
-      <path d="M105 130 Q 200 30 295 118" stroke="currentColor" strokeWidth="2" strokeDasharray="3 6" strokeLinecap="round" />
-      <path d="M88 262 Q 210 330 312 244" stroke="currentColor" strokeWidth="2" strokeDasharray="3 6" strokeLinecap="round" />
-      {/* nodes */}
-      <circle cx="105" cy="130" r="6" fill="currentColor" />
-      <circle cx="295" cy="118" r="6" fill="currentColor" />
-      <circle cx="88" cy="262" r="6" fill="currentColor" />
-      <circle cx="312" cy="244" r="6" fill="currentColor" />
+      {/* soft sun */}
+      <circle cx="1185" cy="150" r="58" fill="#e9a45c" opacity="0.55" />
+      <circle cx="1185" cy="150" r="92" fill="#e9a45c" opacity="0.16" />
+
+      {/* rolling hills */}
+      <path d="M0 300 C 320 250 760 250 1080 280 S 1380 312 1440 300 L1440 380 L0 380 Z" fill="#b8502e" opacity="0.30" />
+      <path d="M0 332 C 380 300 900 312 1440 330 L1440 380 L0 380 Z" fill="#983f25" opacity="0.55" />
+
+      {/* connection arcs + pins */}
+      <g stroke="#f3d9c0" strokeWidth="2" strokeDasharray="2 8" strokeLinecap="round" opacity="0.7">
+        <path d="M210 250 Q 360 180 510 244" />
+        <path d="M510 244 Q 690 175 800 236" />
+        <path d="M800 236 Q 940 180 1010 232" />
+        <path d="M1010 232 Q 1140 188 1240 240" />
+      </g>
+      <g fill="#f0b878">
+        <circle cx="210" cy="250" r="4" />
+        <circle cx="510" cy="244" r="4" />
+        <circle cx="800" cy="236" r="4" />
+        <circle cx="1010" cy="232" r="4" />
+        <circle cx="1240" cy="240" r="4" />
+      </g>
+
+      {/* — schools across cultures (simple silhouettes) — */}
+
+      {/* schoolhouse with flag */}
+      <g>
+        <rect x="170" y="262" width="80" height="62" fill="#e89a64" />
+        <path d="M165 262 L210 232 L255 262 Z" fill="#c25a34" />
+        <rect x="196" y="290" width="28" height="34" fill="#fcd9b0" />
+        <line x1="210" y1="232" x2="210" y2="210" stroke="#c25a34" strokeWidth="3" />
+        <path d="M210 210 L232 216 L210 222 Z" fill="#e9a45c" />
+      </g>
+
+      {/* pagoda */}
+      <g fill="#e89a64">
+        <rect x="470" y="286" width="70" height="38" />
+        <path d="M460 286 L505 264 L550 286 Z" fill="#c25a34" />
+        <rect x="482" y="258" width="46" height="22" />
+        <path d="M474 258 L505 242 L536 258 Z" fill="#c25a34" />
+        <path d="M484 236 L505 224 L526 236 Z" fill="#c25a34" />
+      </g>
+
+      {/* domed building */}
+      <g>
+        <rect x="760" y="270" width="84" height="54" fill="#e89a64" />
+        <path d="M760 270 A 42 42 0 0 1 844 270 Z" fill="#c25a34" />
+        <line x1="802" y1="228" x2="802" y2="214" stroke="#e9a45c" strokeWidth="3" />
+        <circle cx="802" cy="211" r="4" fill="#e9a45c" />
+        <rect x="792" y="296" width="20" height="28" fill="#fcd9b0" />
+      </g>
+
+      {/* modern tower */}
+      <g>
+        <rect x="978" y="214" width="58" height="110" fill="#e89a64" />
+        <g fill="#fcd9b0">
+          <rect x="990" y="228" width="12" height="12" />
+          <rect x="1012" y="228" width="12" height="12" />
+          <rect x="990" y="252" width="12" height="12" />
+          <rect x="1012" y="252" width="12" height="12" />
+          <rect x="990" y="276" width="12" height="12" />
+          <rect x="1012" y="276" width="12" height="12" />
+        </g>
+      </g>
+
+      {/* classic columned building */}
+      <g fill="#e89a64">
+        <path d="M1196 266 L1284 266 L1240 244 Z" fill="#c25a34" />
+        <rect x="1196" y="266" width="88" height="58" />
+        <g fill="#c9663a">
+          <rect x="1206" y="276" width="9" height="48" />
+          <rect x="1226" y="276" width="9" height="48" />
+          <rect x="1246" y="276" width="9" height="48" />
+          <rect x="1266" y="276" width="9" height="48" />
+        </g>
+      </g>
     </svg>
   );
 }

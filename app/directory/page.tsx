@@ -87,7 +87,7 @@ export default async function DirectoryPage({
           <input type="checkbox" name="accredited" defaultChecked={params.accredited === "on"} className="rounded border-stone-300" />
           GSA Accredited only
         </label>
-        <button className="rounded-lg bg-brand-700 px-4 py-2 text-sm font-semibold text-white transition-colors duration-150 hover:bg-brand-800">
+        <button className="rounded-lg bg-warm-600 px-4 py-2 text-sm font-semibold text-white transition-colors duration-150 hover:bg-warm-700">
           Show matching schools
         </button>
         {hasFilters && (

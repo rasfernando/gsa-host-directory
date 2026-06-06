@@ -12,6 +12,20 @@
   --color-brand-700: #1d4286;
   --color-brand-800: #17356c;
   --color-brand-900: #122a54;
+
+  /*
+   * Warm accent — terracotta, the colour of welcome. Carries the "human"
+   * side of the brand: primary invitations and CTAs. Navy stays for trust
+   * and structure; emerald stays reserved for accreditation status only.
+   */
+  --color-warm-50: #fbf1ea;
+  --color-warm-100: #f6ddce;
+  --color-warm-200: #eec0a4;
+  --color-warm-300: #e3a079;
+  --color-warm-400: #d67e50;
+  --color-warm-500: #c8612f;
+  --color-warm-600: #b8502e;
+  --color-warm-700: #983f25;
 }
 
 body {
