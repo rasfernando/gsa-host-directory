@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { SchoolCard } from "@/components/school-card";
 
 export const dynamic = "force-dynamic";
 
@@ -69,53 +70,10 @@ export default async function Home() {
               Browse all <span aria-hidden>→</span>
             </Link>
           </div>
-          <ul className="mt-6 grid gap-5 sm:grid-cols-3">
+          <ul className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {featured.map((p) => (
               <li key={p.id}>
-                <Link
-                  href={`/directory/${p.slug}`}
-                  className="group block h-full overflow-hidden rounded-2xl border border-stone-200/70 bg-white shadow-sm transition-shadow duration-150 hover:shadow-md"
-                >
-                  {(p.media as { url: string }[] | null)?.[0]?.url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={(p.media as { url: string }[])[0].url}
-                      alt={`${p.name} campus`}
-                      className="aspect-[3/2] w-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex aspect-[3/2] w-full items-center justify-center bg-gradient-to-br from-warm-50 to-warm-100">
-                      <span className="text-4xl font-bold text-warm-300">
-                        {p.name.charAt(0)}
-                      </span>
-                    </div>
-                  )}
-                  <div className="p-4">
-                    <div className="flex items-start justify-between gap-2">
-                      <h3 className="text-sm font-semibold leading-snug group-hover:text-warm-700">
-                        {p.name}
-                      </h3>
-                      {p.tier === "accredited" && (
-                        <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">
-                          Accredited
-                        </span>
-                      )}
-                    </div>
-                    <p className="mt-0.5 text-xs text-stone-500">
-                      {p.city ? `${p.city}, ` : ""}
-                      {p.country}
-                      {p.age_range_min != null && ` · ages ${p.age_range_min}–${p.age_range_max}`}
-                      {p.capacity != null && ` · up to ${p.capacity}`}
-                    </p>
-                    <div className="mt-2.5 flex flex-wrap gap-1.5">
-                      {p.boarding && <Tag>Boarding</Tag>}
-                      {p.homestay && <Tag>Homestay</Tag>}
-                      {((p.focus_tags as string[] | null) ?? []).slice(0, 2).map((t) => (
-                        <Tag key={t}>{t}</Tag>
-                      ))}
-                    </div>
-                  </div>
-                </Link>
+                <SchoolCard p={p} />
               </li>
             ))}
           </ul>
@@ -183,14 +141,6 @@ export default async function Home() {
         .
       </p>
     </div>
-  );
-}
-
-function Tag({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-medium text-stone-600">
-      {children}
-    </span>
   );
 }
 

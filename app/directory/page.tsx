@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { SchoolCard } from "@/components/school-card";
 
 export const dynamic = "force-dynamic";
 
@@ -114,73 +115,14 @@ export default async function DirectoryPage({
           )}
         </div>
       ) : (
-        <ul className="mt-8 grid gap-5 sm:grid-cols-2">
+        <ul className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {results.map((p) => (
             <li key={p.id}>
-              <Link
-                href={`/directory/${p.slug}`}
-                className="group block h-full overflow-hidden rounded-2xl border border-stone-200/70 bg-white shadow-sm transition-shadow duration-150 hover:shadow-md"
-              >
-                {(p.media as { url: string }[] | null)?.[0]?.url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={(p.media as { url: string }[])[0].url}
-                    alt={`${p.name} campus`}
-                    className="aspect-video w-full object-cover"
-                  />
-                ) : (
-                  <div className="flex aspect-video w-full items-center justify-center bg-gradient-to-br from-brand-50 to-brand-100">
-                    <span className="text-5xl font-bold text-brand-200">
-                      {p.name.charAt(0)}
-                    </span>
-                  </div>
-                )}
-                <div className="p-5">
-                  <div className="flex items-start justify-between gap-3">
-                    <h2 className="text-base font-semibold leading-snug group-hover:text-brand-800">
-                      {p.name}
-                    </h2>
-                    {p.tier === "accredited" ? (
-                      <span className="shrink-0 rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-800">
-                        GSA Accredited
-                      </span>
-                    ) : (
-                      <span className="shrink-0 rounded-full bg-stone-100 px-2.5 py-0.5 text-[11px] font-medium text-stone-500">
-                        Listed host
-                      </span>
-                    )}
-                  </div>
-                  <p className="mt-1 text-sm text-stone-500">
-                    {p.city ? `${p.city}, ` : ""}{p.country}
-                    {p.age_range_min != null && ` · ages ${p.age_range_min}–${p.age_range_max}`}
-                    {p.capacity != null && ` · groups up to ${p.capacity}`}
-                  </p>
-                  {p.headline && (
-                    <p className="mt-2.5 text-sm leading-relaxed text-stone-600">
-                      {p.headline}
-                    </p>
-                  )}
-                  <div className="mt-4 flex flex-wrap gap-1.5">
-                    {p.boarding && <Tag>Boarding</Tag>}
-                    {p.homestay && <Tag>Homestay</Tag>}
-                    {(p.focus_tags ?? []).slice(0, 3).map((t: string) => (
-                      <Tag key={t}>{t}</Tag>
-                    ))}
-                  </div>
-                </div>
-              </Link>
+              <SchoolCard p={p} />
             </li>
           ))}
         </ul>
       )}
     </div>
-  );
-}
-
-function Tag({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="rounded-full bg-stone-100 px-2.5 py-0.5 text-[11px] font-medium text-stone-600">
-      {children}
-    </span>
   );
 }
