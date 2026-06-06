@@ -35,46 +35,17 @@ export default async function Home() {
             <h1 className="mt-4 text-4xl font-bold leading-tight tracking-tight text-white sm:text-6xl">
               Find a host school for your students
             </h1>
-            <p className="mt-5 max-w-lg text-base leading-relaxed text-brand-100 sm:text-lg">
+            <p className="mt-5 max-w-md text-base leading-relaxed text-brand-100 sm:text-lg">
               Browse schools around the world ready to welcome visiting groups —
-              by country, age range, and focus. Every one is reviewed by the GSA
-              team, and accredited schools are verified for trip approval.
+              every one reviewed by the GSA team.
             </p>
 
-            {/* Primary action: search the directory */}
-            <form
-              method="get"
-              action="/directory"
-              className="mt-8 flex max-w-md gap-2 rounded-xl bg-white/10 p-2 ring-1 ring-white/20 backdrop-blur-sm"
+            <Link
+              href="/directory"
+              className="mt-8 inline-block rounded-lg bg-warm-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-colors duration-150 hover:bg-warm-700"
             >
-              <input
-                name="country"
-                placeholder="Search by country…"
-                aria-label="Search host schools by country"
-                className="min-w-0 flex-1 rounded-lg bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:outline-none"
-              />
-              <button className="shrink-0 rounded-lg bg-warm-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-warm-700">
-                Search
-              </button>
-            </form>
-            <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
-              <Link
-                href="/directory"
-                className="font-semibold text-white underline-offset-4 hover:underline"
-              >
-                Browse all host schools →
-              </Link>
-              <Link
-                href="/list-your-school"
-                className="text-brand-200 transition-colors duration-150 hover:text-white"
-              >
-                Run a school? List as a host
-              </Link>
-            </div>
-
-            <p className="mt-8 text-xs text-brand-200">
-              Part of a network of 8,000+ schools across 142 countries.
-            </p>
+              Browse all host schools
+            </Link>
           </div>
         </div>
       </section>
