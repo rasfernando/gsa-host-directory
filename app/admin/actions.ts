@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { logEvent } from "@/lib/events";
+import { sendEmail } from "@/lib/notify";
 
 async function requireAdmin() {
   const supabase = await createClient();
@@ -256,6 +257,46 @@ export async function updateEnquiry(formData: FormData) {
   }
 
   revalidatePath("/admin/enquiries");
+}
+
+// Ask the school for more information: sets the application to info_requested,
+// records the ask, and reopens editing for the school.
+export async function requestMoreInfo(formData: FormData) {
+  const { supabase } = await requireAdmin();
+  const applicationId = String(formData.get("application_id"));
+  const note = String(formData.get("info_request") || "").trim();
+  if (!note) throw new Error("A note describing what you need is required.");
+
+  const { data: updated, error } = await supabase
+    .from("host_applications")
+    .update({
+      status: "info_requested",
+      info_request: note,
+      info_requested_at: new Date().toISOString(),
+      info_responded_at: null,
+    })
+    .eq("id", applicationId)
+    .select("school_id, schools(name, contact_email)")
+    .single();
+  if (error) throw new Error(error.message);
+
+  const school = Array.isArray(updated?.schools)
+    ? updated?.schools[0]
+    : updated?.schools;
+
+  await logEvent("info_requested", { school_id: updated?.school_id });
+  // Best-effort: free-tier Resend may only deliver to the account owner until a
+  // sending domain is verified. The in-portal banner is the reliable channel.
+  await sendEmail(
+    school?.contact_email ?? undefined,
+    `GSA needs a little more information — ${school?.name ?? "your application"}`,
+    `<p>The GSA team has reviewed your accreditation application and needs a bit more from you:</p>
+     <blockquote>${note}</blockquote>
+     <p>Please respond here: <a href="https://gsa-host-directory.vercel.app/your-school/application">your application</a>.</p>`
+  );
+
+  revalidatePath("/admin");
+  revalidatePath(`/admin/applications/${applicationId}`);
 }
 
 // Reject with notes

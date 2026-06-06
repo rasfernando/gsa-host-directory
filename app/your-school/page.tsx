@@ -66,7 +66,7 @@ export default async function YourSchoolPage({
       .maybeSingle(),
     supabase
       .from("host_applications")
-      .select("id, status")
+      .select("id, status, info_request")
       .eq("school_id", up.school_id)
       .order("created_at", { ascending: false })
       .limit(1)
@@ -75,7 +75,7 @@ export default async function YourSchoolPage({
 
   const cover = (profile?.media as MediaItem[] | null)?.[0]?.url ?? null;
   const appEditable =
-    app && ["draft", "submitted", "under_review"].includes(app.status);
+    app && ["draft", "submitted", "under_review", "info_requested"].includes(app.status);
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -97,6 +97,23 @@ export default async function YourSchoolPage({
           <strong>Changes awaiting GSA review.</strong> Your live profile is
           unchanged until the team approves your edits.
         </p>
+      )}
+
+      {app?.status === "info_requested" && (
+        <div className="mt-4 rounded-xl border border-amber-300 bg-amber-50 p-4">
+          <p className="text-sm font-semibold text-amber-900">
+            The GSA team needs more information
+          </p>
+          {app.info_request && (
+            <p className="mt-1 text-sm text-amber-900">“{app.info_request}”</p>
+          )}
+          <Link
+            href="/your-school/application"
+            className="mt-3 inline-block rounded-lg bg-warm-600 px-4 py-2 text-sm font-semibold text-white transition-colors duration-150 hover:bg-warm-700"
+          >
+            Respond now →
+          </Link>
+        </div>
       )}
 
       {/* Status + profile card */}

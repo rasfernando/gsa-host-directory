@@ -2,19 +2,30 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { FOCUS_AREAS, inputCls, labelCls } from "@/lib/forms";
-import { updateApplication } from "../actions";
+import { updateApplication, addEvidence, removeEvidence } from "../actions";
 
 export const dynamic = "force-dynamic";
+
+type EvidenceFile = { name: string; path: string };
 
 const sectionHeadingCls =
   "text-xs font-semibold uppercase tracking-widest text-brand-700";
 
+const DOC_ERRORS: Record<string, string> = {
+  nofile: "Please choose a document to upload.",
+  toobig: "That file is over 10 MB — please upload a smaller one.",
+};
+
 export default async function EditApplicationPage({
   searchParams,
 }: {
-  searchParams: Promise<{ saved?: string }>;
+  searchParams: Promise<{
+    saved?: string;
+    responded?: string;
+    error?: string;
+  }>;
 }) {
-  const { saved } = await searchParams;
+  const { saved, responded, error } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -30,14 +41,17 @@ export default async function EditApplicationPage({
 
   const { data: app } = await supabase
     .from("host_applications")
-    .select("id, status, answers")
+    .select("id, status, answers, info_request, evidence_files")
     .eq("school_id", up.school_id)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
   // Only editable before a decision.
-  if (!app || !["draft", "submitted", "under_review"].includes(app.status)) {
+  if (
+    !app ||
+    !["draft", "submitted", "under_review", "info_requested"].includes(app.status)
+  ) {
     redirect("/your-school");
   }
 
@@ -45,6 +59,8 @@ export default async function EditApplicationPage({
   const str = (k: string) => (a[k] as string) ?? "";
   const arr = (k: string) => ((a[k] as string[]) ?? []).join(", ");
   const focus = (a.focus_areas as string[]) ?? [];
+  const responding = app.status === "info_requested";
+  const evidence = (app.evidence_files as EvidenceFile[] | null) ?? [];
 
   return (
     <div className="mx-auto max-w-xl">
@@ -59,9 +75,32 @@ export default async function EditApplicationPage({
         review the latest version.
       </p>
 
+      {responding && app.info_request && (
+        <div className="mt-4 rounded-xl border border-amber-300 bg-amber-50 p-4">
+          <p className="text-sm font-semibold text-amber-900">
+            The GSA team asked for:
+          </p>
+          <p className="mt-1 text-sm text-amber-900">“{app.info_request}”</p>
+          <p className="mt-2 text-xs text-amber-700">
+            Update your answers and attach any documents below, then send it
+            back for review.
+          </p>
+        </div>
+      )}
+
       {saved && (
         <p className="mt-4 rounded-lg bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800">
           Application updated.
+        </p>
+      )}
+      {responded && (
+        <p className="mt-4 rounded-lg bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800">
+          Sent back to the GSA team — they&apos;ll pick it up from here.
+        </p>
+      )}
+      {error && DOC_ERRORS[error] && (
+        <p className="mt-4 rounded-lg bg-red-50 px-4 py-2.5 text-sm text-red-700">
+          {DOC_ERRORS[error]}
         </p>
       )}
 
@@ -152,9 +191,48 @@ export default async function EditApplicationPage({
         </section>
 
         <button className="w-full rounded-lg bg-warm-600 px-4 py-3 text-sm font-semibold text-white transition-colors duration-150 hover:bg-warm-700">
-          Save changes
+          {responding ? "Send updated application back to GSA" : "Save changes"}
         </button>
       </form>
+
+      {/* Supporting documents */}
+      <section className="mt-6 rounded-2xl border border-stone-200/70 bg-white p-6 shadow-sm sm:p-8">
+        <h2 className={sectionHeadingCls}>Supporting documents</h2>
+        <p className="mt-2 text-sm leading-relaxed text-stone-500">
+          Attach any documents the GSA team has asked for — for example your
+          safeguarding policy. These are private to GSA.
+        </p>
+
+        {evidence.length > 0 && (
+          <ul className="mt-4 divide-y divide-stone-100 rounded-xl border border-stone-200/70">
+            {evidence.map((f, i) => (
+              <li key={f.path} className="flex items-center justify-between px-4 py-3 text-sm">
+                <span className="truncate">{f.name}</span>
+                <form action={removeEvidence}>
+                  <input type="hidden" name="index" value={i} />
+                  <button className="ml-3 shrink-0 text-xs font-medium text-stone-400 hover:text-red-600">
+                    Remove
+                  </button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <form action={addEvidence} className="mt-4 flex flex-wrap items-center gap-3">
+          <input
+            className="text-sm text-stone-600 file:mr-3 file:rounded-lg file:border-0 file:bg-warm-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-warm-700 hover:file:bg-warm-100"
+            id="document"
+            name="document"
+            type="file"
+            accept=".pdf,.doc,.docx,image/jpeg,image/png,image/webp"
+            required
+          />
+          <button className="rounded-lg border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700 transition-colors duration-150 hover:border-stone-400">
+            Upload document
+          </button>
+        </form>
+      </section>
     </div>
   );
 }

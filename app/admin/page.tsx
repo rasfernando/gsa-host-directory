@@ -5,6 +5,7 @@ import { VERIFICATION_CHECKS } from "@/lib/checklist";
 const STATUS_STYLES: Record<string, string> = {
   submitted: "bg-blue-50 text-blue-700",
   under_review: "bg-amber-50 text-amber-700",
+  info_requested: "bg-orange-50 text-orange-700",
   approved: "bg-green-50 text-green-700",
   rejected: "bg-red-50 text-red-600",
   draft: "bg-gray-100 text-gray-500",
@@ -79,7 +80,7 @@ export default async function AdminQueue() {
 
   const all = (applications ?? []) as AppRow[];
   const needsReview = all.filter((a) =>
-    ["submitted", "under_review", "draft"].includes(a.status)
+    ["submitted", "under_review", "info_requested", "draft"].includes(a.status)
   );
   const decided = all
     .filter((a) => ["approved", "rejected"].includes(a.status))

@@ -2,7 +2,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { VERIFICATION_CHECKS } from "@/lib/checklist";
-import { recordCheck, approveApplication, rejectApplication } from "../../actions";
+import {
+  recordCheck,
+  approveApplication,
+  rejectApplication,
+  requestMoreInfo,
+} from "../../actions";
+
+type EvidenceFile = { name: string; path: string; size: number; uploaded_at: string };
 
 const CHECK_BADGES: Record<string, string> = {
   passed: "bg-green-50 text-green-700",
@@ -22,7 +29,7 @@ export default async function ApplicationDetail({
   const { data: app } = await supabase
     .from("host_applications")
     .select(
-      "id, status, answers, submitted_at, decision_notes, schools(name, country, city, website, contact_name, contact_email)"
+      "id, status, answers, submitted_at, decision_notes, evidence_files, info_request, info_requested_at, info_responded_at, schools(name, country, city, website, contact_name, contact_email)"
     )
     .eq("id", id)
     .single();
@@ -38,6 +45,17 @@ export default async function ApplicationDetail({
   const school = Array.isArray(app.schools) ? app.schools[0] : app.schools;
   const answers = (app.answers ?? {}) as Record<string, unknown>;
   const decided = ["approved", "rejected"].includes(app.status);
+
+  // Signed download links for any evidence the school uploaded (private bucket).
+  const evidence = (app.evidence_files as EvidenceFile[] | null) ?? [];
+  const evidenceLinks = await Promise.all(
+    evidence.map(async (f) => {
+      const { data } = await supabase.storage
+        .from("evidence")
+        .createSignedUrl(f.path, 600);
+      return { ...f, url: data?.signedUrl ?? null };
+    })
+  );
   const allPassed = VERIFICATION_CHECKS.every((c) =>
     ["passed", "waived"].includes(checkMap.get(c.key)?.status ?? "")
   );
@@ -68,6 +86,40 @@ export default async function ApplicationDetail({
           {app.status.replace("_", " ")}
         </span>
       </div>
+
+      {app.status === "info_requested" && (
+        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          <p className="font-semibold">Waiting on the school</p>
+          <p className="mt-1">You asked for: “{app.info_request}”</p>
+          <p className="mt-1 text-xs text-amber-700">
+            Requested {app.info_requested_at && new Date(app.info_requested_at).toLocaleDateString("en-GB")}.
+            They can edit their application and upload documents until they resubmit.
+          </p>
+        </div>
+      )}
+
+      {/* Evidence documents */}
+      {evidenceLinks.length > 0 && (
+        <section className="mt-8">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+            Documents from the school
+          </h2>
+          <ul className="mt-3 divide-y divide-gray-100 rounded-lg border border-gray-100">
+            {evidenceLinks.map((f) => (
+              <li key={f.path} className="flex items-center justify-between px-4 py-3 text-sm">
+                <span>{f.name}</span>
+                {f.url ? (
+                  <a href={f.url} target="_blank" className="text-xs font-medium text-blue-700 underline">
+                    Download
+                  </a>
+                ) : (
+                  <span className="text-xs text-gray-400">unavailable</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {/* Application answers */}
       <section className="mt-8">
@@ -184,6 +236,24 @@ export default async function ApplicationDetail({
               </button>
             </form>
           </div>
+
+          {/* Request more information instead of deciding now */}
+          <form action={requestMoreInfo} className="mt-4 border-t border-gray-100 pt-4">
+            <input type="hidden" name="application_id" value={app.id} />
+            <label className="text-xs font-medium text-gray-600">
+              Need more from the school before deciding?
+            </label>
+            <textarea
+              name="info_request"
+              required
+              rows={2}
+              placeholder="e.g. Please upload your current safeguarding policy and confirm your DSL's contact details."
+              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-xs"
+            />
+            <button className="mt-2 rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 text-xs font-medium text-amber-800 hover:bg-amber-100">
+              Request more information
+            </button>
+          </form>
         </section>
       )}
 

@@ -249,15 +249,14 @@ export async function updateApplication(formData: FormData) {
 
   const { data: app } = await supabase
     .from("host_applications")
-    .select("id, status")
+    .select("id, status, schools(name)")
     .eq("school_id", schoolId)
     .order("created_at", { ascending: false })
     .limit(1)
     .single();
 
-  if (!app || !["draft", "submitted", "under_review"].includes(app.status)) {
-    redirect("/your-school");
-  }
+  const EDITABLE = ["draft", "submitted", "under_review", "info_requested"];
+  if (!app || !EDITABLE.includes(app.status)) redirect("/your-school");
 
   const num = (k: string) => (formData.get(k) ? Number(formData.get(k)) : null);
   const answers = {
@@ -277,12 +276,98 @@ export async function updateApplication(formData: FormData) {
     typical_hosting_windows: formData.get("typical_hosting_windows"),
   };
 
+  // Responding to a GSA info request: clear the request and hand it back for review.
+  const responding = app.status === "info_requested";
+  const update: Record<string, unknown> = { answers };
+  if (responding) {
+    update.status = "under_review";
+    update.info_request = null;
+    update.info_responded_at = new Date().toISOString();
+  }
+
   const { error } = await supabase
     .from("host_applications")
-    .update({ answers })
+    .update(update)
     .eq("id", app.id);
   if (error) throw new Error(`Could not update application: ${error.message}`);
 
+  if (responding) {
+    const school = Array.isArray(app.schools) ? app.schools[0] : app.schools;
+    await logEvent("application_resubmitted", { school_id: schoolId });
+    await notifyGsa(
+      `Application updated — ${school?.name ?? "a school"} responded to your request`,
+      `<p><strong>${school?.name ?? "A school"}</strong> has updated its application in response to your request for more information.</p>
+       <p><a href="https://gsa-host-directory.vercel.app/admin">Open the review queue</a></p>`
+    );
+    redirect("/your-school/application?responded=1");
+  }
+
   await logEvent("application_edited", { school_id: schoolId });
   redirect("/your-school/application?saved=1");
+}
+
+// ── Evidence documents (private bucket) ────────────────────────────────────
+async function editableApplication() {
+  const { supabase, schoolId } = await requireSchool();
+  const { data: app } = await supabase
+    .from("host_applications")
+    .select("id, status, evidence_files")
+    .eq("school_id", schoolId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .single();
+  const EDITABLE = ["draft", "submitted", "under_review", "info_requested"];
+  if (!app || !EDITABLE.includes(app.status)) redirect("/your-school");
+  return { supabase, schoolId, app };
+}
+
+type EvidenceFile = { name: string; path: string; size: number; uploaded_at: string };
+
+export async function addEvidence(formData: FormData) {
+  const { supabase, schoolId, app } = await editableApplication();
+  const file = formData.get("document") as File | null;
+  if (!file || file.size === 0) redirect("/your-school/application?error=nofile");
+  if (file.size > 10 * 1024 * 1024)
+    redirect("/your-school/application?error=toobig");
+
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 80);
+  const path = `${schoolId}/${app.id}/${Date.now()}-${safeName}`;
+  const { error: uploadError } = await supabase.storage
+    .from("evidence")
+    .upload(path, file, { contentType: file.type || "application/octet-stream" });
+  if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
+
+  const files = ((app.evidence_files as EvidenceFile[]) ?? []).slice();
+  files.push({
+    name: file.name,
+    path,
+    size: file.size,
+    uploaded_at: new Date().toISOString(),
+  });
+  const { error } = await supabase
+    .from("host_applications")
+    .update({ evidence_files: files })
+    .eq("id", app.id);
+  if (error) throw new Error(error.message);
+
+  await logEvent("evidence_uploaded", { school_id: schoolId });
+  redirect("/your-school/application?saved=doc");
+}
+
+export async function removeEvidence(formData: FormData) {
+  const { supabase, app } = await editableApplication();
+  const index = Number(formData.get("index"));
+  const files = ((app.evidence_files as EvidenceFile[]) ?? []).slice();
+  if (!Number.isInteger(index) || index < 0 || index >= files.length)
+    redirect("/your-school/application");
+
+  const [removed] = files.splice(index, 1);
+  if (removed?.path) await supabase.storage.from("evidence").remove([removed.path]);
+
+  const { error } = await supabase
+    .from("host_applications")
+    .update({ evidence_files: files })
+    .eq("id", app.id);
+  if (error) throw new Error(error.message);
+  redirect("/your-school/application?saved=doc");
 }
