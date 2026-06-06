@@ -7,11 +7,11 @@ export default async function Home() {
   const supabase = await createClient();
   const { data: featured } = await supabase
     .from("host_profiles")
-    .select("id, name, slug, headline, country, city, tier, media, focus_tags, boarding, homestay")
+    .select("id, name, slug, headline, country, city, tier, media, focus_tags, boarding, homestay, age_range_min, age_range_max, capacity")
     .eq("published", true)
     .order("tier", { ascending: false })
     .order("accredited_at", { ascending: true })
-    .limit(3);
+    .limit(6);
 
   return (
     <div>
@@ -33,12 +33,12 @@ export default async function Home() {
               Global School Alliance
             </p>
             <h1 className="mt-4 text-4xl font-bold leading-tight tracking-tight text-white sm:text-6xl">
-              Explore host schools around the world
+              Find a host school for your students
             </h1>
             <p className="mt-5 max-w-lg text-base leading-relaxed text-brand-100 sm:text-lg">
-              See the schools welcoming visiting groups worldwide — what they
-              offer, where they are, and how they host. Every one is reviewed by
-              the GSA team.
+              Browse schools around the world ready to welcome visiting groups —
+              by country, age range, and focus. Every one is reviewed by the GSA
+              team, and accredited schools are verified for trip approval.
             </p>
 
             {/* Primary action: search the directory */}
@@ -85,10 +85,10 @@ export default async function Home() {
           <div className="flex items-end justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-widest text-warm-700">
-                In the directory
+                Host schools
               </p>
               <h2 className="mt-2 text-2xl font-bold tracking-tight">
-                See what host schools offer
+                Schools welcoming visiting groups
               </h2>
             </div>
             <Link
@@ -133,6 +133,8 @@ export default async function Home() {
                     <p className="mt-0.5 text-xs text-stone-500">
                       {p.city ? `${p.city}, ` : ""}
                       {p.country}
+                      {p.age_range_min != null && ` · ages ${p.age_range_min}–${p.age_range_max}`}
+                      {p.capacity != null && ` · up to ${p.capacity}`}
                     </p>
                     <div className="mt-2.5 flex flex-wrap gap-1.5">
                       {p.boarding && <Tag>Boarding</Tag>}
@@ -179,49 +181,7 @@ export default async function Home() {
         </ol>
       </section>
 
-      {/* Become a host — the natural next step after looking around */}
-      <section className="mt-16 grid gap-4 sm:grid-cols-2">
-        <div className="flex flex-col rounded-2xl border border-stone-200/70 bg-white p-7 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-widest text-warm-700">
-            For host schools
-          </p>
-          <h3 className="mt-2 text-xl font-bold tracking-tight">
-            Seen what others offer? Add your school
-          </h3>
-          <p className="mt-3 flex-1 text-sm leading-relaxed text-stone-600">
-            If your school can welcome a visiting group, you belong here. Join
-            the directory in a few minutes, build global citizenship at your
-            school, and get paid for hosting.
-          </p>
-          <Link
-            href="/list-your-school"
-            className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-warm-700 transition-colors duration-150 hover:text-warm-600"
-          >
-            List your school <span aria-hidden>→</span>
-          </Link>
-        </div>
-        <div className="flex flex-col rounded-2xl border border-stone-200/70 bg-white p-7 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-widest text-warm-700">
-            For visiting schools
-          </p>
-          <h3 className="mt-2 text-xl font-bold tracking-tight">
-            Plan a trip your leadership team can sign off
-          </h3>
-          <p className="mt-3 flex-1 text-sm leading-relaxed text-stone-600">
-            GSA Accredited schools come with a printable verification statement
-            — what we checked and when — ready for your head, governors, or
-            EVC.
-          </p>
-          <Link
-            href="/directory"
-            className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-warm-700 transition-colors duration-150 hover:text-warm-600"
-          >
-            Browse host schools <span aria-hidden>→</span>
-          </Link>
-        </div>
-      </section>
-
-      {/* Accreditation strip */}
+      {/* Trust — what the accredited badge means, for visiting schools */}
       <section className="mt-16 flex flex-col gap-4 rounded-2xl border border-stone-200/70 bg-white p-7 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div>
           <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800">
@@ -229,27 +189,28 @@ export default async function Home() {
             GSA Accredited
           </span>
           <p className="mt-3 max-w-xl text-sm leading-relaxed text-stone-600">
-            Already listed? Accreditation is the gold standard — full
-            verification by the GSA team, active promotion to visiting groups
-            worldwide, and a verification statement schools can use for trip
-            approval.
+            Look for the accredited badge. It means the GSA team has fully
+            verified the school and issues a verification statement your
+            leadership team can use for trip approval. Every other listing is a
+            reviewed member of the network.
           </p>
         </div>
-        <div className="flex shrink-0 flex-col gap-2 sm:items-end">
-          <Link
-            href="/apply"
-            className="rounded-lg bg-warm-600 px-5 py-2.5 text-center text-sm font-semibold text-white transition-colors duration-150 hover:bg-warm-700"
-          >
-            Apply for accreditation
-          </Link>
-          <Link
-            href="/accreditation"
-            className="text-center text-xs text-stone-500 underline transition-colors duration-150 hover:text-stone-900"
-          >
-            How accreditation works
-          </Link>
-        </div>
+        <Link
+          href="/accreditation"
+          className="shrink-0 rounded-lg border border-stone-300 px-5 py-2.5 text-center text-sm font-semibold text-stone-700 transition-colors duration-150 hover:border-stone-400"
+        >
+          How accreditation works
+        </Link>
       </section>
+
+      {/* Quiet host line — hosting is deliberately de-emphasised here */}
+      <p className="mt-8 text-center text-sm text-stone-500">
+        Run a school and want to welcome visiting groups?{" "}
+        <Link href="/list-your-school" className="font-semibold text-warm-700 underline">
+          List your school
+        </Link>
+        .
+      </p>
     </div>
   );
 }
