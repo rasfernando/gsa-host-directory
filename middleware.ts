@@ -34,7 +34,10 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const path = request.nextUrl.pathname;
-  const needsAuth = path.startsWith("/admin") || path.startsWith("/apply");
+  const needsAuth =
+    path.startsWith("/admin") ||
+    path.startsWith("/apply") ||
+    path.startsWith("/your-school");
 
   if (needsAuth && !user) {
     const url = request.nextUrl.clone();

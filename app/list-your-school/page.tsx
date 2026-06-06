@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { submitListing } from "./actions";
 
@@ -49,45 +50,14 @@ export default async function ListYourSchoolPage() {
     .eq("id", user.id)
     .single();
 
-  const { data: existing } = profile?.school_id
-    ? await supabase
-        .from("host_profiles")
-        .select("id, name, slug, published, tier")
-        .eq("school_id", profile.school_id)
-        .limit(1)
-    : { data: null };
-
-  if (existing && existing.length > 0) {
-    const p = existing[0];
-    return (
-      <div className="mx-auto max-w-xl py-16 text-center">
-        <h1 className="text-3xl font-bold tracking-tight">
-          {p.name} is {p.published ? "live" : "awaiting review"}
-        </h1>
-        <p className="mt-3 leading-relaxed text-stone-500">
-          {p.published
-            ? "Your listing is live in the directory."
-            : "The GSA team gives every new listing a quick review before it goes live — usually within a couple of days."}
-        </p>
-        {p.tier === "listed" && (
-          <p className="mt-6 rounded-xl border border-stone-200/70 bg-white p-5 text-sm leading-relaxed text-stone-600 shadow-sm">
-            Want to be actively promoted by GSA and earn the gold-standard
-            accreditation badge?{" "}
-            <Link href="/apply" className="font-semibold text-brand-700 underline">
-              Apply for GSA accreditation →
-            </Link>
-          </p>
-        )}
-        {p.published && (
-          <Link
-            href={`/directory/${p.slug}`}
-            className="mt-6 inline-block text-sm text-stone-500 underline transition-colors duration-150 hover:text-stone-900"
-          >
-            View your listing
-          </Link>
-        )}
-      </div>
-    );
+  // Already listed? Manage it from the dashboard rather than a dead-end.
+  if (profile?.school_id) {
+    const { data: existing } = await supabase
+      .from("host_profiles")
+      .select("id")
+      .eq("school_id", profile.school_id)
+      .limit(1);
+    if (existing && existing.length > 0) redirect("/your-school");
   }
 
   return (

@@ -57,6 +57,11 @@ export default async function RootLayout({
                   Admin
                 </Link>
               )}
+              {user && !isAdmin && (
+                <Link href="/your-school" className="transition-colors duration-150 hover:text-stone-900">
+                  Your school
+                </Link>
+              )}
               {user ? (
                 <form action={signOut}>
                   <button

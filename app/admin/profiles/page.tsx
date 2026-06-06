@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { togglePublish } from "../actions";
+import {
+  togglePublish,
+  approvePendingChanges,
+  discardPendingChanges,
+} from "../actions";
 
 type ProfileRow = {
   id: string;
@@ -19,6 +23,9 @@ type ProfileRow = {
   capacity: number | null;
   typical_hosting_windows: string | null;
   created_at: string;
+  pending_review: boolean;
+  pending_changes: Record<string, unknown> | null;
+  media: { url: string }[] | null;
   schools:
     | { contact_name: string | null; contact_email: string | null; website: string | null }[]
     | { contact_name: string | null; contact_email: string | null; website: string | null }
@@ -36,6 +43,70 @@ function TierBadge({ tier }: { tier: string }) {
     >
       {tier}
     </span>
+  );
+}
+
+function fmt(v: unknown): string {
+  if (v == null || v === "") return "—";
+  if (Array.isArray(v)) return v.length ? v.join(", ") : "—";
+  if (typeof v === "boolean") return v ? "Yes" : "No";
+  return String(v);
+}
+
+// Shows only the fields a school actually changed: live value → proposed value.
+function ChangeDiff({ profile }: { profile: ProfileRow }) {
+  const pending = profile.pending_changes ?? {};
+  const fields: { key: string; label: string; live: unknown }[] = [
+    { key: "headline", label: "Headline", live: profile.headline },
+    { key: "city", label: "City", live: profile.city },
+    { key: "languages", label: "Languages", live: profile.languages },
+    { key: "age_range_min", label: "Ages from", live: profile.age_range_min },
+    { key: "age_range_max", label: "Ages to", live: profile.age_range_max },
+    { key: "capacity", label: "Capacity", live: profile.capacity },
+    { key: "boarding", label: "Boarding", live: profile.boarding },
+    { key: "homestay", label: "Homestay", live: profile.homestay },
+    { key: "typical_hosting_windows", label: "Hosting windows", live: profile.typical_hosting_windows },
+  ];
+
+  const changed = fields.filter(
+    (f) => f.key in pending && fmt(pending[f.key]) !== fmt(f.live)
+  );
+
+  const liveCount = (profile.media ?? []).length;
+  const pendingCount = ((pending.media as unknown[]) ?? []).length;
+  const photosChanged = "media" in pending && pendingCount !== liveCount;
+
+  if (changed.length === 0 && !photosChanged) {
+    return (
+      <p className="mt-3 text-xs text-gray-500">
+        Minor edits submitted (text wording). Review on the live preview.
+      </p>
+    );
+  }
+
+  return (
+    <dl className="mt-3 space-y-1.5 rounded-lg bg-white p-4 text-sm">
+      {changed.map((f) => (
+        <div key={f.key} className="grid grid-cols-[120px_1fr] gap-2">
+          <dt className="text-xs uppercase text-gray-500">{f.label}</dt>
+          <dd>
+            <span className="text-gray-400 line-through">{fmt(f.live)}</span>{" "}
+            <span aria-hidden>→</span>{" "}
+            <span className="font-medium text-gray-900">{fmt(pending[f.key])}</span>
+          </dd>
+        </div>
+      ))}
+      {photosChanged && (
+        <div className="grid grid-cols-[120px_1fr] gap-2">
+          <dt className="text-xs uppercase text-gray-500">Photos</dt>
+          <dd>
+            <span className="text-gray-400 line-through">{liveCount}</span>{" "}
+            <span aria-hidden>→</span>{" "}
+            <span className="font-medium text-gray-900">{pendingCount} photo(s)</span>
+          </dd>
+        </div>
+      )}
+    </dl>
   );
 }
 
@@ -63,11 +134,13 @@ export default async function AdminProfiles() {
   const { data } = await supabase
     .from("host_profiles")
     .select(
-      "id, name, slug, country, city, published, tier, headline, languages, age_range_min, age_range_max, boarding, homestay, capacity, typical_hosting_windows, created_at, schools(contact_name, contact_email, website)"
+      "id, name, slug, country, city, published, tier, headline, languages, age_range_min, age_range_max, boarding, homestay, capacity, typical_hosting_windows, created_at, pending_review, pending_changes, media, schools(contact_name, contact_email, website)"
     )
     .order("created_at", { ascending: false });
 
   const list = (data ?? []) as ProfileRow[];
+  // Live profiles whose schools have submitted edits awaiting re-approval
+  const pendingEdits = list.filter((p) => p.pending_review);
   // New Tier-1 listings awaiting their first review
   const needsReview = list.filter((p) => !p.published && p.tier === "listed");
   const rest = list.filter((p) => p.published || p.tier !== "listed");
@@ -78,6 +151,47 @@ export default async function AdminProfiles() {
       <p className="mb-8 mt-1 text-sm text-gray-500">
         {list.filter((p) => p.published).length} published · {list.length} total
       </p>
+
+      {pendingEdits.length > 0 && (
+        <section className="mb-10">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-amber-600">
+            Changes to review ({pendingEdits.length})
+          </h2>
+          <ul className="space-y-3">
+            {pendingEdits.map((p) => (
+              <li key={p.id} className="rounded-xl border border-amber-200 bg-amber-50/50 p-5">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">
+                    {p.name} <TierBadge tier={p.tier} />
+                  </p>
+                  <Link href={`/directory/${p.slug}`} target="_blank" className="text-xs text-gray-500 underline">
+                    current live version
+                  </Link>
+                </div>
+                <p className="mt-1 text-xs text-gray-500">
+                  This school edited its live profile. The changes below are
+                  <strong> not public</strong> until you approve them.
+                </p>
+                <ChangeDiff profile={p} />
+                <div className="mt-4 flex items-center gap-2">
+                  <form action={approvePendingChanges}>
+                    <input type="hidden" name="profile_id" value={p.id} />
+                    <button className="rounded-lg bg-green-700 px-4 py-2 text-xs font-medium text-white hover:bg-green-800">
+                      Approve &amp; publish changes
+                    </button>
+                  </form>
+                  <form action={discardPendingChanges}>
+                    <input type="hidden" name="profile_id" value={p.id} />
+                    <button className="rounded-lg border border-gray-200 px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50">
+                      Discard
+                    </button>
+                  </form>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {needsReview.length > 0 && (
         <section className="mb-10">

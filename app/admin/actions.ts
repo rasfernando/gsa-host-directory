@@ -161,6 +161,76 @@ export async function togglePublish(formData: FormData) {
   revalidatePath("/directory");
 }
 
+// Approve a school's staged edits to a live profile: merge pending_changes
+// into the live row, clean up any photos the school removed, and clear the flag.
+export async function approvePendingChanges(formData: FormData) {
+  const { supabase } = await requireAdmin();
+  const profileId = String(formData.get("profile_id"));
+
+  const { data: profile, error: loadError } = await supabase
+    .from("host_profiles")
+    .select("id, media, pending_changes")
+    .eq("id", profileId)
+    .single();
+  if (loadError || !profile) throw new Error(loadError?.message ?? "Not found");
+
+  const pending = (profile.pending_changes as Record<string, unknown>) ?? {};
+  const newMedia = (pending.media as { url: string }[]) ?? [];
+  const oldMedia = (profile.media as { url: string }[]) ?? [];
+
+  // Whitelist exactly the editable columns — never trust pending to carry
+  // protected fields (published, tier, etc).
+  const merged: Record<string, unknown> = {
+    headline: pending.headline ?? null,
+    description: pending.description ?? null,
+    city: pending.city ?? null,
+    languages: pending.languages ?? [],
+    age_range_min: pending.age_range_min ?? null,
+    age_range_max: pending.age_range_max ?? null,
+    subject_strengths: pending.subject_strengths ?? [],
+    focus_tags: pending.focus_tags ?? [],
+    boarding: Boolean(pending.boarding),
+    homestay: Boolean(pending.homestay),
+    capacity: pending.capacity ?? null,
+    typical_hosting_windows: pending.typical_hosting_windows ?? null,
+    media: newMedia,
+    pending_changes: null,
+    pending_review: false,
+  };
+
+  const { error } = await supabase
+    .from("host_profiles")
+    .update(merged)
+    .eq("id", profileId);
+  if (error) throw new Error(error.message);
+
+  // Delete storage objects for photos that were removed in this change.
+  const newUrls = new Set(newMedia.map((m) => m.url));
+  const orphanPaths = oldMedia
+    .filter((m) => !newUrls.has(m.url))
+    .map((m) => m.url.split("/school-media/")[1])
+    .filter(Boolean) as string[];
+  if (orphanPaths.length) {
+    await supabase.storage.from("school-media").remove(orphanPaths);
+  }
+
+  await logEvent("profile_changes_approved", { profile_id: profileId });
+  revalidatePath("/admin/profiles");
+  revalidatePath("/directory");
+}
+
+// Discard a school's staged edits without applying them.
+export async function discardPendingChanges(formData: FormData) {
+  const { supabase } = await requireAdmin();
+  const profileId = String(formData.get("profile_id"));
+  const { error } = await supabase
+    .from("host_profiles")
+    .update({ pending_changes: null, pending_review: false })
+    .eq("id", profileId);
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin/profiles");
+}
+
 // Update enquiry status / notes
 export async function updateEnquiry(formData: FormData) {
   const { supabase } = await requireAdmin();

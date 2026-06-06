@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 import { submitApplication } from "./actions";
 import Link from "next/link";
 
@@ -23,36 +24,14 @@ export default async function ApplyPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // If this school already has an application, show its status instead of the form
+  // Already applied? Manage it from the dashboard rather than a dead-end.
   const { data: existing } = await supabase
     .from("host_applications")
-    .select("id, status, submitted_at")
+    .select("id")
     .order("created_at", { ascending: false })
     .limit(1);
 
-  if (existing && existing.length > 0) {
-    const app = existing[0];
-    return (
-      <div className="mx-auto max-w-xl py-16 text-center">
-        <h1 className="text-3xl font-bold tracking-tight">
-          Application {app.status.replace("_", " ")}
-        </h1>
-        <p className="mt-3 leading-relaxed text-stone-500">
-          {app.status === "approved"
-            ? "Congratulations — your school is an accredited GSA host school."
-            : app.status === "rejected"
-              ? "Your application was not approved this time. GSA will be in touch with feedback."
-              : "Your application is with the GSA team. We review every school personally and will contact you to arrange verification."}
-        </p>
-        <Link
-          href="/"
-          className="mt-6 inline-block text-sm text-stone-500 underline transition-colors duration-150 hover:text-stone-900"
-        >
-          Back to home
-        </Link>
-      </div>
-    );
-  }
+  if (existing && existing.length > 0) redirect("/your-school");
 
   return (
     <div className="mx-auto max-w-xl">
