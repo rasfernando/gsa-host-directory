@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
-import { signOut, setLocale } from "./actions";
-import { LOCALES } from "@/i18n/request";
+import { signOut } from "./actions";
+import { LocaleSwitcher } from "@/components/locale-switcher";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -93,22 +93,9 @@ export default async function RootLayout({
                   {t("signIn")}
                 </Link>
               )}
-              <form action={setLocale} className="flex items-center gap-1 border-l border-stone-200 pl-4">
-                {LOCALES.map((l) => (
-                  <button
-                    key={l}
-                    name="locale"
-                    value={l}
-                    className={
-                      l === locale
-                        ? "rounded px-1.5 py-0.5 text-xs font-bold uppercase text-stone-900"
-                        : "rounded px-1.5 py-0.5 text-xs font-medium uppercase text-stone-400 transition-colors duration-150 hover:text-stone-900"
-                    }
-                  >
-                    {l}
-                  </button>
-                ))}
-              </form>
+              <div className="border-l border-stone-200 pl-4">
+                <LocaleSwitcher locale={locale} />
+              </div>
             </nav>
           </div>
         </header>
