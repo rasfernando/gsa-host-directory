@@ -27,25 +27,22 @@ export async function submitListing(formData: FormData) {
   const schoolName = String(formData.get("school_name"));
 
   if (!schoolId) {
-    const { data: school, error: schoolError } = await supabase
-      .from("schools")
-      .insert({
-        name: schoolName,
-        country: String(formData.get("country")),
-        city: String(formData.get("city") || ""),
-        website: String(formData.get("website") || ""),
-        contact_name: String(formData.get("contact_name")),
-        contact_email: user.email,
-      })
-      .select("id")
-      .single();
-    if (schoolError) throw new Error(`Could not create school: ${schoolError.message}`);
-    schoolId = school.id;
-
-    await supabase
-      .from("user_profiles")
-      .update({ school_id: schoolId, full_name: String(formData.get("contact_name")) })
-      .eq("id", user.id);
+    // Atomic create-and-link via RPC: a fresh user can't INSERT…RETURNING on
+    // schools directly (the new row isn't visible to them until linked).
+    const { data: newSchoolId, error: schoolError } = await supabase.rpc(
+      "register_school",
+      {
+        p_name: schoolName,
+        p_country: String(formData.get("country")),
+        p_city: String(formData.get("city") || "") || null,
+        p_website: String(formData.get("website") || "") || null,
+        p_contact_name: String(formData.get("contact_name")),
+        p_contact_email: user.email,
+      }
+    );
+    if (schoolError || !newSchoolId)
+      redirect(`/list-your-school?error=${encodeURIComponent(schoolError?.message ?? "Could not register your school")}`);
+    schoolId = newSchoolId as string;
   }
 
   const slug =

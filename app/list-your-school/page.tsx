@@ -7,7 +7,12 @@ const inputCls =
   "mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm focus:border-brand-600 focus:outline-none";
 const labelCls = "block text-sm font-medium";
 
-export default async function ListYourSchoolPage() {
+export default async function ListYourSchoolPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const { error } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -78,6 +83,13 @@ export default async function ListYourSchoolPage() {
         <Link href="/apply" className="underline">GSA accreditation</Link>{" "}
         — the gold standard, actively promoted by GSA — at any time.
       </p>
+
+      {error && (
+        <p className="mt-4 rounded-xl border border-warm-200 bg-warm-50 px-4 py-3 text-sm text-warm-700">
+          {decodeURIComponent(error)} — please try again, or email
+          hello@globalschoolalliance.com if it persists.
+        </p>
+      )}
 
       <form
         action={submitListing}

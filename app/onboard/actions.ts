@@ -33,21 +33,22 @@ export async function submitIntake(formData: FormData) {
 
   let schoolId = (invite.school_id as string | null) ?? profile?.school_id ?? null;
   if (!schoolId) {
-    const { data: school, error: schoolError } = await supabase
-      .from("schools")
-      .insert({
-        name: String(formData.get("school_name") || invite.school_name),
-        country: String(formData.get("country") || invite.country || ""),
-        city: String(formData.get("city") || "") || null,
-        website: String(formData.get("website") || "") || null,
-        contact_name: String(formData.get("contact_name") || "") || null,
-        contact_email: user.email,
-      })
-      .select("id")
-      .single();
-    if (schoolError || !school)
-      throw new Error(`Could not create school: ${schoolError?.message}`);
-    schoolId = school.id;
+    // Atomic create-and-link via RPC: a fresh user can't INSERT…RETURNING on
+    // schools directly (the new row isn't visible to them until linked).
+    const { data: newSchoolId, error: schoolError } = await supabase.rpc(
+      "register_school",
+      {
+        p_name: String(formData.get("school_name") || invite.school_name),
+        p_country: String(formData.get("country") || invite.country || ""),
+        p_city: String(formData.get("city") || "") || null,
+        p_website: String(formData.get("website") || "") || null,
+        p_contact_name: String(formData.get("contact_name") || "") || null,
+        p_contact_email: user.email,
+      }
+    );
+    if (schoolError || !newSchoolId)
+      redirect(`/onboard/${token}?error=${encodeURIComponent(schoolError?.message ?? "Could not register your school")}`);
+    schoolId = newSchoolId as string;
   }
 
   if (profile?.school_id !== schoolId) {

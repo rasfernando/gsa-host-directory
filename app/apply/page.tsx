@@ -18,7 +18,12 @@ const labelCls = "block text-sm font-medium";
 const sectionHeadingCls =
   "text-xs font-semibold uppercase tracking-widest text-brand-700";
 
-export default async function ApplyPage() {
+export default async function ApplyPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const { error } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -48,6 +53,13 @@ export default async function ApplyPage() {
         schools can use for trip approval. The GSA team will contact you to
         complete verification after you submit.
       </p>
+
+      {error && (
+        <p className="mt-4 rounded-xl border border-warm-200 bg-warm-50 px-4 py-3 text-sm text-warm-700">
+          {decodeURIComponent(error)} — please try again, or email
+          hello@globalschoolalliance.com if it persists.
+        </p>
+      )}
 
       <form action={submitApplication} className="mt-8 space-y-6">
         <section className="space-y-4 rounded-2xl border border-stone-200/70 bg-white p-6 shadow-sm sm:p-8">

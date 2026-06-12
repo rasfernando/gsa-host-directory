@@ -19,10 +19,13 @@ const TEMPLATE_TITLES: Record<string, string> = {
 // Private "GSA invited you" landing — bypasses the public register form.
 export default async function OnboardPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ token: string }>;
+  searchParams: Promise<{ error?: string }>;
 }) {
   const { token } = await params;
+  const { error } = await searchParams;
   const supabase = await createClient();
 
   const { data: inviteRows } = await supabase.rpc("intake_invite_by_token", {
@@ -85,6 +88,12 @@ export default async function OnboardPage({
           {daysUntil(cohort.evidence_deadline) != null &&
             ` — ${daysUntil(cohort.evidence_deadline)} days left`}
           . Complete your intake now and submit evidence to make this cohort.
+        </p>
+      )}
+
+      {error && (
+        <p className="mt-4 rounded-xl border border-warm-200 bg-warm-50 px-4 py-3 text-sm text-warm-700">
+          {decodeURIComponent(error)} — please try again.
         </p>
       )}
 
