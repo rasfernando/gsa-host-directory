@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 
 // Cookie-based locale (no URL prefixes): the whole tree — including deep
 // pages like directory → school → pay — renders in the chosen language.
-export const LOCALES = ["en", "pl"] as const;
+export const LOCALES = ["en", "zh", "fr", "es", "de", "pl"] as const;
 export type Locale = (typeof LOCALES)[number];
 export const LOCALE_COOKIE = "NEXT_LOCALE";
 
