@@ -376,6 +376,71 @@ export async function payInstallment(formData: FormData) {
   redirect(`/trips/${tripId}?deposit=manual`);
 }
 
+// ── Step 17: booking alterations ────────────────────────────────────────────
+export async function requestAlteration(formData: FormData) {
+  const tripId = String(formData.get("trip_id"));
+  const { supabase, user, trip } = await ownTrip(tripId);
+
+  const description = String(formData.get("description") || "").trim();
+  if (!description) redirect(`/trips/${tripId}`);
+
+  const { error } = await supabase.from("trip_alterations").insert({
+    trip_id: tripId,
+    requested_by: user.id,
+    description,
+  });
+  if (error) redirect(`/trips/${tripId}?error=${encodeURIComponent(error.message)}`);
+
+  await logEvent("alteration_requested", {
+    profile_id: trip.host_profile_id,
+    meta: { trip_id: tripId },
+  });
+  await notifyGsa(
+    `Booking alteration requested — ${trip.organiser_school_name ?? "a school"}`,
+    `<p><strong>${trip.organiser_school_name ?? "A school"}</strong> has requested a change to a booked trip:</p>
+     <blockquote>${description}</blockquote>
+     <p><a href="https://gsa-host-directory.vercel.app/admin/trips/${tripId}">Review and price the change</a></p>`
+  );
+  redirect(`/trips/${tripId}?alteration=requested`);
+}
+
+// ── Step 16: name lists for the final travel pack ───────────────────────────
+export async function uploadNameList(formData: FormData) {
+  const tripId = String(formData.get("trip_id"));
+  const { supabase, user } = await ownTrip(tripId);
+
+  const file = formData.get("document") as File | null;
+  if (!file || file.size === 0)
+    redirect(`/trips/${tripId}?error=${encodeURIComponent("Choose a file")}`);
+  if (file.size > 10 * 1024 * 1024)
+    redirect(`/trips/${tripId}?error=${encodeURIComponent("Max 10MB")}`);
+
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 80);
+  const path = `${tripId}/name_list/${Date.now()}-${safeName}`;
+  const { error: uploadError } = await supabase.storage
+    .from("trip-docs")
+    .upload(path, file, { contentType: file.type || "application/octet-stream" });
+  if (uploadError)
+    redirect(`/trips/${tripId}?error=${encodeURIComponent(uploadError.message)}`);
+
+  const { error } = await supabase.from("trip_documents").insert({
+    trip_id: tripId,
+    kind: "name_list",
+    name: file.name,
+    path,
+    uploaded_by: user.id,
+  });
+  if (error) redirect(`/trips/${tripId}?error=${encodeURIComponent(error.message)}`);
+
+  await logEvent("name_list_uploaded", { meta: { trip_id: tripId } });
+  await notifyGsa(
+    `Name list uploaded`,
+    `<p>A name list has been uploaded for a trip — ready for flight bookings and the final travel pack.</p>
+     <p><a href="https://gsa-host-directory.vercel.app/admin/trips/${tripId}">Open the trip</a></p>`
+  );
+  redirect(`/trips/${tripId}?saved=namelist`);
+}
+
 export async function deleteDraftTrip(formData: FormData) {
   const tripId = String(formData.get("trip_id"));
   const { supabase } = await ownTrip(tripId);

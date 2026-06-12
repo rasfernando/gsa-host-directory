@@ -23,6 +23,8 @@ import {
   payDeposit,
   commitPlan,
   payInstallment,
+  requestAlteration,
+  uploadNameList,
 } from "../actions";
 import { stripeEnabled } from "@/lib/stripe";
 import { headers } from "next/headers";
@@ -64,6 +66,8 @@ export default async function TripPage({
     deposit?: string;
     committed?: string;
     payment?: string;
+    alteration?: string;
+    saved?: string;
   }>;
 }) {
   const { id } = await params;
@@ -92,6 +96,8 @@ export default async function TripPage({
     { data: planData },
     { data: parentPaymentsData },
     { data: invoicesData },
+    { data: alterationsData },
+    { data: documentsData },
   ] = await Promise.all([
     supabase
       .from("trip_items")
@@ -122,6 +128,16 @@ export default async function TripPage({
       .select("*")
       .eq("trip_id", id)
       .order("issued_at"),
+    supabase
+      .from("trip_alterations")
+      .select("*")
+      .eq("trip_id", id)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("trip_documents")
+      .select("*")
+      .eq("trip_id", id)
+      .order("created_at"),
   ]);
   const items = (itemsData ?? []) as Item[];
   const boltOns = (boltOnsData ?? []) as Product[];
@@ -136,6 +152,12 @@ export default async function TripPage({
   }[]).sort((a, b) => a.seq - b.seq);
   const parentPayments = parentPaymentsData ?? [];
   const invoices = invoicesData ?? [];
+  const alterations = alterationsData ?? [];
+  const documents = documentsData ?? [];
+  const hasImmersion = items.some((i) => i.category === "immersion_camp");
+  const afterDeposit = ["deposit_paid", "invoiced", "confirmed", "completed"].includes(
+    trip.status
+  );
   const canPayByCard = stripeEnabled();
   const origin =
     (await headers()).get("x-forwarded-host") != null
@@ -208,6 +230,15 @@ export default async function TripPage({
       )}
       {flags.payment === "processing" && (
         <Flash tone="ok">Payment processing — it will show below once it clears.</Flash>
+      )}
+      {flags.alteration && (
+        <Flash tone="ok">
+          Alteration requested — the GSA team will review it, price any change,
+          and apply it to your booking.
+        </Flash>
+      )}
+      {flags.saved === "namelist" && (
+        <Flash tone="ok">Name list uploaded — thank you.</Flash>
       )}
       {flags.committed && (
         <Flash tone="ok">
@@ -789,6 +820,98 @@ export default async function TripPage({
               </button>
             </form>
           </div>
+        </section>
+      )}
+
+      {/* Step 16: pre-departure pack, name lists, travel documents */}
+      {afterDeposit && hasImmersion && (
+        <section className="mt-8 rounded-2xl border border-stone-200/70 bg-white p-6 shadow-sm sm:p-8">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-xl font-bold tracking-tight">
+                Pre-departure &amp; travel documents
+              </h2>
+              <p className="mt-1 text-sm text-stone-500">
+                Your pre-departure pack covers the immersion and every bolt-on.
+                Upload your final name list for flights and the travel pack.
+              </p>
+            </div>
+            <Link
+              href={`/trips/${id}/predeparture`}
+              className="shrink-0 rounded-lg bg-warm-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-warm-700"
+            >
+              Open pre-departure pack
+            </Link>
+          </div>
+
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-stone-100 pt-4">
+            <p className="text-sm text-stone-600">
+              {documents.length === 0
+                ? "No documents yet."
+                : `${documents.length} document${documents.length > 1 ? "s" : ""} on file — view and download them in the pack.`}
+            </p>
+            <form action={uploadNameList} className="flex items-center gap-2">
+              <input type="hidden" name="trip_id" value={id} />
+              <input
+                type="file"
+                name="document"
+                required
+                className="text-xs text-stone-500"
+              />
+              <button className="shrink-0 rounded-lg border border-warm-600 px-3.5 py-2 text-xs font-semibold text-warm-700 transition-colors duration-150 hover:bg-warm-50">
+                Upload name list
+              </button>
+            </form>
+          </div>
+        </section>
+      )}
+
+      {/* Step 17: booking alterations once the basket is locked */}
+      {["invoiced", "confirmed"].includes(trip.status) && (
+        <section className="mt-8 rounded-2xl border border-stone-200/70 bg-white p-6 shadow-sm sm:p-8">
+          <h2 className="text-xl font-bold tracking-tight">Need to change something?</h2>
+          <p className="mt-1 text-sm text-stone-500">
+            Your booking is committed, so changes (numbers, upgrades, dates) go
+            through the GSA team — including any price difference.
+          </p>
+          {alterations.length > 0 && (
+            <ul className="mt-4 space-y-2">
+              {alterations.map((a) => (
+                <li
+                  key={a.id}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-stone-100 px-4 py-3 text-sm"
+                >
+                  <span className="text-stone-700">{a.description}</span>
+                  <span
+                    className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
+                      a.status === "applied"
+                        ? "bg-brand-50 text-brand-700"
+                        : a.status === "rejected"
+                          ? "bg-stone-100 text-stone-500"
+                          : "bg-warm-50 text-warm-700"
+                    }`}
+                  >
+                    {a.status === "requested" ? "with GSA" : a.status}
+                    {a.status === "applied" && a.price_delta_pennies !== 0
+                      ? ` · ${a.price_delta_pennies > 0 ? "+" : "−"}${formatPounds(Math.abs(a.price_delta_pennies))}`
+                      : ""}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <form action={requestAlteration} className="mt-4 flex flex-col gap-2 sm:flex-row">
+            <input type="hidden" name="trip_id" value={id} />
+            <input
+              name="description"
+              required
+              placeholder="e.g. Two more students joining — add 2 places + flights"
+              className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm focus:border-brand-600 focus:outline-none"
+            />
+            <button className="shrink-0 rounded-lg border border-warm-600 px-4 py-2 text-sm font-semibold text-warm-700 transition-colors duration-150 hover:bg-warm-50">
+              Request change
+            </button>
+          </form>
         </section>
       )}
 
