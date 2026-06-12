@@ -4,6 +4,8 @@ import {
   togglePublish,
   approvePendingChanges,
   discardPendingChanges,
+  verifyAndPublish,
+  setProfileTier,
 } from "../actions";
 
 type ProfileRow = {
@@ -38,7 +40,9 @@ function TierBadge({ tier }: { tier: string }) {
       className={
         tier === "accredited"
           ? "rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700"
-          : "rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500"
+          : tier === "verified"
+            ? "rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700"
+            : "rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500"
       }
     >
       {tier}
@@ -128,7 +132,12 @@ function PublishButton({ profile }: { profile: ProfileRow }) {
   );
 }
 
-export default async function AdminProfiles() {
+export default async function AdminProfiles({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const { error: errorFlag } = await searchParams;
   const supabase = await createClient();
 
   const { data } = await supabase
@@ -151,6 +160,12 @@ export default async function AdminProfiles() {
       <p className="mb-8 mt-1 text-sm text-gray-500">
         {list.filter((p) => p.published).length} published · {list.length} total
       </p>
+
+      {errorFlag && (
+        <div className="mb-6 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+          {decodeURIComponent(errorFlag)}
+        </div>
+      )}
 
       {pendingEdits.length > 0 && (
         <section className="mb-10">
@@ -229,9 +244,15 @@ export default async function AdminProfiles() {
                       <div className="sm:col-span-2"><dt className="text-xs uppercase text-gray-500">Hosting windows</dt><dd>{p.typical_hosting_windows || "—"}</dd></div>
                     </dl>
                     <div className="mt-3 flex items-center gap-3">
-                      <PublishButton profile={p} />
+                      <form action={verifyAndPublish}>
+                        <input type="hidden" name="profile_id" value={p.id} />
+                        <button className="rounded-lg bg-gray-900 px-4 py-2 text-xs font-medium text-white hover:bg-gray-700">
+                          Verify &amp; publish
+                        </button>
+                      </form>
                       <span className="text-xs text-gray-500">
-                        Check the website looks real and details are sensible before publishing.
+                        Publishing requires verification: confirm the school is
+                        real and its details check out first.
                       </span>
                     </div>
                   </details>
@@ -270,7 +291,27 @@ export default async function AdminProfiles() {
                   )}
                 </p>
               </div>
-              <PublishButton profile={p} />
+              <div className="flex items-center gap-2">
+                {p.tier === "verified" && (
+                  <form action={setProfileTier}>
+                    <input type="hidden" name="profile_id" value={p.id} />
+                    <input type="hidden" name="tier" value="accredited" />
+                    <button className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50">
+                      Promote to accredited
+                    </button>
+                  </form>
+                )}
+                {p.tier === "accredited" && (
+                  <form action={setProfileTier}>
+                    <input type="hidden" name="profile_id" value={p.id} />
+                    <input type="hidden" name="tier" value="verified" />
+                    <button className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50">
+                      Set back to verified
+                    </button>
+                  </form>
+                )}
+                <PublishButton profile={p} />
+              </div>
             </li>
           ))}
         </ul>

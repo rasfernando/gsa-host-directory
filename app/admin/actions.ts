@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { logEvent } from "@/lib/events";
 import { sendEmail } from "@/lib/notify";
@@ -96,9 +97,20 @@ export async function approveApplication(formData: FormData) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 
+  // Three-tier model: approving the evidence checks makes a school VERIFIED
+  // (publishable). Accredited is a separate promotion (licence agreement,
+  // catalog placement) — never granted automatically, and never taken away
+  // here if the school already holds it.
+  const { data: existing } = await supabase
+    .from("host_profiles")
+    .select("tier")
+    .eq("school_id", app.school_id)
+    .maybeSingle();
+  const tier = existing?.tier === "accredited" ? "accredited" : "verified";
+
   // Upsert: a school upgrading from a Tier 1 listing keeps its existing
   // profile (and slug); a school applying directly gets a new one.
-  // Either way the profile becomes accredited. Publishing stays manual.
+  // Publishing stays manual.
   const { data: upserted, error: profileError } = await supabase
     .from("host_profiles")
     .upsert(
@@ -106,7 +118,7 @@ export async function approveApplication(formData: FormData) {
         school_id: app.school_id,
         name: school?.name ?? "",
         slug: `${slug}-${applicationId.slice(0, 4)}`,
-        tier: "accredited",
+        tier,
         published: false,
         country: school?.country ?? "",
         city: school?.city ?? "",
@@ -120,7 +132,6 @@ export async function approveApplication(formData: FormData) {
         capacity: (answers.capacity as number) ?? null,
         typical_hosting_windows: (answers.typical_hosting_windows as string) ?? null,
         verification_summary: verificationSummary,
-        accredited_at: new Date().toISOString(),
       },
       { onConflict: "school_id" }
     )
@@ -149,7 +160,8 @@ export async function togglePublish(formData: FormData) {
     .eq("id", profileId)
     .select("school_id")
     .single();
-  if (error) throw new Error(error.message);
+  // The DB gate blocks publishing unverified schools — surface that nicely.
+  if (error) redirect(`/admin/profiles?error=${encodeURIComponent(error.message)}`);
 
   if (publish) {
     await logEvent("profile_published", {
@@ -160,6 +172,61 @@ export async function togglePublish(formData: FormData) {
 
   revalidatePath("/admin/profiles");
   revalidatePath("/directory");
+}
+
+// First review of a listed school: GSA checks it out, marks it verified and
+// puts it live in one step. (The DB gate requires tier before published —
+// done as two updates in order.)
+export async function verifyAndPublish(formData: FormData) {
+  const { supabase } = await requireAdmin();
+  const profileId = String(formData.get("profile_id"));
+
+  const { error: tierError } = await supabase
+    .from("host_profiles")
+    .update({ tier: "verified" })
+    .eq("id", profileId)
+    .eq("tier", "listed");
+  if (tierError) redirect(`/admin/profiles?error=${encodeURIComponent(tierError.message)}`);
+
+  const { data: updated, error } = await supabase
+    .from("host_profiles")
+    .update({ published: true })
+    .eq("id", profileId)
+    .select("school_id")
+    .single();
+  if (error) redirect(`/admin/profiles?error=${encodeURIComponent(error.message)}`);
+
+  await logEvent("profile_published", {
+    school_id: updated?.school_id,
+    profile_id: profileId,
+  });
+  revalidatePath("/admin/profiles");
+  revalidatePath("/directory");
+}
+
+// Move a profile between supply tiers. Verified ↔ accredited only — dropping
+// below verified would conflict with the publication gate while live.
+export async function setProfileTier(formData: FormData) {
+  const { supabase } = await requireAdmin();
+  const profileId = String(formData.get("profile_id"));
+  const tier = String(formData.get("tier"));
+  if (!["verified", "accredited"].includes(tier)) redirect("/admin/profiles");
+
+  const { error } = await supabase
+    .from("host_profiles")
+    .update({
+      tier,
+      accredited_at: tier === "accredited" ? new Date().toISOString() : null,
+    })
+    .eq("id", profileId);
+  if (error) redirect(`/admin/profiles?error=${encodeURIComponent(error.message)}`);
+
+  await logEvent(tier === "accredited" ? "profile_accredited" : "profile_set_verified", {
+    profile_id: profileId,
+  });
+  revalidatePath("/admin/profiles");
+  revalidatePath("/directory");
+  redirect("/admin/profiles");
 }
 
 // Approve a school's staged edits to a live profile: merge pending_changes

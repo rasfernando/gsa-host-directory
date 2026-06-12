@@ -57,6 +57,11 @@ export function SchoolCard({ p }: { p: SchoolCardData }) {
             <SealIcon className="h-4 w-4 text-emerald-600" />
             GSA Accredited
           </span>
+        ) : p.tier === "verified" ? (
+          <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-white/95 py-1 pl-1.5 pr-2.5 text-[11px] font-semibold text-brand-800 shadow-sm ring-1 ring-brand-600/10 backdrop-blur">
+            <SealIcon className="h-4 w-4 text-brand-600" />
+            GSA Verified
+          </span>
         ) : (
           <span className="absolute left-3 top-3 inline-flex items-center rounded-full bg-stone-900/55 px-2.5 py-1 text-[11px] font-medium text-white/90 backdrop-blur">
             Listed host

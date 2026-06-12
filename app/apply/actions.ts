@@ -73,10 +73,22 @@ export async function submitApplication(formData: FormData) {
     typical_hosting_windows: formData.get("typical_hosting_windows"),
   };
 
+  // Attach to the soonest open verification cohort so the evidence window
+  // and batched checking apply automatically.
+  const { data: cohort } = await supabase
+    .from("verification_cohorts")
+    .select("id")
+    .eq("status", "open")
+    .gte("evidence_deadline", new Date().toISOString().slice(0, 10))
+    .order("evidence_deadline", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
   const { error: appError } = await supabase.from("host_applications").insert({
     school_id: schoolId,
     status: "submitted",
     answers,
+    cohort_id: cohort?.id ?? null,
     submitted_at: new Date().toISOString(),
   });
   if (appError) throw new Error(`Could not submit application: ${appError.message}`);

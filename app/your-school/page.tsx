@@ -11,9 +11,9 @@ type MediaItem = { url: string };
 export default async function YourSchoolPage({
   searchParams,
 }: {
-  searchParams: Promise<{ saved?: string }>;
+  searchParams: Promise<{ saved?: string; intake?: string }>;
 }) {
-  const { saved } = await searchParams;
+  const { saved, intake } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -53,29 +53,47 @@ export default async function YourSchoolPage({
     );
   }
 
-  const [{ data: school }, { data: profile }, { data: app }] = await Promise.all([
-    supabase
-      .from("schools")
-      .select("name, contact_name, contact_email, website")
-      .eq("id", up.school_id)
-      .single(),
-    supabase
-      .from("host_profiles")
-      .select("id, name, slug, tier, published, media, pending_review")
-      .eq("school_id", up.school_id)
-      .maybeSingle(),
-    supabase
-      .from("host_applications")
-      .select("id, status, info_request")
-      .eq("school_id", up.school_id)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-  ]);
+  const [{ data: school }, { data: profile }, { data: app }, { data: cohort }] =
+    await Promise.all([
+      supabase
+        .from("schools")
+        .select("name, contact_name, contact_email, website")
+        .eq("id", up.school_id)
+        .single(),
+      supabase
+        .from("host_profiles")
+        .select("id, name, slug, tier, published, media, pending_review")
+        .eq("school_id", up.school_id)
+        .maybeSingle(),
+      supabase
+        .from("host_applications")
+        .select("id, status, info_request, cohort_id")
+        .eq("school_id", up.school_id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from("verification_cohorts")
+        .select("id, name, evidence_deadline")
+        .eq("status", "open")
+        .gte("evidence_deadline", new Date().toISOString().slice(0, 10))
+        .order("evidence_deadline", { ascending: true })
+        .limit(1)
+        .maybeSingle(),
+    ]);
 
   const cover = (profile?.media as MediaItem[] | null)?.[0]?.url ?? null;
   const appEditable =
     app && ["draft", "submitted", "under_review", "info_requested"].includes(app.status);
+  // Verification is batched: show the evidence window while the school is
+  // still working towards verified (no decided application yet).
+  const showCohortBanner =
+    cohort && (!profile || profile.tier === "listed") && app?.status !== "approved";
+  const cohortDaysLeft = cohort
+    ? Math.ceil(
+        (new Date(cohort.evidence_deadline).getTime() - Date.now()) / 86_400_000
+      )
+    : null;
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -90,6 +108,37 @@ export default async function YourSchoolPage({
         <p className="mt-4 rounded-lg bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800">
           Contact details saved.
         </p>
+      )}
+
+      {intake === "submitted" && (
+        <p className="mt-4 rounded-lg bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800">
+          Intake submitted — the GSA team has your details and will guide you
+          through verification.
+        </p>
+      )}
+
+      {showCohortBanner && (
+        <div className="mt-4 rounded-xl border border-brand-200 bg-brand-50 p-4">
+          <p className="text-sm font-semibold text-brand-800">
+            Next verification cohort closes in {cohortDaysLeft} day
+            {cohortDaysLeft === 1 ? "" : "s"} —{" "}
+            {new Date(cohort!.evidence_deadline).toLocaleDateString("en-GB", {
+              day: "numeric",
+              month: "long",
+            })}
+          </p>
+          <p className="mt-1 text-sm text-brand-800/80">
+            Submit your safeguarding and risk-assessment evidence to be
+            verified in the {cohort!.name}. Verified schools appear on the
+            marketplace and can take bookings.
+          </p>
+          <Link
+            href={app ? "/your-school/application" : "/apply"}
+            className="mt-3 inline-block rounded-lg bg-warm-600 px-4 py-2 text-sm font-semibold text-white transition-colors duration-150 hover:bg-warm-700"
+          >
+            {app ? "Submit your evidence →" : "Start your application →"}
+          </Link>
+        </div>
       )}
 
       {profile?.pending_review && (
@@ -135,6 +184,11 @@ export default async function YourSchoolPage({
               {profile?.tier === "accredited" && (
                 <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-800">
                   GSA Accredited
+                </span>
+              )}
+              {profile?.tier === "verified" && (
+                <span className="rounded-full bg-brand-100 px-2 py-0.5 text-[11px] font-semibold text-brand-800">
+                  GSA Verified
                 </span>
               )}
             </div>

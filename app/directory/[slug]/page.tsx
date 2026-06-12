@@ -66,12 +66,19 @@ export default async function ProfilePage({
             {profile.accredited_at &&
               ` · since ${new Date(profile.accredited_at).getFullYear()}`}
           </Link>
+        ) : profile.tier === "verified" ? (
+          <Link
+            href="/accreditation"
+            className="shrink-0 self-start rounded-full bg-brand-100 px-3.5 py-1.5 text-xs font-semibold text-brand-800 transition-colors duration-150 hover:bg-brand-200"
+          >
+            GSA Verified host
+          </Link>
         ) : (
           <Link
             href="/accreditation"
             className="shrink-0 self-start rounded-full bg-stone-100 px-3.5 py-1.5 text-xs font-medium text-stone-500 transition-colors duration-150 hover:bg-stone-200"
           >
-            Listed host · not yet GSA Accredited
+            Listed host · not yet GSA Verified
           </Link>
         )}
       </div>
