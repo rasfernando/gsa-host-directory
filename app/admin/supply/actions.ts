@@ -83,6 +83,93 @@ export async function createIntakeInvite(formData: FormData) {
   redirect("/admin/supply?saved=invite");
 }
 
+// ── Agents (commission resale) ──────────────────────────────────────────────
+// The person must have signed in once (magic link) so an auth user exists;
+// we then promote their profile and create the agency record.
+export async function createAgent(formData: FormData) {
+  const { supabase } = await requireAdmin();
+  const email = String(formData.get("email") || "").trim().toLowerCase();
+
+  const { data: profile } = await supabase
+    .from("user_profiles")
+    .select("id, role")
+    .ilike("email", email)
+    .maybeSingle();
+  if (!profile)
+    fail(`No account for ${email} yet — ask them to sign in once first, then add them.`);
+  if (profile.role === "gsa_admin") fail("That account is a GSA admin.");
+
+  const { error: roleError } = await supabase
+    .from("user_profiles")
+    .update({ role: "agent" })
+    .eq("id", profile.id);
+  if (roleError) fail(roleError.message);
+
+  const { error } = await supabase.from("agents").upsert({
+    id: profile.id,
+    agency_name: String(formData.get("agency_name") || "").trim() || email,
+    country: String(formData.get("country") || "") || null,
+    contact_email: email,
+    commission_bps: Math.round(Number(formData.get("commission_pct") || 10) * 100),
+    status: "active",
+  });
+  if (error) fail(error.message);
+
+  await logEvent("agent_created", { meta: { agent_id: profile.id } });
+  redirect("/admin/supply?saved=agent");
+}
+
+export async function setAgentStatus(formData: FormData) {
+  const { supabase } = await requireAdmin();
+  const status = String(formData.get("status"));
+  if (!["active", "suspended"].includes(status)) redirect("/admin/supply");
+  const { error } = await supabase
+    .from("agents")
+    .update({ status })
+    .eq("id", String(formData.get("agent_id")));
+  if (error) fail(error.message);
+  redirect("/admin/supply?saved=agent");
+}
+
+export async function markCommissionPaid(formData: FormData) {
+  const { supabase } = await requireAdmin();
+  const { error } = await supabase
+    .from("agent_commissions")
+    .update({ status: "paid", paid_at: new Date().toISOString() })
+    .eq("id", String(formData.get("commission_id")))
+    .eq("status", "payable");
+  if (error) fail(error.message);
+  await logEvent("agent_commission_paid", {
+    meta: { commission_id: formData.get("commission_id") },
+  });
+  redirect("/admin/supply?saved=commission");
+}
+
+export async function createBlockBooking(formData: FormData) {
+  const { supabase } = await requireAdmin();
+  const { error } = await supabase.from("block_bookings").insert({
+    agent_id: String(formData.get("agent_id")),
+    host_profile_id: String(formData.get("host_profile_id")),
+    window_start: String(formData.get("window_start")),
+    window_end: String(formData.get("window_end")),
+    places: Number(formData.get("places") || 10),
+    notes: String(formData.get("notes") || "") || null,
+  });
+  if (error) fail(error.message);
+  await logEvent("block_booking_created");
+  redirect("/admin/supply?saved=block");
+}
+
+export async function releaseBlockBooking(formData: FormData) {
+  const { supabase } = await requireAdmin();
+  const { error } = await supabase
+    .from("block_bookings")
+    .update({ status: "released" })
+    .eq("id", String(formData.get("block_id")));
+  if (error) fail(error.message);
+  redirect("/admin/supply?saved=block");
+}
+
 // ── Staff-create-school: pre-fill for AIP schools and known upcoming trips ──
 export async function staffCreateSchool(formData: FormData) {
   const { supabase } = await requireAdmin();

@@ -20,6 +20,7 @@ export default async function RootLayout({
   } = await supabase.auth.getUser();
 
   let isAdmin = false;
+  let isAgent = false;
   if (user) {
     const { data: profile } = await supabase
       .from("user_profiles")
@@ -27,6 +28,7 @@ export default async function RootLayout({
       .eq("id", user.id)
       .single();
     isAdmin = profile?.role === "gsa_admin";
+    isAgent = profile?.role === "agent";
   }
 
   return (
@@ -62,7 +64,12 @@ export default async function RootLayout({
                   Admin
                 </Link>
               )}
-              {user && !isAdmin && (
+              {isAgent && (
+                <Link href="/agent" className="transition-colors duration-150 hover:text-stone-900">
+                  Agent hub
+                </Link>
+              )}
+              {user && !isAdmin && !isAgent && (
                 <Link href="/your-school" className="transition-colors duration-150 hover:text-stone-900">
                   Your school
                 </Link>
