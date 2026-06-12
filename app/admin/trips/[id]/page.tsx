@@ -258,10 +258,13 @@ export default async function AdminTripPage({
             via {plan.mode === "school_invoice" ? "school invoice" : "parent links"}
           </h2>
           <p className="mt-0.5 text-sm text-gray-500">
-            Base {formatPounds(plan.base_total_pennies)} → committed{" "}
-            {formatPounds(plan.adjusted_total_pennies)} · deposit credit{" "}
-            {formatPounds(plan.deposit_credited_pennies)} · first payment due{" "}
-            {formatDate(plan.first_payment_due)} (non-refundable)
+            GSA programme {formatPounds(plan.base_total_pennies)}
+            {plan.service_fee_pennies > 0 &&
+              ` + service fee ${formatPounds(plan.service_fee_pennies)}`}{" "}
+            → committed {formatPounds(plan.adjusted_total_pennies)} · deposit
+            credit {formatPounds(plan.deposit_credited_pennies)} · first
+            payment due {formatDate(plan.first_payment_due)} (non-refundable
+            service fee)
           </p>
 
           {plan.mode === "school_invoice" && (

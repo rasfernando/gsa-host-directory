@@ -6,6 +6,7 @@ import {
   upfrontTotal,
   planTotal,
   splitPennies,
+  adjustment,
   DEPOSIT_PENNIES,
 } from "@/lib/money";
 import {
@@ -39,7 +40,18 @@ type Item = {
   quantity: number;
   line_total_pennies: number;
   product_id: string | null;
+  suppliers: { name: string; type: string } | { name: string; type: string }[] | null;
 };
+
+function itemSupplier(i: Item) {
+  return Array.isArray(i.suppliers) ? i.suppliers[0] : i.suppliers;
+}
+
+// Non-package rule: GSA only sells its own programme. Third-party lines are
+// quotes settled with their suppliers, never collected through the GSA plan.
+function isGsaItem(i: Item) {
+  return i.category === "immersion_camp" || itemSupplier(i)?.type === "gsa";
+}
 
 type Product = {
   id: string;
@@ -101,7 +113,9 @@ export default async function TripPage({
   ] = await Promise.all([
     supabase
       .from("trip_items")
-      .select("id, label, category, unit_price_pennies, quantity, line_total_pennies, product_id")
+      .select(
+        "id, label, category, unit_price_pennies, quantity, line_total_pennies, product_id, suppliers(name, type)"
+      )
       .eq("trip_id", id)
       .order("created_at"),
     supabase
@@ -165,6 +179,10 @@ export default async function TripPage({
       : (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000");
 
   const subtotal = items.reduce((s, i) => s + i.line_total_pennies, 0);
+  const gsaItems = items.filter(isGsaItem);
+  const thirdPartyItems = items.filter((i) => !isGsaItem(i));
+  const gsaSubtotal = gsaItems.reduce((s, i) => s + i.line_total_pennies, 0);
+  const feePreview = adjustment(gsaSubtotal); // service fee defaults to 10% of the GSA programme
   const parents = trip.parent_count ?? trip.num_students ?? null;
   const perParent = parents ? splitPennies(subtotal, parents)[0] : null;
 
@@ -305,40 +323,25 @@ export default async function TripPage({
               </tr>
             </thead>
             <tbody>
-              {items.map((i) => (
-                <tr key={i.id} className="border-b border-stone-50">
-                  <td className="px-5 py-3.5">
-                    <span className="font-medium text-stone-900">{i.label}</span>
-                    <span className="mt-0.5 block text-xs text-stone-500">
-                      {CATEGORY_LABELS[i.category] ?? i.category}
-                    </span>
+              {gsaItems.length > 0 && (
+                <tr className="bg-warm-50/50">
+                  <td colSpan={basketOpen ? 5 : 4} className="px-5 py-2 text-[11px] font-semibold uppercase tracking-wider text-warm-700">
+                    GSA programme — paid through your GSA plan
                   </td>
-                  <td className="px-3 py-3.5 text-right text-stone-600">
-                    {formatPounds(i.unit_price_pennies)}
-                  </td>
-                  <td className="px-3 py-3.5 text-right text-stone-600">
-                    ×{i.quantity}
-                  </td>
-                  <td className="px-5 py-3.5 text-right font-medium text-stone-900">
-                    {formatPounds(i.line_total_pennies)}
-                  </td>
-                  {basketOpen && (
-                    <td className="pr-3 text-right">
-                      {i.category !== "immersion_camp" && (
-                        <form action={removeItem}>
-                          <input type="hidden" name="trip_id" value={id} />
-                          <input type="hidden" name="item_id" value={i.id} />
-                          <button
-                            className="text-stone-400 transition-colors duration-150 hover:text-warm-700"
-                            title="Remove"
-                          >
-                            ✕
-                          </button>
-                        </form>
-                      )}
-                    </td>
-                  )}
                 </tr>
+              )}
+              {gsaItems.map((i) => (
+                <BasketRow key={i.id} i={i} tripId={id} basketOpen={basketOpen} />
+              ))}
+              {thirdPartyItems.length > 0 && (
+                <tr className="bg-stone-50">
+                  <td colSpan={basketOpen ? 5 : 4} className="px-5 py-2 text-[11px] font-semibold uppercase tracking-wider text-stone-500">
+                    Travel &amp; extras — separately priced, settled with each supplier
+                  </td>
+                </tr>
+              )}
+              {thirdPartyItems.map((i) => (
+                <BasketRow key={i.id} i={i} tripId={id} basketOpen={basketOpen} />
               ))}
               {items.length === 0 && (
                 <tr>
@@ -349,8 +352,26 @@ export default async function TripPage({
               )}
             </tbody>
             <tfoot>
-              <tr>
-                <td className="px-5 py-4 font-semibold text-stone-900">Total</td>
+              <tr className="border-t border-stone-100">
+                <td className="px-5 py-3 text-sm font-medium text-stone-600">GSA programme</td>
+                <td colSpan={basketOpen ? 4 : 3} className="px-5 py-3 text-right font-semibold text-stone-900">
+                  {formatPounds(gsaSubtotal)}
+                </td>
+              </tr>
+              {thirdPartyItems.length > 0 && (
+                <tr>
+                  <td className="px-5 py-3 text-sm font-medium text-stone-600">
+                    Third-party items (supplier quotes)
+                  </td>
+                  <td colSpan={basketOpen ? 4 : 3} className="px-5 py-3 text-right font-semibold text-stone-900">
+                    {formatPounds(subtotal - gsaSubtotal)}
+                  </td>
+                </tr>
+              )}
+              <tr className="border-t border-stone-100">
+                <td className="px-5 py-4 font-semibold text-stone-900">
+                  Whole trip, itemised
+                </td>
                 <td colSpan={basketOpen ? 4 : 3} className="px-5 py-4 text-right text-lg font-bold text-stone-900">
                   {formatPounds(subtotal)}
                 </td>
@@ -361,8 +382,9 @@ export default async function TripPage({
 
         {parents && subtotal > 0 && (
           <p className="mt-3 text-sm text-stone-600">
-            Split between {parents} parents ≈{" "}
-            <strong>{formatPounds(perParent!)} per parent</strong>.
+            Indicative whole-trip cost split between {parents} parents ≈{" "}
+            <strong>{formatPounds(perParent!)} per parent</strong> (each item
+            priced and settled separately).
           </p>
         )}
       </section>
@@ -463,15 +485,19 @@ export default async function TripPage({
       )}
 
       {/* Step 9: commit the payment plan */}
-      {trip.status === "deposit_paid" && !plan && subtotal > 0 && (
+      {trip.status === "deposit_paid" && !plan && gsaSubtotal > 0 && (
         <section className="mt-8 rounded-2xl border border-warm-200/70 bg-warm-50/50 p-6 shadow-sm sm:p-8">
           <h2 className="text-xl font-bold tracking-tight">
             Commit your payment plan
           </h2>
           <p className="mt-1.5 max-w-lg text-sm leading-relaxed text-stone-600">
-            Lock in how the trip gets paid. Your{" "}
-            {formatPounds(trip.deposit_amount_pennies)} deposit is credited,
-            and the first payment is non-refundable.
+            This plan covers your <strong>GSA programme</strong> (
+            {formatPounds(gsaSubtotal)}) plus the GSA service fee (
+            {formatPounds(feePreview)}). Your{" "}
+            {formatPounds(trip.deposit_amount_pennies)} deposit is credited.
+            The first payment is the service fee and is non-refundable — it
+            confirms your booking. Third-party items (flights, attractions,
+            stays) are quoted and settled separately with each supplier.
           </p>
           <form action={commitPlan} className="mt-5 space-y-5">
             <input type="hidden" name="trip_id" value={id} />
@@ -485,8 +511,9 @@ export default async function TripPage({
                     Pay upfront · save 10%
                   </span>
                   <span className="mt-1.5 pl-5 text-lg font-bold text-stone-900">
-                    {formatPounds(upfrontTotal(subtotal))}
+                    {formatPounds(upfrontTotal(gsaSubtotal) + feePreview)}
                   </span>
+                  <span className="pl-5 text-xs text-stone-500">incl. service fee</span>
                 </label>
                 <label className="flex cursor-pointer flex-col rounded-xl border border-stone-200 bg-white p-4 has-[:checked]:border-warm-400 has-[:checked]:bg-warm-50">
                   <span className="flex items-center gap-2 text-sm font-semibold text-stone-900">
@@ -494,8 +521,9 @@ export default async function TripPage({
                     Monthly plan · +10%
                   </span>
                   <span className="mt-1.5 pl-5 text-lg font-bold text-stone-900">
-                    {formatPounds(planTotal(subtotal))}
+                    {formatPounds(planTotal(gsaSubtotal) + feePreview)}
                   </span>
+                  <span className="pl-5 text-xs text-stone-500">incl. service fee</span>
                 </label>
               </div>
               <div className="mt-2 flex items-center gap-2 text-sm text-stone-600">
@@ -572,12 +600,17 @@ export default async function TripPage({
         <section className="mt-8 rounded-2xl border border-stone-200/70 bg-white p-6 shadow-sm sm:p-8">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h2 className="text-xl font-bold tracking-tight">Payments</h2>
+              <h2 className="text-xl font-bold tracking-tight">
+                GSA programme payments
+              </h2>
               <p className="mt-1 text-sm text-stone-500">
                 {plan.choice === "upfront"
                   ? "Paying upfront (10% discount applied)."
                   : `Payment plan (+10%), ${plan.num_installments} instalment${plan.num_installments > 1 ? "s" : ""}.`}{" "}
+                {plan.service_fee_pennies > 0 &&
+                  `Includes the ${formatPounds(plan.service_fee_pennies)} GSA service fee (non-refundable). `}
                 Deposit of {formatPounds(plan.deposit_credited_pennies)} credited.
+                Third-party items are settled with their suppliers.
               </p>
             </div>
             <p className="text-right">
@@ -608,7 +641,11 @@ export default async function TripPage({
                   return (
                     <tr key={ins.id} className="border-b border-stone-50">
                       <td className="py-3">
-                        {ins.seq === 1 ? "First payment (non-refundable)" : `Payment ${ins.seq}`}
+                        {ins.seq === 1
+                          ? plan.choice === "installments" && plan.service_fee_pennies > 0
+                            ? "GSA service fee — confirms your booking (non-refundable)"
+                            : "First payment (non-refundable)"
+                          : `Payment ${ins.seq}`}
                       </td>
                       <td className="py-3 text-stone-600">{formatDate(ins.due_date)}</td>
                       <td className="py-3 text-right font-medium">
@@ -741,14 +778,18 @@ export default async function TripPage({
         </section>
       )}
 
-      {/* Quote: the ±10% rule */}
-      {!plan && subtotal > 0 && trip.status !== "cancelled" && (
+      {/* Quote: the ±10% rule (GSA programme only) */}
+      {!plan && gsaSubtotal > 0 && trip.status !== "cancelled" && (
         <section className="mt-8 rounded-2xl border border-stone-200/70 bg-white p-6 shadow-sm sm:p-8">
-          <h2 className="text-xl font-bold tracking-tight">Ways to pay</h2>
+          <h2 className="text-xl font-bold tracking-tight">
+            Ways to pay your GSA programme
+          </h2>
           <p className="mt-1 text-sm text-stone-500">
             Pay upfront and save 10%, or spread the cost with a payment plan
-            (+10%). Your {formatPounds(DEPOSIT_PENNIES)} deposit is credited
-            either way.
+            (+10%). Both include the GSA service fee (
+            {formatPounds(feePreview)}) and credit your{" "}
+            {formatPounds(DEPOSIT_PENNIES)} deposit. Third-party items are
+            quoted and settled with each supplier directly.
           </p>
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             <div className="rounded-xl border border-stone-200 p-5">
@@ -756,10 +797,10 @@ export default async function TripPage({
                 Pay upfront · save 10%
               </p>
               <p className="mt-2 text-2xl font-bold text-stone-900">
-                {formatPounds(upfrontTotal(subtotal))}
+                {formatPounds(upfrontTotal(gsaSubtotal) + feePreview)}
               </p>
               <p className="mt-1 text-xs text-stone-500">
-                vs {formatPounds(subtotal)} list price
+                vs {formatPounds(gsaSubtotal + feePreview)} at list price
               </p>
             </div>
             <div className="rounded-xl border border-stone-200 p-5">
@@ -767,10 +808,10 @@ export default async function TripPage({
                 Payment plan · +10%
               </p>
               <p className="mt-2 text-2xl font-bold text-stone-900">
-                {formatPounds(planTotal(subtotal))}
+                {formatPounds(planTotal(gsaSubtotal) + feePreview)}
               </p>
               <p className="mt-1 text-xs text-stone-500">
-                spread over monthly instalments
+                service fee first, balance monthly
               </p>
             </div>
           </div>
@@ -787,17 +828,17 @@ export default async function TripPage({
         <section className="mt-8 grid gap-3 sm:grid-cols-2">
           <div className="flex flex-col rounded-2xl border border-stone-200/70 bg-white p-6 shadow-sm">
             <h3 className="text-sm font-semibold text-stone-900">
-              Parent launch &amp; presentation pack
+              Parent-launch toolkit
             </h3>
             <p className="mt-1.5 flex-1 text-sm leading-relaxed text-stone-600">
-              Everything you need to launch the trip with parents: the
-              programme, costs per parent, and what&apos;s included.
+              The printable pack, a 10-minute presentation script, and
+              copy-paste comms for your parent channels.
             </p>
             <Link
-              href={`/trips/${id}/pack`}
+              href={`/trips/${id}/toolkit`}
               className="mt-4 self-start rounded-lg bg-warm-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-warm-700"
             >
-              Open the pack
+              Open the toolkit
             </Link>
           </div>
           <div className="flex flex-col rounded-2xl border border-stone-200/70 bg-white p-6 shadow-sm">
@@ -934,6 +975,52 @@ export default async function TripPage({
         </section>
       )}
     </div>
+  );
+}
+
+function BasketRow({
+  i,
+  tripId,
+  basketOpen,
+}: {
+  i: Item;
+  tripId: string;
+  basketOpen: boolean;
+}) {
+  const supplier = itemSupplier(i);
+  return (
+    <tr className="border-b border-stone-50">
+      <td className="px-5 py-3.5">
+        <span className="font-medium text-stone-900">{i.label}</span>
+        <span className="mt-0.5 block text-xs text-stone-500">
+          {CATEGORY_LABELS[i.category] ?? i.category}
+          {supplier && !isGsaItem(i) ? ` · supplied by ${supplier.name}` : ""}
+        </span>
+      </td>
+      <td className="px-3 py-3.5 text-right text-stone-600">
+        {formatPounds(i.unit_price_pennies)}
+      </td>
+      <td className="px-3 py-3.5 text-right text-stone-600">×{i.quantity}</td>
+      <td className="px-5 py-3.5 text-right font-medium text-stone-900">
+        {formatPounds(i.line_total_pennies)}
+      </td>
+      {basketOpen && (
+        <td className="pr-3 text-right">
+          {i.category !== "immersion_camp" && (
+            <form action={removeItem}>
+              <input type="hidden" name="trip_id" value={tripId} />
+              <input type="hidden" name="item_id" value={i.id} />
+              <button
+                className="text-stone-400 transition-colors duration-150 hover:text-warm-700"
+                title="Remove"
+              >
+                ✕
+              </button>
+            </form>
+          )}
+        </td>
+      )}
+    </tr>
   );
 }
 

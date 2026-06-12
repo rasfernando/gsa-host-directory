@@ -37,7 +37,9 @@ export default async function InvoicePage({
       .single(),
     supabase
       .from("trip_items")
-      .select("label, category, unit_price_pennies, quantity, line_total_pennies")
+      .select(
+        "label, category, unit_price_pennies, quantity, line_total_pennies, suppliers(type)"
+      )
       .eq("trip_id", id)
       .order("created_at"),
     supabase.from("payment_plans").select("*").eq("trip_id", id).single(),
@@ -47,6 +49,13 @@ export default async function InvoicePage({
   const host = Array.isArray(trip.host_profiles)
     ? trip.host_profiles[0]
     : trip.host_profiles;
+
+  // GSA invoices cover only GSA-supplied lines (non-package model);
+  // third-party items are settled with their suppliers.
+  const gsaItems = (items ?? []).filter((i) => {
+    const s = Array.isArray(i.suppliers) ? i.suppliers[0] : i.suppliers;
+    return i.category === "immersion_camp" || s?.type === "gsa";
+  });
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -102,7 +111,7 @@ export default async function InvoicePage({
             </tr>
           </thead>
           <tbody>
-            {(items ?? []).map((i) => (
+            {gsaItems.map((i) => (
               <tr key={i.label} className="border-b border-stone-100">
                 <td className="py-3">
                   {i.label}
@@ -125,12 +134,22 @@ export default async function InvoicePage({
               <>
                 <tr>
                   <td colSpan={3} className="py-2.5 text-right text-stone-600">
-                    Subtotal
+                    GSA programme subtotal
                   </td>
                   <td className="py-2.5 text-right">
                     {formatPounds(plan.base_total_pennies)}
                   </td>
                 </tr>
+                {plan.service_fee_pennies > 0 && (
+                  <tr>
+                    <td colSpan={3} className="py-2.5 text-right text-stone-600">
+                      GSA service fee (non-refundable first payment)
+                    </td>
+                    <td className="py-2.5 text-right">
+                      {formatPounds(plan.service_fee_pennies)}
+                    </td>
+                  </tr>
+                )}
                 <tr>
                   <td colSpan={3} className="py-2.5 text-right text-stone-600">
                     {plan.choice === "upfront"
