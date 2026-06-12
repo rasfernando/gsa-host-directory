@@ -151,6 +151,11 @@ export default async function AdminTripPage({
             {organiser?.full_name || organiser?.email || "Unknown organiser"} ·{" "}
             {formatDate(trip.start_date)} · {trip.num_days} days ·{" "}
             {trip.num_students} students · {trip.parent_count ?? "—"} parents
+            {trip.changes_locked_at && (
+              <span className="ml-2 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
+                changes locked {formatDate(trip.changes_locked_at)}
+              </span>
+            )}
           </p>
         </div>
         <span

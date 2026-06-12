@@ -208,9 +208,15 @@ export default async function TripPage({
   const parents = trip.parent_count ?? trip.num_students ?? null;
   const perParent = parents ? splitPennies(subtotal, parents)[0] : null;
 
-  const basketOpen = ["reserved", "deposit_paid"].includes(trip.status);
+  const locked = trip.changes_locked_at != null;
+  const basketOpen = ["reserved", "deposit_paid"].includes(trip.status) && !locked;
+  // Third-party bolt-ons stay addable after invoicing (they're estimates on
+  // their own cycle) — until the T-29 departure lock.
+  const boltOnsOpen =
+    (basketOpen || ["invoiced", "confirmed"].includes(trip.status)) && !locked;
   const inBasket = new Set(items.map((i) => i.product_id).filter(Boolean));
   const clockDays = daysUntil(trip.cancellation_deadline);
+  const departureDays = daysUntil(trip.start_date);
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -300,6 +306,30 @@ export default async function TripPage({
           .
         </Flash>
       )}
+
+      {/* Departure countdown + T-29 lock */}
+      {["invoiced", "confirmed"].includes(trip.status) &&
+        departureDays != null &&
+        departureDays >= 0 && (
+          <div
+            className={`mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border p-5 ${
+              locked
+                ? "border-warm-200/70 bg-warm-50/60"
+                : "border-stone-200/70 bg-white shadow-sm"
+            }`}
+          >
+            <p className="text-sm font-semibold text-stone-900">
+              {departureDays} day{departureDays === 1 ? "" : "s"} to departure
+            </p>
+            <p className="text-xs text-stone-600">
+              {locked
+                ? "Final month — changes are locked. Anything urgent goes through the GSA team."
+                : `Changes lock 29 days before departure${
+                    departureDays > 29 ? ` (in ${departureDays - 29} days)` : ""
+                  }.`}
+            </p>
+          </div>
+        )}
 
       {/* Reservation status */}
       {trip.status !== "cancelled" && (
@@ -423,7 +453,7 @@ export default async function TripPage({
       </section>
 
       {/* Bolt-ons */}
-      {basketOpen && (
+      {boltOnsOpen && (
         <section className="mt-8">
           <h2 className="text-xl font-bold tracking-tight">
             Upgrades &amp; bolt-ons
@@ -811,7 +841,8 @@ export default async function TripPage({
         </section>
       )}
 
-      {/* Steps 11–14: third-party quotes & settlements (non-package model) */}
+      {/* Steps 11–14: third-party quotes & settlements (non-package model).
+          The T-29 lock stops new quotes/acceptances; settlements stay payable. */}
       {thirdPartyItems.length > 0 && trip.status !== "cancelled" && (
         <section className="mt-8 rounded-2xl border border-stone-200/70 bg-white p-6 shadow-sm sm:p-8">
           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -826,7 +857,7 @@ export default async function TripPage({
                 same day.
               </p>
             </div>
-            {estimateCount > 0 && (
+            {estimateCount > 0 && !locked && (
               <form action={requestQuotes}>
                 <input type="hidden" name="trip_id" value={id} />
                 <button className="shrink-0 rounded-lg bg-warm-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-warm-700">
@@ -836,7 +867,7 @@ export default async function TripPage({
             )}
           </div>
 
-          {confirmedQuotes.length > 0 && (
+          {confirmedQuotes.length > 0 && !locked && (
             <div className="mt-5 space-y-3">
               {confirmedQuotes.map((i) => {
                 const supplier = itemSupplier(i);
@@ -1074,7 +1105,7 @@ export default async function TripPage({
       )}
 
       {/* Step 17: booking alterations once the basket is locked */}
-      {["invoiced", "confirmed"].includes(trip.status) && (
+      {["invoiced", "confirmed"].includes(trip.status) && !locked && (
         <section className="mt-8 rounded-2xl border border-stone-200/70 bg-white p-6 shadow-sm sm:p-8">
           <h2 className="text-xl font-bold tracking-tight">Need to change something?</h2>
           <p className="mt-1 text-sm text-stone-500">
