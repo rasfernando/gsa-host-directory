@@ -5,6 +5,27 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { logEvent } from "@/lib/events";
 import { sendEmail } from "@/lib/notify";
+import { geocodeSchool } from "@/lib/geocode";
+
+// Pin a profile to the map (no-op without GOOGLE_PLACES_API_KEY).
+async function geocodeProfile(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  profileId: string
+) {
+  const { data: p } = await supabase
+    .from("host_profiles")
+    .select("id, name, city, country, lat")
+    .eq("id", profileId)
+    .single();
+  if (!p || p.lat != null) return;
+  const coords = await geocodeSchool({ name: p.name, city: p.city, country: p.country });
+  if (coords) {
+    await supabase
+      .from("host_profiles")
+      .update({ lat: coords.lat, lng: coords.lng })
+      .eq("id", profileId);
+  }
+}
 
 async function requireAdmin() {
   const supabase = await createClient();
@@ -168,6 +189,7 @@ export async function togglePublish(formData: FormData) {
       school_id: updated?.school_id,
       profile_id: profileId,
     });
+    await geocodeProfile(supabase, profileId);
   }
 
   revalidatePath("/admin/profiles");
@@ -200,8 +222,35 @@ export async function verifyAndPublish(formData: FormData) {
     school_id: updated?.school_id,
     profile_id: profileId,
   });
+  await geocodeProfile(supabase, profileId);
   revalidatePath("/admin/profiles");
   revalidatePath("/directory");
+}
+
+// Backfill: geocode every published profile that isn't on the map yet.
+export async function geocodeAllProfiles() {
+  const { supabase } = await requireAdmin();
+  const { data: missing } = await supabase
+    .from("host_profiles")
+    .select("id, name, city, country")
+    .eq("published", true)
+    .is("lat", null);
+
+  let done = 0;
+  for (const p of missing ?? []) {
+    const coords = await geocodeSchool({ name: p.name, city: p.city, country: p.country });
+    if (coords) {
+      await supabase
+        .from("host_profiles")
+        .update({ lat: coords.lat, lng: coords.lng })
+        .eq("id", p.id);
+      done++;
+    }
+  }
+  await logEvent("profiles_geocoded", { meta: { geocoded: done, missing: (missing ?? []).length } });
+  revalidatePath("/admin/profiles");
+  revalidatePath("/directory");
+  redirect(`/admin/profiles?geocoded=${done}&of=${(missing ?? []).length}`);
 }
 
 // Move a profile between supply tiers. Verified ↔ accredited only — dropping

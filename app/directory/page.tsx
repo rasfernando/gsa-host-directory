@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { SchoolCard } from "@/components/school-card";
+import { DirectoryMap, type MapSchool } from "@/components/directory-map";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,7 @@ export default async function DirectoryPage({
   let query = supabase
     .from("host_profiles")
     .select(
-      "id, name, slug, headline, country, city, languages, age_range_min, age_range_max, focus_tags, boarding, homestay, capacity, tier, media"
+      "id, name, slug, headline, country, city, languages, age_range_min, age_range_max, focus_tags, boarding, homestay, capacity, tier, media, lat, lng"
     )
     .eq("published", true)
     // Accredited schools first — they're the actively promoted catalog
@@ -44,6 +45,25 @@ export default async function DirectoryPage({
   const results = profiles ?? [];
   const hasFilters =
     params.q || params.country || params.focus || params.boarding || params.homestay || params.accredited;
+
+  // Map view: needs the Mapbox token and at least one geocoded school.
+  const mapEnabled = Boolean(process.env.NEXT_PUBLIC_MAPBOX_TOKEN);
+  const mapSchools: MapSchool[] = results
+    .filter((p) => p.lat != null && p.lng != null)
+    .map((p) => ({
+      id: p.id,
+      name: p.name,
+      slug: p.slug,
+      city: p.city,
+      country: p.country,
+      tier: p.tier,
+      lat: p.lat as number,
+      lng: p.lng as number,
+    }));
+  const showMap = params.view === "map" && mapEnabled && mapSchools.length > 0;
+  const filterQuery = new URLSearchParams(
+    Object.entries(params).filter(([k, v]) => v && k !== "view") as [string, string][]
+  ).toString();
 
   const inputCls =
     "rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm focus:border-brand-600 focus:outline-none";
@@ -99,7 +119,42 @@ export default async function DirectoryPage({
         )}
       </form>
 
-      {results.length === 0 ? (
+      {/* List / map toggle */}
+      {mapEnabled && mapSchools.length > 0 && results.length > 0 && (
+        <div className="mt-6 flex items-center gap-1 text-sm">
+          <Link
+            href={`/directory${filterQuery ? `?${filterQuery}` : ""}`}
+            className={
+              !showMap
+                ? "rounded-lg bg-stone-900 px-3.5 py-1.5 font-semibold text-white"
+                : "rounded-lg px-3.5 py-1.5 font-medium text-stone-500 transition-colors duration-150 hover:text-stone-900"
+            }
+          >
+            {t("viewList")}
+          </Link>
+          <Link
+            href={`/directory?${filterQuery ? `${filterQuery}&` : ""}view=map`}
+            className={
+              showMap
+                ? "rounded-lg bg-stone-900 px-3.5 py-1.5 font-semibold text-white"
+                : "rounded-lg px-3.5 py-1.5 font-medium text-stone-500 transition-colors duration-150 hover:text-stone-900"
+            }
+          >
+            {t("viewMap")}
+          </Link>
+          {showMap && mapSchools.length < results.length && (
+            <span className="ml-2 text-xs text-stone-400">
+              {t("unmapped", { count: results.length - mapSchools.length })}
+            </span>
+          )}
+        </div>
+      )}
+
+      {showMap ? (
+        <div className="mt-4">
+          <DirectoryMap schools={mapSchools} />
+        </div>
+      ) : results.length === 0 ? (
         <div className="mt-10 rounded-2xl border border-dashed border-stone-300 bg-white p-12 text-center">
           <h2 className="text-base font-semibold">{t("emptyTitle")}</h2>
           <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-stone-500">

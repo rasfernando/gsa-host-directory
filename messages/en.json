@@ -28,6 +28,9 @@
     "accreditedOnly": "GSA Accredited only",
     "submit": "Show matching schools",
     "clear": "Clear",
+    "viewList": "List",
+    "viewMap": "Map",
+    "unmapped": "{count} school(s) not yet on the map",
     "emptyTitle": "No matching schools yet",
     "emptyBody": "The network is growing every week. Try widening your filters, or check back soon.",
     "clearAll": "Clear all filters"

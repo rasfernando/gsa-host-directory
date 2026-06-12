@@ -28,6 +28,9 @@
     "accreditedOnly": "Tylko z akredytacją GSA",
     "submit": "Pokaż pasujące szkoły",
     "clear": "Wyczyść",
+    "viewList": "Lista",
+    "viewMap": "Mapa",
+    "unmapped": "{count} szkół jeszcze nie ma na mapie",
     "emptyTitle": "Brak pasujących szkół",
     "emptyBody": "Sieć rośnie z każdym tygodniem. Poszerz filtry albo zajrzyj wkrótce.",
     "clearAll": "Wyczyść wszystkie filtry"

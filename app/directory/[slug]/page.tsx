@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { localized } from "@/lib/i18n-content";
+import { DirectoryMap } from "@/components/directory-map";
 import { submitEnquiry } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -137,6 +138,30 @@ export default async function ProfilePage({
           {profile.typical_hosting_windows || t("askGsa")}
         </Fact>
       </dl>
+
+      {/* Where in the world */}
+      {profile.lat != null &&
+        profile.lng != null &&
+        process.env.NEXT_PUBLIC_MAPBOX_TOKEN && (
+          <div className="mt-5">
+            <DirectoryMap
+              schools={[
+                {
+                  id: profile.id,
+                  name: profile.name,
+                  slug: profile.slug,
+                  city: profile.city,
+                  country: profile.country,
+                  tier: profile.tier,
+                  lat: profile.lat,
+                  lng: profile.lng,
+                },
+              ]}
+              height="h-72"
+              zoomToSingle
+            />
+          </div>
+        )}
 
       {(profile.focus_tags ?? []).length > 0 && (
         <div className="mt-5 flex flex-wrap gap-2">

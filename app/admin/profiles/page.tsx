@@ -6,6 +6,7 @@ import {
   discardPendingChanges,
   verifyAndPublish,
   setProfileTier,
+  geocodeAllProfiles,
 } from "../actions";
 
 type ProfileRow = {
@@ -135,9 +136,9 @@ function PublishButton({ profile }: { profile: ProfileRow }) {
 export default async function AdminProfiles({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; geocoded?: string; of?: string }>;
 }) {
-  const { error: errorFlag } = await searchParams;
+  const { error: errorFlag, geocoded, of } = await searchParams;
   const supabase = await createClient();
 
   const { data } = await supabase
@@ -156,10 +157,28 @@ export default async function AdminProfiles({
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold tracking-tight">Directory profiles</h1>
-      <p className="mb-8 mt-1 text-sm text-gray-500">
-        {list.filter((p) => p.published).length} published · {list.length} total
-      </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Directory profiles</h1>
+          <p className="mb-8 mt-1 text-sm text-gray-500">
+            {list.filter((p) => p.published).length} published · {list.length} total
+          </p>
+        </div>
+        <form action={geocodeAllProfiles}>
+          <button className="rounded-lg border border-gray-300 px-3.5 py-2 text-xs font-medium text-gray-600 hover:border-gray-500">
+            Geocode schools for the map
+          </button>
+        </form>
+      </div>
+
+      {geocoded != null && (
+        <div className="mb-6 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          Geocoded {geocoded} of {of} schools missing map locations.
+          {geocoded === "0" && of !== "0"
+            ? " Is GOOGLE_PLACES_API_KEY set?"
+            : ""}
+        </div>
+      )}
 
       {errorFlag && (
         <div className="mb-6 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
