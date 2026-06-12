@@ -87,7 +87,9 @@ export async function SchoolCard({ p }: { p: SchoolCardData }) {
         </h3>
         <p className="mt-1 inline-flex items-center gap-1 text-xs text-stone-500">
           <PinIcon className="h-3.5 w-3.5 shrink-0 text-stone-400" />
-          {p.city ? `${p.city}, ` : ""}
+          {localized(p as Record<string, unknown>, "city", locale)
+            ? `${localized(p as Record<string, unknown>, "city", locale)}, `
+            : ""}
           {v(p.country)}
         </p>
 

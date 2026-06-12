@@ -62,7 +62,9 @@ export default async function ProfilePage({
             {profile.name}
           </h1>
           <p className="mt-1.5 text-stone-500">
-            {profile.city ? `${profile.city}, ` : ""}
+            {localized(profile, "city", locale)
+              ? `${localized(profile, "city", locale)}, `
+              : ""}
             {v(profile.country)}
           </p>
         </div>
@@ -154,8 +156,8 @@ export default async function ProfilePage({
                   id: profile.id,
                   name: profile.name,
                   slug: profile.slug,
-                  city: profile.city,
-                  country: profile.country,
+                  city: localized(profile, "city", locale),
+                  country: v(profile.country),
                   tier: profile.tier,
                   lat: profile.lat,
                   lng: profile.lng,

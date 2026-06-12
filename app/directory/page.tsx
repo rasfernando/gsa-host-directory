@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
+import { localized } from "@/lib/i18n-content";
 import { SchoolCard } from "@/components/school-card";
 import { DirectoryMap, type MapSchool } from "@/components/directory-map";
 
@@ -21,7 +22,10 @@ export default async function DirectoryPage({
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const params = await searchParams;
+  const locale = await getLocale();
   const t = await getTranslations("directory");
+  const tv = await getTranslations("vocab");
+  const v = (s: string) => (tv.has(s) ? tv(s) : s);
   const supabase = await createClient();
 
   let query = supabase
@@ -54,8 +58,8 @@ export default async function DirectoryPage({
       id: p.id,
       name: p.name,
       slug: p.slug,
-      city: p.city,
-      country: p.country,
+      city: localized(p, "city", locale),
+      country: v(p.country),
       tier: p.tier,
       lat: p.lat as number,
       lng: p.lng as number,

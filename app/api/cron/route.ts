@@ -1,5 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendEmail, notifyGsa } from "@/lib/notify";
+import { contentHash, translateAndStoreProfile, translationEnabled } from "@/lib/translate";
 
 // Daily conversion clock (Vercel cron). Expires reservations that didn't
 // convert within 30 days (deposit refunded) and sends the in-window
@@ -127,9 +128,30 @@ export async function GET(req: Request) {
     });
   }
 
+  // ── Translation sweep: catch profiles whose content changed without going
+  // through a publish/approval (or where that hook failed). Capped per run.
+  let translated = 0;
+  if (translationEnabled()) {
+    const { data: candidates } = await supabase
+      .from("host_profiles")
+      .select("id, headline, description, typical_hosting_windows, city, translations")
+      .eq("published", true);
+    const stale = (candidates ?? []).filter((p) => {
+      const existing = (p.translations as Record<string, unknown> | null) ?? {};
+      return existing["_hash"] !== contentHash(p);
+    });
+    for (const p of stale.slice(0, 5)) {
+      if (await translateAndStoreProfile(supabase, p.id)) translated++;
+    }
+    if (stale.length > 5) {
+      console.log(`[cron] translation sweep: ${stale.length - 5} profiles deferred to next run`);
+    }
+  }
+
   return Response.json({
     cancelled: rows.filter((r) => r.kind === "cancelled").length,
     reminded: rows.filter((r) => r.kind === "reminder").length,
     departure_events: depRows.length,
+    translated,
   });
 }

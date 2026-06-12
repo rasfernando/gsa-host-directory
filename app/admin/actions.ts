@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { logEvent } from "@/lib/events";
 import { sendEmail } from "@/lib/notify";
 import { geocodeSchool } from "@/lib/geocode";
+import { translateAndStoreProfile } from "@/lib/translate";
 
 // Pin a profile to the map (no-op without GOOGLE_PLACES_API_KEY).
 async function geocodeProfile(
@@ -190,6 +191,7 @@ export async function togglePublish(formData: FormData) {
       profile_id: profileId,
     });
     await geocodeProfile(supabase, profileId);
+    await translateAndStoreProfile(supabase, profileId);
   }
 
   revalidatePath("/admin/profiles");
@@ -223,6 +225,7 @@ export async function verifyAndPublish(formData: FormData) {
     profile_id: profileId,
   });
   await geocodeProfile(supabase, profileId);
+  await translateAndStoreProfile(supabase, profileId);
   revalidatePath("/admin/profiles");
   revalidatePath("/directory");
 }
@@ -332,6 +335,8 @@ export async function approvePendingChanges(formData: FormData) {
   }
 
   await logEvent("profile_changes_approved", { profile_id: profileId });
+  // Content changed → hash no longer matches → fresh translations.
+  await translateAndStoreProfile(supabase, profileId);
   revalidatePath("/admin/profiles");
   revalidatePath("/directory");
 }
