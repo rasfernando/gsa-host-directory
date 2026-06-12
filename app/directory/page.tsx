@@ -27,7 +27,7 @@ export default async function DirectoryPage({
   let query = supabase
     .from("host_profiles")
     .select(
-      "id, name, slug, headline, country, city, languages, age_range_min, age_range_max, focus_tags, boarding, homestay, capacity, tier, media, lat, lng"
+      "id, name, slug, headline, country, city, languages, age_range_min, age_range_max, focus_tags, boarding, homestay, capacity, tier, media, lat, lng, translations"
     )
     .eq("published", true)
     // Accredited schools first — they're the actively promoted catalog

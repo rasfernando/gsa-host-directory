@@ -89,5 +89,15 @@
     "transferNote": "Pay by bank transfer using the details on your school's trip letter — the GSA team will confirm your payment here within a working day.",
     "testMode": "Test mode — no real money moves through this page.",
     "poweredBy": "Powered by the Global School Alliance"
+  },
+  "vocab": {},
+  "card": {
+    "accredited": "GSA Accredited",
+    "verified": "GSA Verified",
+    "listed": "Listed host",
+    "ages": "Ages {min}–{max}",
+    "upTo": "Up to {capacity}",
+    "boarding": "Boarding",
+    "homestay": "Homestay"
   }
 }

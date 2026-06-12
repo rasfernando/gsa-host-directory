@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { getLocale, getTranslations } from "next-intl/server";
+import { localized } from "@/lib/i18n-content";
 
 type MediaItem = { url: string };
 
@@ -17,12 +19,21 @@ export type SchoolCardData = {
   age_range_min?: number | null;
   age_range_max?: number | null;
   capacity?: number | null;
+  translations?: unknown;
 };
 
-export function SchoolCard({ p }: { p: SchoolCardData }) {
+export async function SchoolCard({ p }: { p: SchoolCardData }) {
+  const locale = await getLocale();
+  const t = await getTranslations("card");
+  const tv = await getTranslations("vocab");
+  // Enumerable values translate via the vocab dictionary, falling back to
+  // the raw English value when a term (or the locale) has no entry.
+  const v = (s: string) => (tv.has(s) ? tv(s) : s);
+
   const cover = (p.media as MediaItem[] | null)?.[0]?.url ?? null;
   const accredited = p.tier === "accredited";
   const focus = (p.focus_tags ?? []).slice(0, 2);
+  const headline = localized(p as Record<string, unknown>, "headline", locale);
 
   return (
     <Link
@@ -55,16 +66,16 @@ export function SchoolCard({ p }: { p: SchoolCardData }) {
         {accredited ? (
           <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-white/95 py-1 pl-1.5 pr-2.5 text-[11px] font-semibold text-emerald-800 shadow-sm ring-1 ring-emerald-600/10 backdrop-blur">
             <SealIcon className="h-4 w-4 text-emerald-600" />
-            GSA Accredited
+            {t("accredited")}
           </span>
         ) : p.tier === "verified" ? (
           <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-white/95 py-1 pl-1.5 pr-2.5 text-[11px] font-semibold text-brand-800 shadow-sm ring-1 ring-brand-600/10 backdrop-blur">
             <SealIcon className="h-4 w-4 text-brand-600" />
-            GSA Verified
+            {t("verified")}
           </span>
         ) : (
           <span className="absolute left-3 top-3 inline-flex items-center rounded-full bg-stone-900/55 px-2.5 py-1 text-[11px] font-medium text-white/90 backdrop-blur">
-            Listed host
+            {t("listed")}
           </span>
         )}
       </div>
@@ -77,12 +88,12 @@ export function SchoolCard({ p }: { p: SchoolCardData }) {
         <p className="mt-1 inline-flex items-center gap-1 text-xs text-stone-500">
           <PinIcon className="h-3.5 w-3.5 shrink-0 text-stone-400" />
           {p.city ? `${p.city}, ` : ""}
-          {p.country}
+          {v(p.country)}
         </p>
 
-        {p.headline && (
+        {headline && (
           <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-stone-600">
-            {p.headline}
+            {headline}
           </p>
         )}
 
@@ -92,13 +103,13 @@ export function SchoolCard({ p }: { p: SchoolCardData }) {
             {p.age_range_min != null && (
               <span className="inline-flex items-center gap-1.5">
                 <CapIcon className="h-3.5 w-3.5 text-warm-600" />
-                Ages {p.age_range_min}–{p.age_range_max}
+                {t("ages", { min: p.age_range_min, max: p.age_range_max ?? "" })}
               </span>
             )}
             {p.capacity != null && (
               <span className="inline-flex items-center gap-1.5">
                 <UsersIcon className="h-3.5 w-3.5 text-warm-600" />
-                Up to {p.capacity}
+                {t("upTo", { capacity: p.capacity })}
               </span>
             )}
           </div>
@@ -106,11 +117,11 @@ export function SchoolCard({ p }: { p: SchoolCardData }) {
 
         {/* tags pinned to the bottom */}
         <div className="mt-3 flex flex-wrap gap-1.5 pt-1">
-          {p.boarding && <Chip tone="stone">Boarding</Chip>}
-          {p.homestay && <Chip tone="stone">Homestay</Chip>}
-          {focus.map((t) => (
-            <Chip key={t} tone="warm">
-              {t}
+          {p.boarding && <Chip tone="stone">{t("boarding")}</Chip>}
+          {p.homestay && <Chip tone="stone">{t("homestay")}</Chip>}
+          {focus.map((tag) => (
+            <Chip key={tag} tone="warm">
+              {v(tag)}
             </Chip>
           ))}
         </div>

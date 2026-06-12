@@ -23,6 +23,10 @@ export default async function ProfilePage({
   const { enquiry } = await searchParams;
   const locale = await getLocale();
   const t = await getTranslations("profile");
+  const tv = await getTranslations("vocab");
+  // Enumerable DB values (countries, languages, subjects, focus tags)
+  // translate via the vocab dictionary, falling back to the raw value.
+  const v = (s: string) => (tv.has(s) ? tv(s) : s);
   const supabase = await createClient();
 
   const { data: profile } = await supabase
@@ -59,7 +63,7 @@ export default async function ProfilePage({
           </h1>
           <p className="mt-1.5 text-stone-500">
             {profile.city ? `${profile.city}, ` : ""}
-            {profile.country}
+            {v(profile.country)}
           </p>
         </div>
         {profile.tier === "accredited" ? (
@@ -121,10 +125,10 @@ export default async function ProfilePage({
         </Fact>
         <Fact label={t("groupCapacity")}>{profile.capacity ?? "—"}</Fact>
         <Fact label={t("languages")}>
-          {(profile.languages ?? []).join(", ") || "—"}
+          {(profile.languages ?? []).map(v).join(", ") || "—"}
         </Fact>
         <Fact label={t("subjectStrengths")}>
-          {(profile.subject_strengths ?? []).join(", ") || "—"}
+          {(profile.subject_strengths ?? []).map(v).join(", ") || "—"}
         </Fact>
         <Fact label={t("accommodation")}>
           {[
@@ -135,7 +139,7 @@ export default async function ProfilePage({
             .join(", ") || t("dayVisits")}
         </Fact>
         <Fact label={t("hostingWindows")}>
-          {profile.typical_hosting_windows || t("askGsa")}
+          {localized(profile, "typical_hosting_windows", locale) || t("askGsa")}
         </Fact>
       </dl>
 
@@ -165,12 +169,12 @@ export default async function ProfilePage({
 
       {(profile.focus_tags ?? []).length > 0 && (
         <div className="mt-5 flex flex-wrap gap-2">
-          {profile.focus_tags.map((t: string) => (
+          {profile.focus_tags.map((tag: string) => (
             <span
-              key={t}
+              key={tag}
               className="rounded-full bg-stone-100 px-3 py-1 text-xs font-medium text-stone-600"
             >
-              {t}
+              {v(tag)}
             </span>
           ))}
         </div>
