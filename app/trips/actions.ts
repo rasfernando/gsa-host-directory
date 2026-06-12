@@ -376,6 +376,80 @@ export async function payInstallment(formData: FormData) {
   redirect(`/trips/${tripId}?deposit=manual`);
 }
 
+// ── Steps 11–14: bolt-on quotes and supplier settlements ────────────────────
+export async function requestQuotes(formData: FormData) {
+  const tripId = String(formData.get("trip_id"));
+  const { supabase, trip } = await ownTrip(tripId);
+
+  const { data: count, error } = await supabase.rpc("request_bolt_on_quotes", {
+    p_trip: tripId,
+  });
+  if (error) redirect(`/trips/${tripId}?error=${encodeURIComponent(error.message)}`);
+
+  await logEvent("bolt_on_quotes_requested", {
+    profile_id: trip.host_profile_id,
+    meta: { trip_id: tripId, items: count },
+  });
+  await notifyGsa(
+    `Firm quotes requested — ${trip.organiser_school_name ?? "a school"}`,
+    `<p><strong>${trip.organiser_school_name ?? "A school"}</strong> wants firm quotes for ${count} bolt-on item${count === 1 ? "" : "s"}. Confirm them with the suppliers' real prices.</p>
+     <p><a href="https://gsa-host-directory.vercel.app/admin/trips/${tripId}">Open the trip</a></p>`
+  );
+  redirect(`/trips/${tripId}?quotes=requested`);
+}
+
+export async function acceptQuote(formData: FormData) {
+  const tripId = String(formData.get("trip_id"));
+  const itemId = String(formData.get("item_id"));
+  const route = String(formData.get("route"));
+  const { supabase, trip } = await ownTrip(tripId);
+  if (!["pay_direct", "passthrough"].includes(route)) redirect(`/trips/${tripId}`);
+
+  const { error } = await supabase.rpc("accept_bolt_on_quote", {
+    p_item: itemId,
+    p_route: route,
+  });
+  if (error) redirect(`/trips/${tripId}?error=${encodeURIComponent(error.message)}`);
+
+  await logEvent("bolt_on_quote_accepted", {
+    profile_id: trip.host_profile_id,
+    meta: { trip_id: tripId, item_id: itemId, route },
+  });
+  redirect(`/trips/${tripId}?quotes=accepted`);
+}
+
+// Test-mode card payment for a passthrough settlement. The funds route to
+// the supplier same-day (Stripe Connect destination-charge pattern — live
+// transfers BLOCKED pending travel-law sign-off; see lib/stripe.ts).
+export async function paySettlement(formData: FormData) {
+  const tripId = String(formData.get("trip_id"));
+  const settlementId = String(formData.get("settlement_id"));
+  const { supabase, trip } = await ownTrip(tripId);
+
+  const { data: settlement } = await supabase
+    .from("supplier_settlements")
+    .select("id, amount_pennies, status, route, suppliers(name)")
+    .eq("id", settlementId)
+    .eq("trip_id", tripId)
+    .single();
+  if (!settlement || settlement.status !== "pending" || settlement.route !== "passthrough")
+    redirect(`/trips/${tripId}`);
+  const supplier = Array.isArray(settlement.suppliers)
+    ? settlement.suppliers[0]
+    : settlement.suppliers;
+
+  const origin = await siteOrigin();
+  const url = await createCheckoutSession({
+    amountPennies: settlement.amount_pennies,
+    name: `${supplier?.name ?? "Supplier"} — ${trip.organiser_school_name ?? "school trip"} (via GSA, settled same day)`,
+    successUrl: `${origin}/trips/${tripId}?payment=processing`,
+    cancelUrl: `${origin}/trips/${tripId}`,
+    metadata: { kind: "settlement", id: settlementId },
+  });
+  if (url) redirect(url);
+  redirect(`/trips/${tripId}?deposit=manual`);
+}
+
 // ── Step 17: booking alterations ────────────────────────────────────────────
 export async function requestAlteration(formData: FormData) {
   const tripId = String(formData.get("trip_id"));

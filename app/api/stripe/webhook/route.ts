@@ -51,6 +51,15 @@ export async function POST(req: Request) {
         p_payment: md.id,
         p_ref: ref,
       }));
+    } else if (md.kind === "settlement" && md.id) {
+      // Passthrough: customer paid GSA; the same-day transfer to the supplier
+      // is recorded by the GSA team (live Connect transfers blocked pending
+      // travel-law sign-off).
+      ({ error } = await supabase.rpc("mark_settlement", {
+        p_settlement: md.id,
+        p_status: "customer_paid",
+        p_ref: ref,
+      }));
     }
     if (error) {
       console.error("[stripe webhook] failed to record payment:", error.message);

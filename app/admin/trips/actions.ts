@@ -189,6 +189,48 @@ export async function sendParentReminder(formData: FormData) {
   redirect(`/admin/trips/${tripId}?saved=reminder`);
 }
 
+// ── Bolt-on quotes & supplier settlements ───────────────────────────────────
+export async function confirmQuote(formData: FormData) {
+  const { supabase } = await requireAdmin();
+  const tripId = String(formData.get("trip_id"));
+  const itemId = String(formData.get("item_id"));
+  const pounds = String(formData.get("unit_price_pounds") || "").trim();
+
+  const { error } = await supabase.rpc("confirm_bolt_on_quote", {
+    p_item: itemId,
+    p_unit_price_pennies: pounds ? Math.round(Number(pounds) * 100) : null,
+  });
+  if (error) redirect(`/admin/trips/${tripId}?error=${encodeURIComponent(error.message)}`);
+
+  const { trip, organiser } = await tripWithOrganiser(supabase, tripId);
+  await logEvent("bolt_on_quote_confirmed", { meta: { trip_id: tripId, item_id: itemId } });
+  await sendEmail(
+    organiser?.email,
+    "Your firm quote is ready",
+    `<p>The GSA team has confirmed a firm supplier quote on your trip. Review and accept it — you'll choose whether to pay the supplier directly or via GSA (passed through the same day).</p>
+     <p><a href="https://gsa-host-directory.vercel.app/trips/${tripId}">Review your quote</a></p>`
+  );
+  void trip;
+  redirect(`/admin/trips/${tripId}?saved=quote`);
+}
+
+export async function adminMarkSettlement(formData: FormData) {
+  const { supabase } = await requireAdmin();
+  const tripId = String(formData.get("trip_id"));
+  const settlementId = String(formData.get("settlement_id"));
+  const status = String(formData.get("status"));
+
+  const { error } = await supabase.rpc("mark_settlement", {
+    p_settlement: settlementId,
+    p_status: status,
+    p_ref: String(formData.get("ref") || "") || null,
+  });
+  if (error) redirect(`/admin/trips/${tripId}?error=${encodeURIComponent(error.message)}`);
+
+  await logEvent("settlement_updated", { meta: { trip_id: tripId, settlement_id: settlementId, status } });
+  redirect(`/admin/trips/${tripId}?saved=settlement`);
+}
+
 // ── Invoices ────────────────────────────────────────────────────────────────
 export async function setInvoiceStatus(formData: FormData) {
   const { supabase } = await requireAdmin();
@@ -352,6 +394,10 @@ export async function saveProduct(formData: FormData) {
     tier: String(formData.get("tier") || "") || null,
     bolt_on: formData.get("bolt_on") === "on",
     active: formData.get("active") === "on",
+    // Non-package routing: how this third-party product gets settled,
+    // and GSA's commission on it (basis points, e.g. 1000 = 10%).
+    commission_bps: Math.round(Number(formData.get("commission_pct") || 0) * 100),
+    default_route: String(formData.get("default_route") || "pay_direct"),
   };
 
   const { error } = id

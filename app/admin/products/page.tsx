@@ -132,6 +132,26 @@ export default async function AdminProductsPage({
                     <option value="flat">flat</option>
                   </select>
                 </label>
+                <label className="text-xs text-gray-600">
+                  Commission %
+                  <input
+                    name="commission_pct"
+                    type="number"
+                    step="0.5"
+                    min="0"
+                    max="50"
+                    defaultValue={(p.commission_bps / 100).toString()}
+                    className={`${inputCls} mt-1 block w-20`}
+                  />
+                </label>
+                <label className="text-xs text-gray-600">
+                  Settlement
+                  <select name="default_route" defaultValue={p.default_route} className={`${inputCls} mt-1 block`}>
+                    <option value="pay_direct">pay supplier direct</option>
+                    <option value="passthrough">same-day passthrough</option>
+                    <option value="gsa">GSA plan</option>
+                  </select>
+                </label>
                 <label className="flex items-center gap-1.5 text-xs text-gray-600">
                   <input type="checkbox" name="bolt_on" defaultChecked={p.bolt_on} /> bolt-on
                 </label>
@@ -192,6 +212,18 @@ export default async function AdminProductsPage({
           <label className="text-xs text-gray-600">
             Price £
             <input name="unit_price_pounds" type="number" step="0.01" min="0" required className={`${inputCls} mt-1 block w-28`} />
+          </label>
+          <label className="text-xs text-gray-600">
+            Commission %
+            <input name="commission_pct" type="number" step="0.5" min="0" max="50" defaultValue="0" className={`${inputCls} mt-1 block w-20`} />
+          </label>
+          <label className="text-xs text-gray-600">
+            Settlement
+            <select name="default_route" className={`${inputCls} mt-1 block`}>
+              <option value="pay_direct">pay supplier direct</option>
+              <option value="passthrough">same-day passthrough</option>
+              <option value="gsa">GSA plan</option>
+            </select>
           </label>
           <label className="flex items-center gap-1.5 text-xs text-gray-600">
             <input type="checkbox" name="bolt_on" /> bolt-on

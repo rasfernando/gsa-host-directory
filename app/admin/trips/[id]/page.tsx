@@ -20,12 +20,43 @@ import {
   uploadTripDocument,
   deleteTripDocument,
   adminCompleteTrip,
+  confirmQuote,
+  adminMarkSettlement,
 } from "../actions";
 
 export const dynamic = "force-dynamic";
 
 const inputCls =
   "rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-sm focus:border-gray-500 focus:outline-none";
+
+function SettlementButton({
+  id,
+  tripId,
+  status,
+  label,
+}: {
+  id: string;
+  tripId: string;
+  status: string;
+  label: string;
+}) {
+  return (
+    <form action={adminMarkSettlement}>
+      <input type="hidden" name="trip_id" value={tripId} />
+      <input type="hidden" name="settlement_id" value={id} />
+      <input type="hidden" name="status" value={status} />
+      <button
+        className={
+          status === "cancelled"
+            ? "rounded-lg border border-gray-300 px-2.5 py-1 text-xs font-medium text-gray-600 hover:border-gray-500"
+            : "rounded-lg bg-gray-900 px-2.5 py-1 text-xs font-medium text-white hover:bg-gray-700"
+        }
+      >
+        {label}
+      </button>
+    </form>
+  );
+}
 
 export default async function AdminTripPage({
   params,
@@ -61,6 +92,7 @@ export default async function AdminTripPage({
     { data: alterations },
     { data: documents },
     { data: suppliers },
+    { data: settlements },
   ] = await Promise.all([
     supabase
       .from("user_profiles")
@@ -82,6 +114,11 @@ export default async function AdminTripPage({
     supabase.from("trip_alterations").select("*").eq("trip_id", id).order("created_at"),
     supabase.from("trip_documents").select("*").eq("trip_id", id).order("created_at"),
     supabase.from("suppliers").select("id, name").eq("active", true).order("name"),
+    supabase
+      .from("supplier_settlements")
+      .select("*, suppliers(name)")
+      .eq("trip_id", id)
+      .order("created_at"),
   ]);
 
   type Installment = {
@@ -249,6 +286,111 @@ export default async function AdminTripPage({
           </form>
         </details>
       </section>
+
+      {/* Bolt-on quotes & settlements (non-package routing) */}
+      {(items ?? []).some((i) => i.route !== "gsa") && (
+        <section className="mt-4 rounded-xl border border-gray-200 bg-white p-5">
+          <h2 className="text-sm font-semibold text-gray-900">
+            Bolt-on quotes &amp; supplier settlements
+          </h2>
+          <p className="mt-0.5 text-sm text-gray-500">
+            Confirm firm quotes with the suppliers&apos; real prices; record
+            settlements as money moves. GSA never holds client funds —
+            passthroughs must clear the same day.
+          </p>
+
+          <ul className="mt-3 space-y-2">
+            {(items ?? [])
+              .filter((i) => i.route !== "gsa")
+              .map((i) => (
+                <li
+                  key={i.id}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-gray-100 px-4 py-3 text-sm"
+                >
+                  <span>
+                    <span className="font-medium text-gray-900">{i.label}</span>
+                    <span className="ml-2 text-xs text-gray-500">
+                      {formatPounds(i.unit_price_pennies)} × {i.quantity} ={" "}
+                      {formatPounds(i.line_total_pennies)} · {i.route}
+                    </span>
+                  </span>
+                  {i.quote_status === "quote_requested" || i.quote_status === "estimate" ? (
+                    <form action={confirmQuote} className="flex items-center gap-2">
+                      <input type="hidden" name="trip_id" value={id} />
+                      <input type="hidden" name="item_id" value={i.id} />
+                      <input
+                        name="unit_price_pounds"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder={`£${(i.unit_price_pennies / 100).toFixed(2)}`}
+                        className={`${inputCls} w-28`}
+                      />
+                      <button className="rounded-lg bg-gray-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-gray-700">
+                        {i.quote_status === "quote_requested"
+                          ? "Confirm firm quote"
+                          : "Pre-confirm quote"}
+                      </button>
+                    </form>
+                  ) : (
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                        i.quote_status === "accepted"
+                          ? "bg-emerald-50 text-emerald-700"
+                          : "bg-blue-50 text-blue-700"
+                      }`}
+                    >
+                      {i.quote_status === "accepted" ? "accepted" : "firm quote sent"}
+                    </span>
+                  )}
+                </li>
+              ))}
+          </ul>
+
+          {(settlements ?? []).length > 0 && (
+            <div className="mt-4 border-t border-gray-100 pt-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                Settlements
+              </p>
+              <ul className="mt-2 space-y-2">
+                {(settlements ?? []).map((s) => {
+                  const supplier = Array.isArray(s.suppliers) ? s.suppliers[0] : s.suppliers;
+                  return (
+                    <li
+                      key={s.id}
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-gray-100 px-4 py-3 text-sm"
+                    >
+                      <span>
+                        <span className="font-medium text-gray-900">
+                          {supplier?.name} · {formatPounds(s.amount_pennies)} · {s.route}
+                        </span>
+                        <span className="ml-2 text-xs text-gray-500">
+                          commission {formatPounds(s.commission_pennies)} · {s.status}
+                          {s.settled_at ? ` · settled ${formatDate(s.settled_at)}` : ""}
+                        </span>
+                      </span>
+                      <span className="flex gap-2">
+                        {s.route === "passthrough" && s.status === "pending" && (
+                          <SettlementButton id={s.id} tripId={id} status="customer_paid" label="Mark customer paid" />
+                        )}
+                        {s.route === "passthrough" && s.status === "customer_paid" && (
+                          <SettlementButton id={s.id} tripId={id} status="passed_through" label="Mark passed through (same day)" />
+                        )}
+                        {s.route === "pay_direct" && s.status === "pending" && (
+                          <SettlementButton id={s.id} tripId={id} status="settled_direct" label="Mark settled direct" />
+                        )}
+                        {s.status === "pending" && (
+                          <SettlementButton id={s.id} tripId={id} status="cancelled" label="Cancel" />
+                        )}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+        </section>
+      )}
 
       {/* Payments */}
       {plan && (

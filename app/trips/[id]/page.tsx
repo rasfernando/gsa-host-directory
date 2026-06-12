@@ -26,6 +26,9 @@ import {
   payInstallment,
   requestAlteration,
   uploadNameList,
+  requestQuotes,
+  acceptQuote,
+  paySettlement,
 } from "../actions";
 import { stripeEnabled } from "@/lib/stripe";
 import { headers } from "next/headers";
@@ -40,7 +43,16 @@ type Item = {
   quantity: number;
   line_total_pennies: number;
   product_id: string | null;
+  route: string;
+  quote_status: string;
   suppliers: { name: string; type: string } | { name: string; type: string }[] | null;
+};
+
+const QUOTE_LABELS: Record<string, { label: string; cls: string }> = {
+  estimate: { label: "Estimate", cls: "bg-stone-100 text-stone-600" },
+  quote_requested: { label: "Quote requested", cls: "bg-warm-50 text-warm-700" },
+  quote_confirmed: { label: "Firm quote — accept below", cls: "bg-brand-50 text-brand-700" },
+  accepted: { label: "Confirmed", cls: "bg-brand-100 text-brand-800" },
 };
 
 function itemSupplier(i: Item) {
@@ -80,6 +92,7 @@ export default async function TripPage({
     payment?: string;
     alteration?: string;
     saved?: string;
+    quotes?: string;
   }>;
 }) {
   const { id } = await params;
@@ -110,11 +123,12 @@ export default async function TripPage({
     { data: invoicesData },
     { data: alterationsData },
     { data: documentsData },
+    { data: settlementsData },
   ] = await Promise.all([
     supabase
       .from("trip_items")
       .select(
-        "id, label, category, unit_price_pennies, quantity, line_total_pennies, product_id, suppliers(name, type)"
+        "id, label, category, unit_price_pennies, quantity, line_total_pennies, product_id, route, quote_status, suppliers(name, type)"
       )
       .eq("trip_id", id)
       .order("created_at"),
@@ -152,6 +166,11 @@ export default async function TripPage({
       .select("*")
       .eq("trip_id", id)
       .order("created_at"),
+    supabase
+      .from("supplier_settlements")
+      .select("*, suppliers(name)")
+      .eq("trip_id", id)
+      .order("created_at"),
   ]);
   const items = (itemsData ?? []) as Item[];
   const boltOns = (boltOnsData ?? []) as Product[];
@@ -168,6 +187,7 @@ export default async function TripPage({
   const invoices = invoicesData ?? [];
   const alterations = alterationsData ?? [];
   const documents = documentsData ?? [];
+  const settlements = settlementsData ?? [];
   const hasImmersion = items.some((i) => i.category === "immersion_camp");
   const afterDeposit = ["deposit_paid", "invoiced", "confirmed", "completed"].includes(
     trip.status
@@ -183,6 +203,8 @@ export default async function TripPage({
   const thirdPartyItems = items.filter((i) => !isGsaItem(i));
   const gsaSubtotal = gsaItems.reduce((s, i) => s + i.line_total_pennies, 0);
   const feePreview = adjustment(gsaSubtotal); // service fee defaults to 10% of the GSA programme
+  const estimateCount = thirdPartyItems.filter((i) => i.quote_status === "estimate").length;
+  const confirmedQuotes = thirdPartyItems.filter((i) => i.quote_status === "quote_confirmed");
   const parents = trip.parent_count ?? trip.num_students ?? null;
   const perParent = parents ? splitPennies(subtotal, parents)[0] : null;
 
@@ -257,6 +279,17 @@ export default async function TripPage({
       )}
       {flags.saved === "namelist" && (
         <Flash tone="ok">Name list uploaded — thank you.</Flash>
+      )}
+      {flags.quotes === "requested" && (
+        <Flash tone="ok">
+          Firm quotes requested — the GSA team will confirm each supplier&apos;s
+          real price, then you accept and choose how to pay.
+        </Flash>
+      )}
+      {flags.quotes === "accepted" && (
+        <Flash tone="ok">
+          Quote confirmed — see the settlement below for how it gets paid.
+        </Flash>
       )}
       {flags.committed && (
         <Flash tone="ok">
@@ -778,6 +811,139 @@ export default async function TripPage({
         </section>
       )}
 
+      {/* Steps 11–14: third-party quotes & settlements (non-package model) */}
+      {thirdPartyItems.length > 0 && trip.status !== "cancelled" && (
+        <section className="mt-8 rounded-2xl border border-stone-200/70 bg-white p-6 shadow-sm sm:p-8">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-xl font-bold tracking-tight">
+                Third-party quotes &amp; settlements
+              </h2>
+              <p className="mt-1 max-w-lg text-sm text-stone-500">
+                Bolt-on prices start as estimates. Ask GSA to firm them up with
+                each supplier, then accept and choose how each one is paid —
+                directly to the supplier, or via GSA and passed through the
+                same day.
+              </p>
+            </div>
+            {estimateCount > 0 && (
+              <form action={requestQuotes}>
+                <input type="hidden" name="trip_id" value={id} />
+                <button className="shrink-0 rounded-lg bg-warm-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-warm-700">
+                  Request firm quotes ({estimateCount})
+                </button>
+              </form>
+            )}
+          </div>
+
+          {confirmedQuotes.length > 0 && (
+            <div className="mt-5 space-y-3">
+              {confirmedQuotes.map((i) => {
+                const supplier = itemSupplier(i);
+                return (
+                  <div
+                    key={i.id}
+                    className="rounded-xl border border-brand-200/70 bg-brand-50/40 p-4"
+                  >
+                    <p className="text-sm font-semibold text-stone-900">
+                      {i.label} — firm quote{" "}
+                      {formatPounds(i.line_total_pennies)}
+                      <span className="ml-1 font-normal text-stone-500">
+                        ({formatPounds(i.unit_price_pennies)} × {i.quantity})
+                      </span>
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <form action={acceptQuote}>
+                        <input type="hidden" name="trip_id" value={id} />
+                        <input type="hidden" name="item_id" value={i.id} />
+                        <input type="hidden" name="route" value="pay_direct" />
+                        <button className="rounded-lg border border-warm-600 px-4 py-2 text-xs font-semibold text-warm-700 transition-colors duration-150 hover:bg-warm-50">
+                          Accept — pay {supplier?.name ?? "the supplier"} directly
+                        </button>
+                      </form>
+                      <form action={acceptQuote}>
+                        <input type="hidden" name="trip_id" value={id} />
+                        <input type="hidden" name="item_id" value={i.id} />
+                        <input type="hidden" name="route" value="passthrough" />
+                        <button className="rounded-lg border border-warm-600 px-4 py-2 text-xs font-semibold text-warm-700 transition-colors duration-150 hover:bg-warm-50">
+                          Accept — pay via GSA, passed through same day
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {settlements.length > 0 && (
+            <div className="mt-5 border-t border-stone-100 pt-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-stone-500">
+                Settlements
+              </p>
+              <ul className="mt-2 space-y-2">
+                {settlements.map((s) => {
+                  const supplier = Array.isArray(s.suppliers)
+                    ? s.suppliers[0]
+                    : s.suppliers;
+                  return (
+                    <li
+                      key={s.id}
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-stone-100 px-4 py-3 text-sm"
+                    >
+                      <span>
+                        <span className="font-medium text-stone-900">
+                          {supplier?.name} · {formatPounds(s.amount_pennies)}
+                        </span>
+                        <span className="mt-0.5 block text-xs text-stone-500">
+                          {s.route === "pay_direct"
+                            ? `You pay ${supplier?.name} directly — GSA records it, never collects it.`
+                            : "You pay via GSA; funds pass to the supplier the same day."}
+                        </span>
+                      </span>
+                      <span className="flex items-center gap-2">
+                        {s.status === "pending" && s.route === "passthrough" && canPayByCard && (
+                          <form action={paySettlement}>
+                            <input type="hidden" name="trip_id" value={id} />
+                            <input type="hidden" name="settlement_id" value={s.id} />
+                            <button className="rounded-lg bg-warm-600 px-3.5 py-2 text-xs font-semibold text-white transition-colors duration-150 hover:bg-warm-700">
+                              Pay by card (test)
+                            </button>
+                          </form>
+                        )}
+                        <span
+                          className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                            s.status === "passed_through" || s.status === "settled_direct"
+                              ? "bg-brand-100 text-brand-800"
+                              : s.status === "customer_paid"
+                                ? "bg-brand-50 text-brand-700"
+                                : s.status === "cancelled"
+                                  ? "bg-stone-100 text-stone-500"
+                                  : "bg-stone-100 text-stone-600"
+                          }`}
+                        >
+                          {s.status === "pending"
+                            ? s.route === "pay_direct"
+                              ? "Awaiting your payment to the supplier"
+                              : "Awaiting payment"
+                            : s.status === "customer_paid"
+                              ? "Paid — passing to supplier today"
+                              : s.status === "passed_through"
+                                ? "Settled (passed through)"
+                                : s.status === "settled_direct"
+                                  ? "Settled directly"
+                                  : "Cancelled"}
+                        </span>
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+        </section>
+      )}
+
       {/* Quote: the ±10% rule (GSA programme only) */}
       {!plan && gsaSubtotal > 0 && trip.status !== "cancelled" && (
         <section className="mt-8 rounded-2xl border border-stone-200/70 bg-white p-6 shadow-sm sm:p-8">
@@ -995,6 +1161,13 @@ function BasketRow({
         <span className="mt-0.5 block text-xs text-stone-500">
           {CATEGORY_LABELS[i.category] ?? i.category}
           {supplier && !isGsaItem(i) ? ` · supplied by ${supplier.name}` : ""}
+          {!isGsaItem(i) && QUOTE_LABELS[i.quote_status] && (
+            <span
+              className={`ml-2 rounded-full px-2 py-0.5 text-[10px] font-semibold ${QUOTE_LABELS[i.quote_status].cls}`}
+            >
+              {QUOTE_LABELS[i.quote_status].label}
+            </span>
+          )}
         </span>
       </td>
       <td className="px-3 py-3.5 text-right text-stone-600">
