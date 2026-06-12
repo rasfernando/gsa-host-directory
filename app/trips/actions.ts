@@ -2,9 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { notifyGsa } from "@/lib/notify";
 import { logEvent } from "@/lib/events";
+import { createCheckoutSession } from "@/lib/stripe";
+import { formatPounds } from "@/lib/money";
 
 // Every mutation here runs as the signed-in organiser. RLS limits rows to
 // their own trips, and DB triggers/RPCs own all prices and status moves —
@@ -257,6 +260,120 @@ export async function cancelTrip(formData: FormData) {
     `<p>A trip has been cancelled by the organiser. Any refundable deposit has been marked for refund.</p>`
   );
   redirect(`/trips/${tripId}?cancelled=1`);
+}
+
+// ── Payments (Stripe TEST MODE, env-gated; admin mark-paid is the fallback) ─
+async function siteOrigin() {
+  const h = await headers();
+  return (
+    h.get("origin") ??
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    `https://${h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000"}`
+  );
+}
+
+// Step 8: pay the £1,000 refundable deposit.
+export async function payDeposit(formData: FormData) {
+  const tripId = String(formData.get("trip_id"));
+  const { trip } = await ownTrip(tripId);
+  if (trip.status !== "reserved") redirect(`/trips/${tripId}`);
+
+  const origin = await siteOrigin();
+  const url = await createCheckoutSession({
+    amountPennies: trip.deposit_amount_pennies,
+    name: `Refundable trip deposit — ${trip.organiser_school_name ?? "school trip"}`,
+    successUrl: `${origin}/trips/${tripId}?deposit=processing`,
+    cancelUrl: `${origin}/trips/${tripId}`,
+    metadata: { kind: "deposit", trip_id: tripId },
+  });
+  if (url) redirect(url);
+
+  // Stripe unconfigured: hand over to the GSA team to confirm manually.
+  await logEvent("deposit_payment_requested", {
+    profile_id: trip.host_profile_id,
+    meta: { trip_id: tripId },
+  });
+  await notifyGsa(
+    `Deposit confirmation needed — ${trip.organiser_school_name ?? "a school"}`,
+    `<p><strong>${trip.organiser_school_name ?? "A school"}</strong> wants to pay the ${formatPounds(trip.deposit_amount_pennies)} deposit, but card payments aren't configured. Arrange a transfer and mark the deposit paid in the admin area.</p>
+     <p><a href="https://gsa-host-directory.vercel.app/admin/trips">Open trips</a></p>`
+  );
+  redirect(`/trips/${tripId}?deposit=manual`);
+}
+
+// Step 9: commit to a payment plan; invoices / parent links are generated
+// inside the DB function — totals and the ±10% rule never touch this layer.
+export async function commitPlan(formData: FormData) {
+  const tripId = String(formData.get("trip_id"));
+  const { supabase, trip } = await ownTrip(tripId);
+
+  const mode = String(formData.get("mode"));
+  const choice = String(formData.get("choice"));
+  if (!["school_invoice", "parent_links"].includes(mode)) redirect(`/trips/${tripId}`);
+  if (!["upfront", "installments"].includes(choice)) redirect(`/trips/${tripId}`);
+
+  // Parent list: one per line, "Name, email" (email optional).
+  const parents = String(formData.get("parents") || "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [name, email] = line.split(",").map((s) => s.trim());
+      return { name: name || "Parent", email: email || "" };
+    });
+
+  const { error } = await supabase.rpc("commit_payment_plan", {
+    p_trip: tripId,
+    p_mode: mode,
+    p_choice: choice,
+    p_num_installments: Number(formData.get("num_installments") || 1),
+    p_parents: parents,
+  });
+  if (error) redirect(`/trips/${tripId}?error=${encodeURIComponent(error.message)}`);
+
+  await logEvent(
+    mode === "school_invoice" ? "invoice_issued" : "parent_links_generated",
+    { profile_id: trip.host_profile_id, meta: { trip_id: tripId, choice } }
+  );
+  await notifyGsa(
+    `Payment plan committed — ${trip.organiser_school_name ?? "a school"}`,
+    `<p><strong>${trip.organiser_school_name ?? "A school"}</strong> committed to ${
+      choice === "upfront" ? "paying upfront (10% discount)" : "a payment plan (+10%)"
+    } via ${mode === "school_invoice" ? "a school invoice" : "individual parent payment links"}.</p>
+     <p><a href="https://gsa-host-directory.vercel.app/admin/trips">Open trips</a></p>`
+  );
+  redirect(`/trips/${tripId}?committed=1`);
+}
+
+// Pay a school-invoice instalment by card (test mode).
+export async function payInstallment(formData: FormData) {
+  const tripId = String(formData.get("trip_id"));
+  const installmentId = String(formData.get("installment_id"));
+  const { supabase, trip } = await ownTrip(tripId);
+
+  const { data: installment } = await supabase
+    .from("installments")
+    .select("id, amount_pennies, seq, status, payment_plans!inner(trip_id)")
+    .eq("id", installmentId)
+    .single();
+  const plan = installment
+    ? Array.isArray(installment.payment_plans)
+      ? installment.payment_plans[0]
+      : installment.payment_plans
+    : null;
+  if (!installment || plan?.trip_id !== tripId || installment.status === "paid")
+    redirect(`/trips/${tripId}`);
+
+  const origin = await siteOrigin();
+  const url = await createCheckoutSession({
+    amountPennies: installment.amount_pennies,
+    name: `Trip payment ${installment.seq} — ${trip.organiser_school_name ?? "school trip"}`,
+    successUrl: `${origin}/trips/${tripId}?payment=processing`,
+    cancelUrl: `${origin}/trips/${tripId}`,
+    metadata: { kind: "installment", id: installmentId },
+  });
+  if (url) redirect(url);
+  redirect(`/trips/${tripId}?deposit=manual`);
 }
 
 export async function deleteDraftTrip(formData: FormData) {
