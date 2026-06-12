@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { SchoolCard } from "@/components/school-card";
 
@@ -19,6 +20,7 @@ export default async function DirectoryPage({
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const params = await searchParams;
+  const t = await getTranslations("directory");
   const supabase = await createClient();
 
   let query = supabase
@@ -49,17 +51,16 @@ export default async function DirectoryPage({
   return (
     <div>
       <p className="text-xs font-semibold uppercase tracking-widest text-stone-500">
-        Directory
+        {t("kicker")}
       </p>
-      <h1 className="mt-2 text-3xl font-bold tracking-tight">
-        Host schools worldwide
-      </h1>
+      <h1 className="mt-2 text-3xl font-bold tracking-tight">{t("title")}</h1>
       <p className="mt-3 max-w-2xl text-sm leading-relaxed text-stone-600">
-        <span className="font-semibold text-emerald-700">GSA Accredited</span>{" "}
-        schools have passed GSA&apos;s gold-standard verification and are
-        actively promoted. Listed hosts are reviewed members of the network.{" "}
+        <span className="font-semibold text-emerald-700">
+          {t("introAccredited")}
+        </span>{" "}
+        {t("introBody")}{" "}
         <Link href="/accreditation" className="underline transition-colors duration-150 hover:text-stone-900">
-          How accreditation works
+          {t("introLink")}
         </Link>
       </p>
 
@@ -68,49 +69,48 @@ export default async function DirectoryPage({
         method="get"
         className="mt-6 flex flex-wrap items-center gap-3 rounded-2xl border border-stone-200/70 bg-white p-4 shadow-sm"
       >
-        <input name="q" defaultValue={params.q} placeholder="Search schools…" className={inputCls} />
-        <input name="country" defaultValue={params.country} placeholder="Country" className={`${inputCls} w-36`} />
+        <input name="q" defaultValue={params.q} placeholder={t("searchPlaceholder")} className={inputCls} />
+        <input name="country" defaultValue={params.country} placeholder={t("countryPlaceholder")} className={`${inputCls} w-36`} />
         <select name="focus" defaultValue={params.focus ?? ""} className={inputCls}>
-          <option value="">Any focus</option>
+          <option value="">{t("anyFocus")}</option>
           {FOCUS_AREAS.map((f) => (
             <option key={f} value={f}>{f}</option>
           ))}
         </select>
         <label className="flex items-center gap-1.5 text-sm text-stone-600">
           <input type="checkbox" name="boarding" defaultChecked={params.boarding === "on"} className="rounded border-stone-300" />
-          Boarding
+          {t("boarding")}
         </label>
         <label className="flex items-center gap-1.5 text-sm text-stone-600">
           <input type="checkbox" name="homestay" defaultChecked={params.homestay === "on"} className="rounded border-stone-300" />
-          Homestay
+          {t("homestay")}
         </label>
         <label className="flex items-center gap-1.5 text-sm text-stone-600">
           <input type="checkbox" name="accredited" defaultChecked={params.accredited === "on"} className="rounded border-stone-300" />
-          GSA Accredited only
+          {t("accreditedOnly")}
         </label>
         <button className="rounded-lg bg-warm-600 px-4 py-2 text-sm font-semibold text-white transition-colors duration-150 hover:bg-warm-700">
-          Show matching schools
+          {t("submit")}
         </button>
         {hasFilters && (
           <Link href="/directory" className="text-sm text-stone-500 underline">
-            Clear
+            {t("clear")}
           </Link>
         )}
       </form>
 
       {results.length === 0 ? (
         <div className="mt-10 rounded-2xl border border-dashed border-stone-300 bg-white p-12 text-center">
-          <h2 className="text-base font-semibold">No matching schools yet</h2>
+          <h2 className="text-base font-semibold">{t("emptyTitle")}</h2>
           <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-stone-500">
-            The network is growing every week. Try widening your filters, or
-            check back soon.
+            {t("emptyBody")}
           </p>
           {hasFilters && (
             <Link
               href="/directory"
               className="mt-5 inline-block rounded-lg border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700 transition-colors duration-150 hover:border-stone-400"
             >
-              Clear all filters
+              {t("clearAll")}
             </Link>
           )}
         </div>

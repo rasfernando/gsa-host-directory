@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getLocale, getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
+import { localized } from "@/lib/i18n-content";
 import { submitEnquiry } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +20,8 @@ export default async function ProfilePage({
 }) {
   const { slug } = await params;
   const { enquiry } = await searchParams;
+  const locale = await getLocale();
+  const t = await getTranslations("profile");
   const supabase = await createClient();
 
   const { data: profile } = await supabase
@@ -35,7 +39,7 @@ export default async function ProfilePage({
         href="/directory"
         className="text-sm text-stone-500 transition-colors duration-150 hover:text-stone-900"
       >
-        ← All host schools
+        ← {t("allHosts")}
       </Link>
 
       {(profile.media as { url: string }[] | null)?.[0]?.url && (
@@ -62,23 +66,23 @@ export default async function ProfilePage({
             href="/accreditation"
             className="shrink-0 self-start rounded-full bg-emerald-100 px-3.5 py-1.5 text-xs font-semibold text-emerald-800 transition-colors duration-150 hover:bg-emerald-200"
           >
-            GSA Accredited host
+            {t("accreditedHost")}
             {profile.accredited_at &&
-              ` · since ${new Date(profile.accredited_at).getFullYear()}`}
+              ` · ${t("accreditedSince")} ${new Date(profile.accredited_at).getFullYear()}`}
           </Link>
         ) : profile.tier === "verified" ? (
           <Link
             href="/accreditation"
             className="shrink-0 self-start rounded-full bg-brand-100 px-3.5 py-1.5 text-xs font-semibold text-brand-800 transition-colors duration-150 hover:bg-brand-200"
           >
-            GSA Verified host
+            {t("verifiedHost")}
           </Link>
         ) : (
           <Link
             href="/accreditation"
             className="shrink-0 self-start rounded-full bg-stone-100 px-3.5 py-1.5 text-xs font-medium text-stone-500 transition-colors duration-150 hover:bg-stone-200"
           >
-            Listed host · not yet GSA Verified
+            {t("listedHost")}
           </Link>
         )}
       </div>
@@ -86,50 +90,51 @@ export default async function ProfilePage({
       {profile.tier === "accredited" && (
         <div className="mt-6 flex flex-col gap-3 rounded-2xl border border-emerald-200/70 bg-emerald-50/60 p-5 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm leading-relaxed text-stone-700">
-            <strong>Need sign-off for a trip?</strong> Download the GSA
-            verification statement — what we checked and when, ready to hand
-            to your head, governors, or EVC.
+            <strong>{t("verificationLead")}</strong> {t("verificationBody")}
           </p>
           <Link
             href={`/directory/${profile.slug}/verification`}
             className="shrink-0 rounded-lg bg-warm-600 px-4 py-2.5 text-center text-sm font-semibold text-white transition-colors duration-150 hover:bg-warm-700"
           >
-            Verification statement
+            {t("verificationCta")}
           </Link>
         </div>
       )}
 
-      {profile.headline && (
+      {localized(profile, "headline", locale) && (
         <p className="mt-6 text-lg leading-relaxed text-stone-700">
-          {profile.headline}
+          {localized(profile, "headline", locale)}
         </p>
       )}
-      {profile.description && (
+      {localized(profile, "description", locale) && (
         <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-stone-600">
-          {profile.description}
+          {localized(profile, "description", locale)}
         </p>
       )}
 
       <dl className="mt-8 grid grid-cols-2 gap-x-6 gap-y-5 rounded-2xl border border-stone-200/70 bg-white p-6 text-sm shadow-sm sm:grid-cols-3">
-        <Fact label="Age range">
+        <Fact label={t("ageRange")}>
           {profile.age_range_min != null
             ? `${profile.age_range_min}–${profile.age_range_max}`
             : "—"}
         </Fact>
-        <Fact label="Group capacity">{profile.capacity ?? "—"}</Fact>
-        <Fact label="Languages">
+        <Fact label={t("groupCapacity")}>{profile.capacity ?? "—"}</Fact>
+        <Fact label={t("languages")}>
           {(profile.languages ?? []).join(", ") || "—"}
         </Fact>
-        <Fact label="Subject strengths">
+        <Fact label={t("subjectStrengths")}>
           {(profile.subject_strengths ?? []).join(", ") || "—"}
         </Fact>
-        <Fact label="Accommodation">
-          {[profile.boarding && "Boarding", profile.homestay && "Homestay"]
+        <Fact label={t("accommodation")}>
+          {[
+            profile.boarding && t("boardingLabel"),
+            profile.homestay && t("homestayLabel"),
+          ]
             .filter(Boolean)
-            .join(", ") || "Day visits"}
+            .join(", ") || t("dayVisits")}
         </Fact>
-        <Fact label="Typical hosting windows">
-          {profile.typical_hosting_windows || "Ask GSA"}
+        <Fact label={t("hostingWindows")}>
+          {profile.typical_hosting_windows || t("askGsa")}
         </Fact>
       </dl>
 
@@ -150,41 +155,34 @@ export default async function ProfilePage({
       <section className="mt-10 flex flex-col gap-4 rounded-2xl border border-warm-200/70 bg-warm-50/50 p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-8">
         <div>
           <h2 className="text-xl font-bold tracking-tight">
-            Plan a trip to {profile.name}
+            {t("planTitle", { name: profile.name })}
           </h2>
           <p className="mt-1.5 max-w-md text-sm leading-relaxed text-stone-600">
-            Build the trip around a school immersion here — choose dates, add
-            flights, attractions and accommodation, reserve places with a
-            refundable £1,000 deposit, and manage payments in one place.
+            {t("planBody")}
           </p>
         </div>
         <Link
           href={`/trips/new?host=${profile.slug}`}
           className="shrink-0 self-start rounded-lg bg-warm-600 px-5 py-3 text-sm font-semibold text-white transition-colors duration-150 hover:bg-warm-700 sm:self-center"
         >
-          Plan a trip
+          {t("planCta")}
         </Link>
       </section>
 
       {/* Enquiry form */}
       <section className="mt-12 rounded-2xl border border-stone-200/70 bg-white p-6 shadow-sm sm:p-8">
-        <h2 className="text-xl font-bold tracking-tight">
-          Enquire about visiting
-        </h2>
+        <h2 className="text-xl font-bold tracking-tight">{t("enquireTitle")}</h2>
         <p className="mt-1.5 text-sm leading-relaxed text-stone-500">
-          Enquiries go to the GSA team, who facilitate every visit and will
-          come back to you within a few days.
+          {t("enquireBody")}
         </p>
 
         {enquiry === "sent" ? (
           <div className="mt-5 rounded-xl bg-emerald-50 p-5 text-sm text-emerald-900">
-            <p className="font-semibold">
-              Enquiry sent — here&apos;s what happens next:
-            </p>
+            <p className="font-semibold">{t("sentTitle")}</p>
             <ol className="mt-2 list-decimal space-y-1.5 pl-5">
-              <li>You&apos;ll get a confirmation email with a copy of your enquiry.</li>
-              <li>A member of the GSA team reviews it and contacts you within 2–3 working days.</li>
-              <li>GSA introduces you to the school and supports planning from there — you&apos;re never left to arrange things alone.</li>
+              <li>{t("sentStep1")}</li>
+              <li>{t("sentStep2")}</li>
+              <li>{t("sentStep3")}</li>
             </ol>
           </div>
         ) : (
@@ -193,45 +191,43 @@ export default async function ProfilePage({
             <input type="hidden" name="slug" value={profile.slug} />
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label className={labelCls} htmlFor="enquirer_school_name">Your school</label>
+                <label className={labelCls} htmlFor="enquirer_school_name">{t("yourSchool")}</label>
                 <input className={inputCls} id="enquirer_school_name" name="enquirer_school_name" required />
               </div>
               <div>
-                <label className={labelCls} htmlFor="enquirer_name">Your name</label>
+                <label className={labelCls} htmlFor="enquirer_name">{t("yourName")}</label>
                 <input className={inputCls} id="enquirer_name" name="enquirer_name" required />
               </div>
             </div>
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="sm:col-span-1">
-                <label className={labelCls} htmlFor="enquirer_email">Email</label>
+                <label className={labelCls} htmlFor="enquirer_email">{t("email")}</label>
                 <input className={inputCls} id="enquirer_email" name="enquirer_email" type="email" required />
               </div>
               <div>
-                <label className={labelCls} htmlFor="preferred_dates">Preferred dates</label>
-                <input className={inputCls} id="preferred_dates" name="preferred_dates" placeholder="e.g. March 2027" />
+                <label className={labelCls} htmlFor="preferred_dates">{t("preferredDates")}</label>
+                <input className={inputCls} id="preferred_dates" name="preferred_dates" placeholder={t("preferredDatesHint")} />
               </div>
               <div>
-                <label className={labelCls} htmlFor="group_size">Group size</label>
+                <label className={labelCls} htmlFor="group_size">{t("groupSize")}</label>
                 <input className={inputCls} id="group_size" name="group_size" type="number" min={1} />
               </div>
             </div>
             <div>
-              <label className={labelCls} htmlFor="message">What are you hoping to do?</label>
+              <label className={labelCls} htmlFor="message">{t("message")}</label>
               <textarea
                 className={inputCls}
                 id="message"
                 name="message"
                 rows={4}
                 required
-                placeholder="Tell us about your group, what kind of visit you have in mind, and anything else useful."
+                placeholder={t("messageHint")}
               />
             </div>
             <button className="rounded-lg bg-warm-600 px-5 py-3 text-sm font-semibold text-white transition-colors duration-150 hover:bg-warm-700">
-              Send enquiry to the GSA team
+              {t("send")}
             </button>
-            <p className="mt-2 text-xs text-stone-500">
-              No commitment — this starts a conversation, not a booking.
-            </p>
+            <p className="mt-2 text-xs text-stone-500">{t("noCommitment")}</p>
           </form>
         )}
       </section>

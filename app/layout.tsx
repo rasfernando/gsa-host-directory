@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { getLocale, getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
-import { signOut } from "./actions";
+import { signOut, setLocale } from "./actions";
+import { LOCALES } from "@/i18n/request";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -14,6 +16,9 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const locale = await getLocale();
+  const t = await getTranslations("nav");
+  const tf = await getTranslations("footer");
   const supabase = await createClient();
   const {
     data: { user },
@@ -32,7 +37,7 @@ export default async function RootLayout({
   }
 
   return (
-    <html lang="en">
+    <html lang={locale}>
       <body className="min-h-screen overflow-x-clip bg-stone-50 text-stone-900 antialiased">
         <header className="border-b border-stone-200/70 bg-white">
           <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
@@ -49,29 +54,29 @@ export default async function RootLayout({
             </Link>
             <nav className="flex items-center gap-6 text-sm text-stone-600">
               <Link href="/directory" className="transition-colors duration-150 hover:text-stone-900">
-                Directory
+                {t("directory")}
               </Link>
               <Link href="/list-your-school" className="transition-colors duration-150 hover:text-stone-900">
-                Become a host
+                {t("becomeHost")}
               </Link>
               {user && (
                 <Link href="/trips" className="transition-colors duration-150 hover:text-stone-900">
-                  My trips
+                  {t("myTrips")}
                 </Link>
               )}
               {isAdmin && (
                 <Link href="/admin" className="transition-colors duration-150 hover:text-stone-900">
-                  Admin
+                  {t("admin")}
                 </Link>
               )}
               {isAgent && (
                 <Link href="/agent" className="transition-colors duration-150 hover:text-stone-900">
-                  Agent hub
+                  {t("agentHub")}
                 </Link>
               )}
               {user && !isAdmin && !isAgent && (
                 <Link href="/your-school" className="transition-colors duration-150 hover:text-stone-900">
-                  Your school
+                  {t("yourSchool")}
                 </Link>
               )}
               {user ? (
@@ -80,14 +85,30 @@ export default async function RootLayout({
                     className="transition-colors duration-150 hover:text-stone-900"
                     title={user.email}
                   >
-                    Sign out
+                    {t("signOut")}
                   </button>
                 </form>
               ) : (
                 <Link href="/login" className="transition-colors duration-150 hover:text-stone-900">
-                  Sign in
+                  {t("signIn")}
                 </Link>
               )}
+              <form action={setLocale} className="flex items-center gap-1 border-l border-stone-200 pl-4">
+                {LOCALES.map((l) => (
+                  <button
+                    key={l}
+                    name="locale"
+                    value={l}
+                    className={
+                      l === locale
+                        ? "rounded px-1.5 py-0.5 text-xs font-bold uppercase text-stone-900"
+                        : "rounded px-1.5 py-0.5 text-xs font-medium uppercase text-stone-400 transition-colors duration-150 hover:text-stone-900"
+                    }
+                  >
+                    {l}
+                  </button>
+                ))}
+              </form>
             </nav>
           </div>
         </header>
@@ -105,16 +126,16 @@ export default async function RootLayout({
             </p>
             <nav className="flex gap-4">
               <Link href="/privacy" className="underline transition-colors duration-150 hover:text-stone-900">
-                Privacy
+                {tf("privacy")}
               </Link>
               <Link href="/terms" className="underline transition-colors duration-150 hover:text-stone-900">
-                Terms
+                {tf("terms")}
               </Link>
               <a
                 href="mailto:hello@globalschoolalliance.com"
                 className="underline transition-colors duration-150 hover:text-stone-900"
               >
-                Contact
+                {tf("contact")}
               </a>
             </nav>
           </div>
