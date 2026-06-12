@@ -52,6 +52,11 @@ export default async function RootLayout({
               <Link href="/list-your-school" className="transition-colors duration-150 hover:text-stone-900">
                 Become a host
               </Link>
+              {user && (
+                <Link href="/trips" className="transition-colors duration-150 hover:text-stone-900">
+                  My trips
+                </Link>
+              )}
               {isAdmin && (
                 <Link href="/admin" className="transition-colors duration-150 hover:text-stone-900">
                   Admin

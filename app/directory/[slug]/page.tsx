@@ -139,6 +139,26 @@ export default async function ProfilePage({
         </div>
       )}
 
+      {/* Plan a trip: the transactional path */}
+      <section className="mt-10 flex flex-col gap-4 rounded-2xl border border-warm-200/70 bg-warm-50/50 p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-8">
+        <div>
+          <h2 className="text-xl font-bold tracking-tight">
+            Plan a trip to {profile.name}
+          </h2>
+          <p className="mt-1.5 max-w-md text-sm leading-relaxed text-stone-600">
+            Build the trip around a school immersion here — choose dates, add
+            flights, attractions and accommodation, reserve places with a
+            refundable £1,000 deposit, and manage payments in one place.
+          </p>
+        </div>
+        <Link
+          href={`/trips/new?host=${profile.slug}`}
+          className="shrink-0 self-start rounded-lg bg-warm-600 px-5 py-3 text-sm font-semibold text-white transition-colors duration-150 hover:bg-warm-700 sm:self-center"
+        >
+          Plan a trip
+        </Link>
+      </section>
+
       {/* Enquiry form */}
       <section className="mt-12 rounded-2xl border border-stone-200/70 bg-white p-6 shadow-sm sm:p-8">
         <h2 className="text-xl font-bold tracking-tight">
