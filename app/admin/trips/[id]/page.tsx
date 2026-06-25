@@ -533,6 +533,15 @@ export default async function AdminTripPage({
                         {inv.invoice_number}
                       </Link>{" "}
                       · {formatPounds(inv.amount_pennies)} · {inv.status}
+                      {inv.xero_url && (
+                        <a
+                          href={inv.xero_url}
+                          target="_blank"
+                          className="ml-2 rounded bg-blue-50 px-1.5 py-0.5 text-[11px] font-medium text-blue-700"
+                        >
+                          Xero{inv.xero_status ? ` · ${inv.xero_status.toLowerCase()}` : ""}
+                        </a>
+                      )}
                     </span>
                     {inv.status === "issued" && (
                       <span className="flex gap-2">

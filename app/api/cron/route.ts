@@ -1,6 +1,8 @@
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendEmail, notifyGsa } from "@/lib/notify";
 import { contentHash, translateAndStoreProfile, translationEnabled } from "@/lib/translate";
+import { getXeroInvoiceStatus, xeroEnabled } from "@/lib/xero";
+import { formatPounds } from "@/lib/money";
 
 // Daily conversion clock (Vercel cron). Expires reservations that didn't
 // convert within 30 days (deposit refunded) and sends the in-window
@@ -148,10 +150,62 @@ export async function GET(req: Request) {
     }
   }
 
+  // ── School-invoice lane: sync Xero status + T-minus due reminders ─────────
+  // Reminders escalate against the invoice due date and stop once paid.
+  // Works in fallback mode too (no Xero): reminders still fire from our own
+  // email infra; only the status-sync step needs Xero.
+  let invoiceReminders = 0;
+  const REMINDER_DAYS = [90, 60, 30, 14, 7, 1];
+  const { data: openInvoices } = await supabase
+    .from("invoices")
+    .select("id, trip_id, invoice_number, amount_pennies, due_date, status, xero_invoice_id, xero_url, xero_status, invoice_reminder_stage, trips(organiser_id, organiser_school_name)")
+    .eq("recipient_type", "school")
+    .in("status", ["issued"]);
+
+  for (const inv of openInvoices ?? []) {
+    // Sync from Xero first (may flip status to paid).
+    if (xeroEnabled() && inv.xero_invoice_id) {
+      const xs = await getXeroInvoiceStatus(inv.xero_invoice_id);
+      if (xs && xs !== inv.xero_status) {
+        const paid = xs === "PAID";
+        await supabase
+          .from("invoices")
+          .update({ xero_status: xs, ...(paid ? { status: "paid" } : {}) })
+          .eq("id", inv.id);
+        if (paid) continue; // settled — no reminder
+      }
+    }
+    if (!inv.due_date) continue;
+    const d = Math.ceil((new Date(inv.due_date).getTime() - Date.now()) / 86_400_000);
+    const stage = REMINDER_DAYS.find((t) => d <= t) ?? null;
+    if (stage == null) continue;
+    const sent = inv.invoice_reminder_stage as number | null;
+    if (sent != null && stage >= sent) continue; // already reminded at/earlier than this threshold
+
+    const trip = Array.isArray(inv.trips) ? inv.trips[0] : inv.trips;
+    const { data: organiser } = await supabase
+      .from("user_profiles")
+      .select("email")
+      .eq("id", trip?.organiser_id)
+      .maybeSingle();
+    const overdue = d <= 0;
+    await sendEmail(
+      organiser?.email,
+      overdue
+        ? `Overdue: invoice ${inv.invoice_number}`
+        : `${d} day${d === 1 ? "" : "s"} to pay invoice ${inv.invoice_number}`,
+      `<p>${overdue ? "Your school invoice is now overdue." : `Your school invoice is due in ${d} day${d === 1 ? "" : "s"}.`} Amount outstanding: ${formatPounds(inv.amount_pennies)}.</p>
+       ${inv.xero_url ? `<p><a href="${inv.xero_url}">View &amp; pay the invoice</a></p>` : `<p><a href="https://gsa-host-directory.vercel.app/trips/${inv.trip_id}">View your trip &amp; invoice</a></p>`}`
+    );
+    await supabase.from("invoices").update({ invoice_reminder_stage: stage }).eq("id", inv.id);
+    invoiceReminders++;
+  }
+
   return Response.json({
     cancelled: rows.filter((r) => r.kind === "cancelled").length,
     reminded: rows.filter((r) => r.kind === "reminder").length,
     departure_events: depRows.length,
     translated,
+    invoice_reminders: invoiceReminders,
   });
 }

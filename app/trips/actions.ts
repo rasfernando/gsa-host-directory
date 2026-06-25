@@ -7,7 +7,69 @@ import { createClient } from "@/lib/supabase/server";
 import { notifyGsa } from "@/lib/notify";
 import { logEvent } from "@/lib/events";
 import { createCheckoutSession } from "@/lib/stripe";
+import { createXeroInvoice, xeroEnabled } from "@/lib/xero";
 import { formatPounds } from "@/lib/money";
+
+// Push the just-committed school invoice to Xero (no-op without Xero creds).
+// Mirrors the itemised basket: GSA programme + ±10% + service fee − deposit.
+async function pushSchoolInvoiceToXero(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  tripId: string,
+  _hostProfileId: string | null
+) {
+  if (!xeroEnabled()) return;
+  const [{ data: invoice }, { data: plan }, { data: trip }] = await Promise.all([
+    supabase
+      .from("invoices")
+      .select("*")
+      .eq("trip_id", tripId)
+      .eq("recipient_type", "school")
+      .order("issued_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase.from("payment_plans").select("*").eq("trip_id", tripId).maybeSingle(),
+    supabase
+      .from("trips")
+      .select("organiser_school_name, organiser_id")
+      .eq("id", tripId)
+      .maybeSingle(),
+  ]);
+  if (!invoice || !plan || invoice.xero_invoice_id) return;
+
+  const { data: organiser } = await supabase
+    .from("user_profiles")
+    .select("email")
+    .eq("id", trip?.organiser_id)
+    .maybeSingle();
+
+  const lines: { description: string; amountPennies: number }[] = [
+    { description: "GSA immersion programme", amountPennies: plan.base_total_pennies },
+  ];
+  if (plan.adjustment_pennies)
+    lines.push({
+      description:
+        plan.choice === "upfront" ? "Upfront discount (−10%)" : "Payment plan (+10%)",
+      amountPennies: plan.adjustment_pennies,
+    });
+  if (plan.service_fee_pennies)
+    lines.push({ description: "GSA service fee (non-refundable)", amountPennies: plan.service_fee_pennies });
+  if (plan.deposit_credited_pennies)
+    lines.push({ description: "Deposit credited", amountPennies: -plan.deposit_credited_pennies });
+
+  const xero = await createXeroInvoice({
+    contactName: trip?.organiser_school_name ?? "School",
+    contactEmail: organiser?.email,
+    reference: invoice.invoice_number,
+    dueDate: invoice.due_date,
+    lines,
+  });
+  if (xero) {
+    await supabase
+      .from("invoices")
+      .update({ xero_invoice_id: xero.id, xero_url: xero.url, xero_status: xero.status })
+      .eq("id", invoice.id);
+  }
+}
 
 // Every mutation here runs as the signed-in organiser. RLS limits rows to
 // their own trips, and DB triggers/RPCs own all prices and status moves —
@@ -330,6 +392,12 @@ export async function commitPlan(formData: FormData) {
     p_parents: parents,
   });
   if (error) redirect(`/trips/${tripId}?error=${encodeURIComponent(error.message)}`);
+
+  // Non-card school invoice: push it to Xero if configured (else the internal
+  // invoice page + our own reminders remain the system of record).
+  if (mode === "school_invoice") {
+    await pushSchoolInvoiceToXero(supabase, tripId, trip.host_profile_id ?? null);
+  }
 
   await logEvent(
     mode === "school_invoice" ? "invoice_issued" : "parent_links_generated",
