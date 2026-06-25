@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { notifyGsa } from "@/lib/notify";
 import { logEvent } from "@/lib/events";
+import { normalizeUrl } from "@/lib/forms";
 
 // Creates the school (if first time), links it to the user,
 // and submits the host application with form answers stored as JSON.
@@ -33,7 +34,7 @@ export async function submitApplication(formData: FormData) {
         p_name: String(formData.get("school_name")),
         p_country: String(formData.get("country")),
         p_city: String(formData.get("city") || "") || null,
-        p_website: String(formData.get("website") || "") || null,
+        p_website: normalizeUrl(formData.get("website") as string),
         p_contact_name: String(formData.get("contact_name")),
         p_contact_email: user.email,
       }

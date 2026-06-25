@@ -340,7 +340,7 @@ export default async function YourSchoolPage({
           </div>
           <div>
             <label className={labelCls} htmlFor="website">School website</label>
-            <input className={inputCls} id="website" name="website" type="url" placeholder="https://" defaultValue={school?.website ?? ""} />
+            <input className={inputCls} id="website" name="website" type="text" inputMode="url" placeholder="yourschool.org" defaultValue={school?.website ?? ""} />
           </div>
           <button className="rounded-lg bg-warm-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-warm-700">
             Save contact details

@@ -80,7 +80,8 @@ export default async function ApplyPage({
           </div>
           <div>
             <label className={labelCls} htmlFor="website">Website</label>
-            <input className={inputCls} id="website" name="website" type="url" placeholder="https://" />
+            <input className={inputCls} id="website" name="website" type="text" inputMode="url" placeholder="yourschool.org" />
+            <p className="mt-1 text-xs text-stone-500">No need for https:// — we&apos;ll add it.</p>
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>

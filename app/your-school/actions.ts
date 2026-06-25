@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { notifyGsa } from "@/lib/notify";
 import { logEvent } from "@/lib/events";
+import { normalizeUrl } from "@/lib/forms";
 
 export type MediaItem = { url: string; type?: string; [k: string]: unknown };
 
@@ -87,7 +88,7 @@ export async function updateContact(formData: FormData) {
     .update({
       contact_name: String(formData.get("contact_name") || ""),
       contact_email: String(formData.get("contact_email") || ""),
-      website: String(formData.get("website") || ""),
+      website: normalizeUrl(formData.get("website") as string) ?? "",
     })
     .eq("id", schoolId);
   if (error) throw new Error(`Could not update contact: ${error.message}`);
