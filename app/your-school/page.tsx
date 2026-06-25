@@ -111,10 +111,19 @@ export default async function YourSchoolPage({
       )}
 
       {intake === "submitted" && (
-        <p className="mt-4 rounded-lg bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800">
-          Intake submitted — the GSA team has your details and will guide you
-          through verification.
-        </p>
+        <div className="mt-4 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          <p>
+            You&apos;ve submitted your profile! This information will now be
+            reviewed by Global School Alliance. Get in touch if you require
+            support.
+          </p>
+          <a
+            href="mailto:hello@globalschoolalliance.com"
+            className="mt-2 inline-block font-semibold underline"
+          >
+            Get in touch
+          </a>
+        </div>
       )}
 
       {showCohortBanner && (

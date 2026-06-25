@@ -7,11 +7,20 @@ import {
   RoleField,
   AgeBandField,
   SubjectStrengthsField,
+  LanguagesField,
   HostedBeforeField,
   HostMonthsField,
   WhyHostField,
 } from "@/components/host-profile-fields";
 import { submitIntake } from "../actions";
+
+// Split a stored full name into first / last for prefilling the form.
+function splitName(full: string | null | undefined): { first: string; last: string } {
+  const parts = (full ?? "").trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return { first: "", last: "" };
+  if (parts.length === 1) return { first: parts[0], last: "" };
+  return { first: parts[0], last: parts.slice(1).join(" ") };
+}
 
 export const dynamic = "force-dynamic";
 
@@ -53,25 +62,63 @@ export default async function OnboardPage({
     .limit(1)
     .maybeSingle();
 
-  if (invite.used_at) {
+  // Duplicate check on LOAD (not after submit): if this school has already
+  // filed an intake/application, show the "needs further details" state up
+  // front rather than a blank form. (A bare AIP skeleton has a profile but no
+  // application, so first-time onboarding still gets the form.)
+  let alreadySubmitted = invite.used_at != null;
+  if (!alreadySubmitted) {
+    const schoolId =
+      (invite.school_id as string | null) ??
+      (user
+        ? (
+            await supabase
+              .from("user_profiles")
+              .select("school_id")
+              .eq("id", user.id)
+              .maybeSingle()
+          ).data?.school_id ?? null
+        : null);
+    if (schoolId) {
+      const { data: existingApp } = await supabase
+        .from("host_applications")
+        .select("id")
+        .eq("school_id", schoolId)
+        .limit(1)
+        .maybeSingle();
+      if (existingApp) alreadySubmitted = true;
+    }
+  }
+
+  if (alreadySubmitted) {
     return (
       <div className="mx-auto max-w-xl py-16 text-center">
         <h1 className="text-3xl font-bold tracking-tight">
-          This invite has been used
+          Looks like your profile needs some further details…
         </h1>
         <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-stone-600">
-          The intake for {invite.school_name} was completed on{" "}
-          {formatDate(invite.used_at)}. Manage your school from your dashboard.
+          We&apos;ve already got the start of {invite.school_name}&apos;s
+          profile. Pick up where you left off and add what&apos;s outstanding.
         </p>
         <Link
           href="/your-school"
           className="mt-6 inline-block rounded-lg bg-warm-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-warm-700"
         >
-          Your school
+          Complete Profile
         </Link>
+        <p className="mt-4 text-xs text-stone-500">
+          Need a hand?{" "}
+          <a href="mailto:hello@globalschoolalliance.com" className="underline">
+            Get in touch
+          </a>
+          .
+        </p>
       </div>
     );
   }
+
+  // Prefill known contact details from the invite (don't make schools re-type).
+  const invited = splitName(invite.contact_name as string | null);
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -143,29 +190,30 @@ export default async function OnboardPage({
             </div>
             <div>
               <label className={labelCls} htmlFor="website">Website</label>
-              <input className={inputCls} id="website" name="website" type="url" placeholder="https://" />
+              <input className={inputCls} id="website" name="website" type="text" inputMode="url" placeholder="yourschool.org" />
             </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className={labelCls} htmlFor="contact_first_name">First name</label>
-              <input className={inputCls} id="contact_first_name" name="contact_first_name" required />
+              <input className={inputCls} id="contact_first_name" name="contact_first_name" defaultValue={invited.first} required />
             </div>
             <div>
               <label className={labelCls} htmlFor="contact_last_name">Last name</label>
-              <input className={inputCls} id="contact_last_name" name="contact_last_name" required />
+              <input className={inputCls} id="contact_last_name" name="contact_last_name" defaultValue={invited.last} required />
             </div>
           </div>
-          <RoleField defaultValue={invite.contact_name ?? ""} />
+          <div>
+            <label className={labelCls} htmlFor="contact_email">Contact email</label>
+            <input className={inputCls} id="contact_email" name="contact_email" type="email" defaultValue={invite.contact_email ?? user.email ?? ""} />
+          </div>
+          <RoleField />
           <AgeBandField />
           <div>
             <label className={labelCls} htmlFor="capacity">Max student group size</label>
             <input className={inputCls} id="capacity" name="capacity" type="number" min={1} />
           </div>
-          <div>
-            <label className={labelCls} htmlFor="languages">Languages (comma-separated)</label>
-            <input className={inputCls} id="languages" name="languages" placeholder="English, Spanish" />
-          </div>
+          <LanguagesField />
           <SubjectStrengthsField />
           <div className="flex flex-wrap gap-6 text-sm">
             <label className="flex items-center gap-2">
@@ -179,33 +227,12 @@ export default async function OnboardPage({
           <HostMonthsField />
           <WhyHostField />
 
-          {/* Template-specific sections */}
-          {invite.template === "gcc" && (
-            <fieldset className="rounded-xl bg-warm-50/60 p-4">
-              <legend className="px-1 text-sm font-semibold text-warm-700">
-                Global Citizen Camp
-              </legend>
-              <div className="space-y-4">
-                <div>
-                  <label className={labelCls} htmlFor="gcc_delivery_windows">
-                    When could you deliver a camp? (terms/weeks)
-                  </label>
-                  <input className={inputCls} id="gcc_delivery_windows" name="gcc_delivery_windows" placeholder="e.g. July–August, October half-term" />
-                </div>
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" name="gcc_residential" className="accent-warm-600" />
-                  Residential facilities on or near site
-                </label>
-                <div>
-                  <label className={labelCls} htmlFor="gcc_excursion_access">
-                    Nearby excursions / cultural visits
-                  </label>
-                  <input className={inputCls} id="gcc_excursion_access" name="gcc_excursion_access" placeholder="e.g. 30 min from the old town, national park nearby" />
-                </div>
-              </div>
-            </fieldset>
-          )}
-          {invite.template === "standard" && (
+          {/* Template-specific sections.
+              GCC logistics fields (transport / hotels / restaurants etc.) are
+              intentionally removed for now — GCC listings get built up later as
+              premium products. To restore, re-add a `gcc` fieldset here and the
+              matching answer keys in ../actions.ts. */}
+          {(invite.template === "standard" || invite.template === "gcc") && (
             <div>
               <label className={labelCls} htmlFor="hosting_experience">
                 Hosting experience so far
@@ -222,19 +249,21 @@ export default async function OnboardPage({
             </div>
           )}
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className={labelCls} htmlFor="safeguarding_lead_name">Safeguarding lead</label>
-              <input className={inputCls} id="safeguarding_lead_name" name="safeguarding_lead_name" />
+          <div className="rounded-xl bg-stone-50 p-4">
+            <p className="text-xs text-stone-500">
+              Information here is confidential and only shared internally with
+              Global School Alliance.
+            </p>
+            <div className="mt-3 grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className={labelCls} htmlFor="safeguarding_lead_name">Safeguarding lead</label>
+                <input className={inputCls} id="safeguarding_lead_name" name="safeguarding_lead_name" />
+              </div>
+              <div>
+                <label className={labelCls} htmlFor="safeguarding_lead_email">Safeguarding lead email</label>
+                <input className={inputCls} id="safeguarding_lead_email" name="safeguarding_lead_email" type="email" />
+              </div>
             </div>
-            <div>
-              <label className={labelCls} htmlFor="safeguarding_lead_email">Safeguarding lead email</label>
-              <input className={inputCls} id="safeguarding_lead_email" name="safeguarding_lead_email" type="email" />
-            </div>
-          </div>
-          <div>
-            <label className={labelCls} htmlFor="typical_hosting_windows">Typical hosting windows</label>
-            <input className={inputCls} id="typical_hosting_windows" name="typical_hosting_windows" placeholder="e.g. September–November, March–May" />
           </div>
 
           <button className="rounded-lg bg-warm-600 px-5 py-3 text-sm font-semibold text-white transition-colors duration-150 hover:bg-warm-700">

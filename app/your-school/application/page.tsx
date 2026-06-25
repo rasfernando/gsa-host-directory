@@ -35,6 +35,21 @@ const DOC_CATEGORIES: { key: string; label: string; hint: string }[] = [
 const sectionHeadingCls =
   "text-xs font-semibold uppercase tracking-widest text-brand-700";
 
+const PRIVATE_NOTE =
+  "Information here will be confidential and only shared internally with Global School Alliance.";
+const PUBLIC_NOTE =
+  "Information shared here will be visible on your profile after verification.";
+
+function SectionNote({ kind }: { kind: "private" | "public" }) {
+  return (
+    <p
+      className={`text-xs ${kind === "private" ? "text-stone-500" : "text-brand-700"}`}
+    >
+      {kind === "private" ? PRIVATE_NOTE : PUBLIC_NOTE}
+    </p>
+  );
+}
+
 const DOC_ERRORS: Record<string, string> = {
   nofile: "Please choose a document to upload.",
   toobig: "That file is over 10 MB — please upload a smaller one.",
@@ -194,6 +209,7 @@ export default async function EditApplicationPage({
 
         <section className="space-y-4 rounded-2xl border border-stone-200/70 bg-white p-6 shadow-sm sm:p-8">
           <h2 className={sectionHeadingCls}>Safeguarding lead</h2>
+          <SectionNote kind="private" />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div>
               <label className={labelCls} htmlFor="safeguarding_lead_name">Name</label>
@@ -212,6 +228,7 @@ export default async function EditApplicationPage({
 
         <section className="space-y-4 rounded-2xl border border-stone-200/70 bg-white p-6 shadow-sm sm:p-8">
           <h2 className={sectionHeadingCls}>About your school</h2>
+          <SectionNote kind="public" />
           <CountedTextarea
             name="about_school"
             label="About your school"
@@ -238,6 +255,7 @@ export default async function EditApplicationPage({
 
         <section className="space-y-4 rounded-2xl border border-stone-200/70 bg-white p-6 shadow-sm sm:p-8">
           <h2 className={sectionHeadingCls}>Insurance</h2>
+          <SectionNote kind="private" />
           <div>
             <label className={labelCls} htmlFor="insurance_policy_number">Public liability insurance — policy number</label>
             <input className={inputCls} id="insurance_policy_number" name="insurance_policy_number" defaultValue={str("insurance_policy_number")} placeholder="Add the certificate under documents below" />
@@ -253,8 +271,8 @@ export default async function EditApplicationPage({
       <section className="mt-6 rounded-2xl border border-stone-200/70 bg-white p-6 shadow-sm sm:p-8">
         <h2 className={sectionHeadingCls}>Verification documents</h2>
         <p className="mt-2 text-sm leading-relaxed text-stone-500">
-          These are private to the GSA team. The more complete your evidence,
-          the faster verification goes.
+          {PRIVATE_NOTE} The more complete your evidence, the faster
+          verification goes.
         </p>
 
         <div className="mt-5 space-y-6">
@@ -304,7 +322,8 @@ export default async function EditApplicationPage({
         <h2 className={sectionHeadingCls}>Photos, facilities &amp; awards</h2>
         <p className="mt-2 text-sm leading-relaxed text-stone-500">
           Facility images (student life, classrooms, dining, outdoor, boarding)
-          and any award or recognition logos go on your public profile.
+          and any award or recognition logos go on your public profile.{" "}
+          {PUBLIC_NOTE}
         </p>
         <Link
           href="/your-school/listing"

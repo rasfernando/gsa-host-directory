@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { notifyGsa } from "@/lib/notify";
 import { logEvent } from "@/lib/events";
+import { normalizeUrl } from "@/lib/forms";
 
 // Submits a GSA-led intake: creates/links the school, files a verification
 // application carrying the template-specific answers, attaches it to the
@@ -46,11 +47,11 @@ export async function submitIntake(formData: FormData) {
         p_country: String(formData.get("country") || invite.country || ""),
         p_state: String(formData.get("state") || "") || null,
         p_city: String(formData.get("city") || "") || null,
-        p_website: String(formData.get("website") || "") || null,
+        p_website: normalizeUrl(String(formData.get("website") || "")),
         p_contact_first_name: String(formData.get("contact_first_name") || "") || null,
         p_contact_last_name: String(formData.get("contact_last_name") || "") || null,
         p_contact_role: role || null,
-        p_contact_email: user.email,
+        p_contact_email: String(formData.get("contact_email") || "") || user.email,
       }
     );
     if (schoolError || !newSchoolId)
@@ -84,11 +85,6 @@ export async function submitIntake(formData: FormData) {
     .limit(1)
     .maybeSingle();
 
-  const list = (k: string) =>
-    String(formData.get(k) || "")
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
   const num = (k: string) => (formData.get(k) ? Number(formData.get(k)) : null);
 
   const answers: Record<string, unknown> = {
@@ -99,7 +95,7 @@ export async function submitIntake(formData: FormData) {
     age_range_min: num("age_range_min"),
     age_range_max: num("age_range_max"),
     capacity: num("capacity"),
-    languages: list("languages"),
+    languages: formData.getAll("languages").map(String).filter(Boolean),
     subject_strengths: formData.getAll("subject_strengths").map(String).filter(Boolean),
     boarding: formData.get("boarding") === "on",
     homestay: formData.get("homestay") === "on",

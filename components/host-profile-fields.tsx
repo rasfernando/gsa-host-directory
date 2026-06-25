@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   AGE_BANDS,
   CONTACT_ROLES,
+  LANGUAGE_SUGGESTIONS,
   MONTHS,
   SUBJECT_SUGGESTIONS,
   inputCls,
@@ -245,6 +246,68 @@ export function SubjectStrengthsField({ defaultValue = [] }: { defaultValue?: st
             }
           }}
           placeholder="Add another subject"
+        />
+        <button
+          type="button"
+          onClick={addCustom}
+          className="shrink-0 rounded-lg border border-stone-300 px-4 text-sm font-semibold text-stone-700 hover:border-stone-400"
+        >
+          Add
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Multi-select with quick-picks + free additions (cuts spelling errors).
+export function LanguagesField({ defaultValue = [] }: { defaultValue?: string[] }) {
+  const [chosen, setChosen] = useState<string[]>(defaultValue);
+  const [custom, setCustom] = useState("");
+  const toggle = (s: string) =>
+    setChosen((c) => (c.includes(s) ? c.filter((x) => x !== s) : [...c, s]));
+  const addCustom = () => {
+    const v = custom.trim();
+    if (v && !chosen.includes(v)) setChosen((c) => [...c, v]);
+    setCustom("");
+  };
+  return (
+    <div>
+      <label className={labelCls}>Languages spoken</label>
+      <p className="mt-0.5 text-xs text-stone-500">Pick any that apply, or add your own.</p>
+      {chosen.map((s) => (
+        <input key={s} type="hidden" name="languages" value={s} />
+      ))}
+      <div className="mt-2 flex flex-wrap gap-2">
+        {[...new Set([...LANGUAGE_SUGGESTIONS, ...chosen])].map((s) => {
+          const on = chosen.includes(s);
+          return (
+            <button
+              key={s}
+              type="button"
+              onClick={() => toggle(s)}
+              className={
+                on
+                  ? "rounded-full bg-warm-600 px-3 py-1 text-xs font-medium text-white"
+                  : "rounded-full border border-stone-300 px-3 py-1 text-xs font-medium text-stone-600 hover:border-stone-400"
+              }
+            >
+              {s}
+            </button>
+          );
+        })}
+      </div>
+      <div className="mt-2 flex gap-2">
+        <input
+          className={inputCls}
+          value={custom}
+          onChange={(e) => setCustom(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              addCustom();
+            }
+          }}
+          placeholder="Add another language"
         />
         <button
           type="button"

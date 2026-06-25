@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { notifyGsa } from "@/lib/notify";
 import { logEvent } from "@/lib/events";
+import { normalizeUrl } from "@/lib/forms";
 
 // Tier 1 self-serve listing: creates the school and an unpublished "listed"
 // profile in one step. GSA does a light sanity check (real school, real
@@ -40,7 +41,7 @@ export async function submitListing(formData: FormData) {
         p_country: String(formData.get("country")),
         p_state: String(formData.get("state") || "") || null,
         p_city: String(formData.get("city") || "") || null,
-        p_website: String(formData.get("website") || "") || null,
+        p_website: normalizeUrl(String(formData.get("website") || "")),
         p_contact_first_name: String(formData.get("contact_first_name") || "") || null,
         p_contact_last_name: String(formData.get("contact_last_name") || "") || null,
         p_contact_role: role || null,
@@ -89,10 +90,7 @@ export async function submitListing(formData: FormData) {
       country: String(formData.get("country")),
       state: String(formData.get("state") || "") || null,
       city: String(formData.get("city") || ""),
-      languages: String(formData.get("languages") || "")
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean),
+      languages: formData.getAll("languages").map(String).filter(Boolean),
       subject_strengths: formData.getAll("subject_strengths").map(String).filter(Boolean),
       age_band: String(formData.get("age_band") || "") || null,
       age_range_min: formData.get("age_range_min") ? Number(formData.get("age_range_min")) : null,

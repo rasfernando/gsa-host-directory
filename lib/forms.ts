@@ -51,10 +51,41 @@ export const AGE_BANDS = [
   { value: "Other", label: "Other", min: null, max: null },
 ] as const;
 
+// Common languages as quick-picks; the field also takes free additions.
+export const LANGUAGE_SUGGESTIONS = [
+  "English",
+  "Spanish",
+  "French",
+  "German",
+  "Italian",
+  "Portuguese",
+  "Mandarin",
+  "Cantonese",
+  "Japanese",
+  "Arabic",
+  "Hindi",
+  "Polish",
+  "Dutch",
+  "Swedish",
+  "Vietnamese",
+  "Indonesian",
+  "Catalan",
+  "Welsh",
+];
+
 export const MONTHS = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
 ] as const;
+
+// Accept a website without the scheme ("school.org") and normalise to a full
+// https:// URL. Returns null for blank input. Leaves http(s):// as-is.
+export function normalizeUrl(raw: string | null | undefined): string | null {
+  const v = (raw ?? "").trim();
+  if (!v) return null;
+  if (/^https?:\/\//i.test(v)) return v;
+  return `https://${v.replace(/^\/+/, "")}`;
+}
 
 export const inputCls =
   "mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm focus:border-brand-600 focus:outline-none";

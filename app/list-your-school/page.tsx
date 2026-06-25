@@ -7,6 +7,7 @@ import {
   WhyHostField,
   AgeBandField,
   SubjectStrengthsField,
+  LanguagesField,
   HostedBeforeField,
   HostMonthsField,
 } from "@/components/host-profile-fields";
@@ -96,9 +97,14 @@ export default async function ListYourSchoolPage({
         </p>
       )}
 
+      <p className="mt-6 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-800">
+        Information shared here will be visible on your profile after
+        verification.
+      </p>
+
       <form
         action={submitListing}
-        className="mt-8 space-y-4 rounded-2xl border border-stone-200/70 bg-white p-6 shadow-sm sm:p-8"
+        className="mt-4 space-y-4 rounded-2xl border border-stone-200/70 bg-white p-6 shadow-sm sm:p-8"
       >
         <div>
           <label className={labelCls} htmlFor="school_name">School name</label>
@@ -133,7 +139,8 @@ export default async function ListYourSchoolPage({
         <RoleField />
         <div>
           <label className={labelCls} htmlFor="website">School website</label>
-          <input className={inputCls} id="website" name="website" type="url" placeholder="https://" required />
+          <input className={inputCls} id="website" name="website" type="text" inputMode="url" placeholder="yourschool.org" required />
+          <p className="mt-1 text-xs text-stone-500">No need for https:// — we&apos;ll add it.</p>
         </div>
         <div>
           <label className={labelCls} htmlFor="headline">
@@ -147,10 +154,7 @@ export default async function ListYourSchoolPage({
           <label className={labelCls} htmlFor="capacity">Max student group size</label>
           <input className={inputCls} id="capacity" name="capacity" type="number" min={1} />
         </div>
-        <div>
-          <label className={labelCls} htmlFor="languages">Languages spoken (comma-separated)</label>
-          <input className={inputCls} id="languages" name="languages" placeholder="English, Spanish" />
-        </div>
+        <LanguagesField />
         <SubjectStrengthsField />
         <div className="flex gap-6">
           <label className="flex items-center gap-2 text-sm text-stone-700">

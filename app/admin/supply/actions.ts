@@ -70,11 +70,14 @@ export async function setCohortStatus(formData: FormData) {
 }
 
 // ── GSA intake invites (private links, product-specific templates) ──────────
+// Creating an invite NEVER emails the school. The link is generated and held;
+// Heather sends it per-school from the list once a school confirms it wants in
+// (Spec v3.1 #9 — nothing reaches a school without explicit GSA action).
 export async function createIntakeInvite(formData: FormData) {
   const { supabase } = await requireAdmin();
 
   const contactEmail = String(formData.get("contact_email") || "").trim();
-  const { data: invite, error } = await supabase
+  const { error } = await supabase
     .from("intake_invites")
     .insert({
       template: String(formData.get("template") || "standard"),
@@ -84,22 +87,40 @@ export async function createIntakeInvite(formData: FormData) {
       country: String(formData.get("country") || "") || null,
       message: String(formData.get("message") || "") || null,
       school_id: String(formData.get("school_id") || "") || null,
-    })
-    .select("token, school_name")
-    .single();
-  if (error || !invite) fail(error?.message ?? "Could not create invite");
+    });
+  if (error) fail(error.message);
 
   await logEvent("intake_invite_created", { meta: { template: formData.get("template") } });
-  if (contactEmail) {
-    await sendEmail(
-      contactEmail,
-      `GSA has invited ${invite.school_name} to join as a host school`,
-      `<p>The Global School Alliance would like ${invite.school_name} on the platform.</p>
-       <p>Use your private link to tell us about your school — it takes about ten minutes:</p>
-       <p><a href="https://gsa-host-directory.vercel.app/onboard/${invite.token}">Complete your school's intake</a></p>`
-    );
-  }
   redirect("/admin/supply?saved=invite");
+}
+
+// Send (or resend) an invite to its contact email and mark it as invited.
+export async function sendIntakeInvite(formData: FormData) {
+  const { supabase } = await requireAdmin();
+  const inviteId = String(formData.get("invite_id"));
+
+  const { data: invite } = await supabase
+    .from("intake_invites")
+    .select("token, school_name, contact_email")
+    .eq("id", inviteId)
+    .maybeSingle();
+  if (!invite) fail("Invite not found");
+  if (!invite.contact_email)
+    fail("This school has no contact email yet — add one before sending.");
+
+  await sendEmail(
+    invite.contact_email,
+    `GSA has invited ${invite.school_name} to join as a host school`,
+    `<p>The Global School Alliance would like ${invite.school_name} on the platform.</p>
+     <p>Use your private link to tell us about your school — it takes about ten minutes:</p>
+     <p><a href="https://gsa-host-directory.vercel.app/onboard/${invite.token}">Complete your school's intake</a></p>`
+  );
+  await supabase
+    .from("intake_invites")
+    .update({ invited_at: new Date().toISOString() })
+    .eq("id", inviteId);
+  await logEvent("intake_invite_sent", { meta: { invite_id: inviteId } });
+  redirect("/admin/supply?saved=invitesent");
 }
 
 // ── Agents (commission resale) ──────────────────────────────────────────────
@@ -231,29 +252,17 @@ export async function staffCreateSchool(formData: FormData) {
 
   await logEvent("school_staff_created", { school_id: school.id });
 
-  // Optionally hand straight over to the school with an intake invite.
-  if (formData.get("send_invite") === "on") {
-    const contactEmail = String(formData.get("contact_email") || "").trim();
-    const { data: invite } = await supabase
-      .from("intake_invites")
-      .insert({
-        template: String(formData.get("template") || "standard"),
-        school_name: name,
-        contact_name: String(formData.get("contact_name") || "") || null,
-        contact_email: contactEmail || null,
-        country,
-        school_id: school.id,
-      })
-      .select("token")
-      .single();
-    if (invite && contactEmail) {
-      await sendEmail(
-        contactEmail,
-        `GSA has started a profile for ${name} — complete it here`,
-        `<p>We've set up the skeleton of ${name}'s host profile on the Global School Alliance platform. Flesh it out with your private link:</p>
-         <p><a href="https://gsa-host-directory.vercel.app/onboard/${invite.token}">Complete your school's profile</a></p>`
-      );
-    }
+  // Prepare an intake invite (held, not sent). Heather sends it from the
+  // invite list once the school confirms it wants to be on the platform.
+  if (formData.get("prepare_invite") === "on") {
+    await supabase.from("intake_invites").insert({
+      template: String(formData.get("template") || "standard"),
+      school_name: name,
+      contact_name: String(formData.get("contact_name") || "") || null,
+      contact_email: String(formData.get("contact_email") || "") || null,
+      country,
+      school_id: school.id,
+    });
   }
   redirect("/admin/supply?saved=school");
 }

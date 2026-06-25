@@ -6,6 +6,7 @@ import {
   createCohort,
   setCohortStatus,
   createIntakeInvite,
+  sendIntakeInvite,
   staffCreateSchool,
   createAgent,
   setAgentStatus,
@@ -303,8 +304,8 @@ export default async function AdminSupplyPage({
             </select>
           </label>
           <label className="flex items-center gap-1.5 pb-2 text-xs text-gray-600">
-            <input type="checkbox" name="send_invite" defaultChecked /> email them
-            an invite link
+            <input type="checkbox" name="prepare_invite" defaultChecked /> prepare
+            an invite link (send it later)
           </label>
           <button className="rounded-lg bg-gray-900 px-3.5 py-2 text-sm font-medium text-white hover:bg-gray-700">
             Create school
@@ -318,8 +319,9 @@ export default async function AdminSupplyPage({
           GSA intake invites
         </h2>
         <p className="mt-0.5 text-sm text-gray-500">
-          Private &quot;GSA invited you&quot; links with product-specific
-          templates — these bypass the public register form.
+          Private &quot;GSA invited you&quot; links — nothing is emailed until
+          you press <strong>Send</strong>, so confirm a school wants in first.
+          These bypass the public register form.
         </p>
 
         <form action={createIntakeInvite} className="mt-3 flex flex-wrap items-end gap-2">
@@ -363,18 +365,50 @@ export default async function AdminSupplyPage({
                   {i.contact_email ? ` · ${i.contact_email}` : ""}
                 </span>
               </span>
-              {i.used_at ? (
-                <span className="text-xs font-semibold text-emerald-700">
-                  used {formatDate(i.used_at)}
-                </span>
-              ) : (
+              <span className="flex items-center gap-2">
+                {i.used_at ? (
+                  <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                    completed {formatDate(i.used_at)}
+                  </span>
+                ) : i.invited_at ? (
+                  <>
+                    <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700">
+                      invited {formatDate(i.invited_at)}
+                    </span>
+                    {i.contact_email && (
+                      <form action={sendIntakeInvite}>
+                        <input type="hidden" name="invite_id" value={i.id} />
+                        <button className="rounded-lg border border-gray-300 px-2.5 py-1 text-xs font-medium text-gray-600 hover:border-gray-500">
+                          Resend
+                        </button>
+                      </form>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-500">
+                      not contacted
+                    </span>
+                    {i.contact_email ? (
+                      <form action={sendIntakeInvite}>
+                        <input type="hidden" name="invite_id" value={i.id} />
+                        <button className="rounded-lg bg-gray-900 px-2.5 py-1 text-xs font-medium text-white hover:bg-gray-700">
+                          Send invite
+                        </button>
+                      </form>
+                    ) : (
+                      <span className="text-[11px] text-amber-600">needs email</span>
+                    )}
+                  </>
+                )}
                 <a
                   href={`/onboard/${i.token}`}
-                  className="text-xs text-gray-500 underline hover:text-gray-900"
+                  className="text-xs text-gray-400 underline hover:text-gray-900"
+                  title="Open the invite link"
                 >
-                  /onboard/{String(i.token).slice(0, 8)}…
+                  link
                 </a>
-              )}
+              </span>
             </li>
           ))}
           {(invites ?? []).length === 0 && (
