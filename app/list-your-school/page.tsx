@@ -1,11 +1,16 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { inputCls, labelCls } from "@/lib/forms";
+import {
+  RoleField,
+  WhyHostField,
+  AgeBandField,
+  SubjectStrengthsField,
+  HostedBeforeField,
+  HostMonthsField,
+} from "@/components/host-profile-fields";
 import { submitListing } from "./actions";
-
-const inputCls =
-  "mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm focus:border-brand-600 focus:outline-none";
-const labelCls = "block text-sm font-medium";
 
 export default async function ListYourSchoolPage({
   searchParams,
@@ -99,10 +104,16 @@ export default async function ListYourSchoolPage({
           <label className={labelCls} htmlFor="school_name">School name</label>
           <input className={inputCls} id="school_name" name="school_name" required />
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
             <label className={labelCls} htmlFor="country">Country</label>
             <input className={inputCls} id="country" name="country" required />
+          </div>
+          <div>
+            <label className={labelCls} htmlFor="state">
+              State / Region <span className="font-normal text-stone-500">(if applicable)</span>
+            </label>
+            <input className={inputCls} id="state" name="state" />
           </div>
           <div>
             <label className={labelCls} htmlFor="city">City</label>
@@ -111,13 +122,18 @@ export default async function ListYourSchoolPage({
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className={labelCls} htmlFor="contact_name">Your name</label>
-            <input className={inputCls} id="contact_name" name="contact_name" required />
+            <label className={labelCls} htmlFor="contact_first_name">First name</label>
+            <input className={inputCls} id="contact_first_name" name="contact_first_name" required />
           </div>
           <div>
-            <label className={labelCls} htmlFor="website">School website</label>
-            <input className={inputCls} id="website" name="website" type="url" placeholder="https://" required />
+            <label className={labelCls} htmlFor="contact_last_name">Last name</label>
+            <input className={inputCls} id="contact_last_name" name="contact_last_name" required />
           </div>
+        </div>
+        <RoleField />
+        <div>
+          <label className={labelCls} htmlFor="website">School website</label>
+          <input className={inputCls} id="website" name="website" type="url" placeholder="https://" required />
         </div>
         <div>
           <label className={labelCls} htmlFor="headline">
@@ -125,24 +141,17 @@ export default async function ListYourSchoolPage({
           </label>
           <input className={inputCls} id="headline" name="headline" placeholder="e.g. Bilingual secondary school with a strong arts programme" />
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div>
-            <label className={labelCls} htmlFor="age_range_min">Ages from</label>
-            <input className={inputCls} id="age_range_min" name="age_range_min" type="number" min={3} max={19} />
-          </div>
-          <div>
-            <label className={labelCls} htmlFor="age_range_max">Ages to</label>
-            <input className={inputCls} id="age_range_max" name="age_range_max" type="number" min={3} max={19} />
-          </div>
-          <div>
-            <label className={labelCls} htmlFor="capacity">Max group size</label>
-            <input className={inputCls} id="capacity" name="capacity" type="number" min={1} />
-          </div>
+        <WhyHostField />
+        <AgeBandField />
+        <div>
+          <label className={labelCls} htmlFor="capacity">Max student group size</label>
+          <input className={inputCls} id="capacity" name="capacity" type="number" min={1} />
         </div>
         <div>
           <label className={labelCls} htmlFor="languages">Languages spoken (comma-separated)</label>
           <input className={inputCls} id="languages" name="languages" placeholder="English, Spanish" />
         </div>
+        <SubjectStrengthsField />
         <div className="flex gap-6">
           <label className="flex items-center gap-2 text-sm text-stone-700">
             <input type="checkbox" name="boarding" className="rounded border-stone-300" />
@@ -153,12 +162,8 @@ export default async function ListYourSchoolPage({
             Homestay available
           </label>
         </div>
-        <div>
-          <label className={labelCls} htmlFor="typical_hosting_windows">
-            When can you typically host?
-          </label>
-          <input className={inputCls} id="typical_hosting_windows" name="typical_hosting_windows" placeholder="e.g. Term time, September–November best" />
-        </div>
+        <HostedBeforeField />
+        <HostMonthsField />
         <div>
           <label className={labelCls} htmlFor="photo">
             A photo of your school <span className="font-normal text-stone-500">(optional, but listings with photos get far more interest)</span>
@@ -175,11 +180,11 @@ export default async function ListYourSchoolPage({
           type="submit"
           className="w-full rounded-lg bg-warm-600 px-4 py-3 text-sm font-semibold text-white transition-colors duration-150 hover:bg-warm-700"
         >
-          Submit my listing for review
+          Submit my profile for review
         </button>
         <p className="text-center text-xs text-stone-500">
-          The GSA team reviews every listing — yours will be live within a
-          couple of days.
+          The GSA team reviews every listing — we&apos;ll contact you with
+          updates on your profile.
         </p>
       </form>
     </div>

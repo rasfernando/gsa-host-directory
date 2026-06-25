@@ -26,6 +26,10 @@ export async function submitListing(formData: FormData) {
   let schoolId = profile?.school_id as string | null;
   const schoolName = String(formData.get("school_name"));
 
+  // Role: dropdown value, or the free-text "Other" entry.
+  const roleRaw = String(formData.get("contact_role") || "");
+  const role = roleRaw === "Other" ? String(formData.get("contact_role_other") || "Other") : roleRaw;
+
   if (!schoolId) {
     // Atomic create-and-link via RPC: a fresh user can't INSERT…RETURNING on
     // schools directly (the new row isn't visible to them until linked).
@@ -34,9 +38,12 @@ export async function submitListing(formData: FormData) {
       {
         p_name: schoolName,
         p_country: String(formData.get("country")),
+        p_state: String(formData.get("state") || "") || null,
         p_city: String(formData.get("city") || "") || null,
         p_website: String(formData.get("website") || "") || null,
-        p_contact_name: String(formData.get("contact_name")),
+        p_contact_first_name: String(formData.get("contact_first_name") || "") || null,
+        p_contact_last_name: String(formData.get("contact_last_name") || "") || null,
+        p_contact_role: role || null,
         p_contact_email: user.email,
       }
     );
@@ -78,18 +85,25 @@ export async function submitListing(formData: FormData) {
       tier: "listed",
       published: false,
       headline: String(formData.get("headline") || ""),
+      why_host: String(formData.get("why_host") || "") || null,
       country: String(formData.get("country")),
+      state: String(formData.get("state") || "") || null,
       city: String(formData.get("city") || ""),
       languages: String(formData.get("languages") || "")
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean),
+      subject_strengths: formData.getAll("subject_strengths").map(String).filter(Boolean),
+      age_band: String(formData.get("age_band") || "") || null,
       age_range_min: formData.get("age_range_min") ? Number(formData.get("age_range_min")) : null,
       age_range_max: formData.get("age_range_max") ? Number(formData.get("age_range_max")) : null,
       boarding: formData.get("boarding") === "on",
       homestay: formData.get("homestay") === "on",
+      hosted_before: formData.has("hosted_before")
+        ? formData.get("hosted_before") === "yes"
+        : null,
+      host_months: formData.getAll("host_months").map(String).filter(Boolean),
       capacity: formData.get("capacity") ? Number(formData.get("capacity")) : null,
-      typical_hosting_windows: String(formData.get("typical_hosting_windows") || "") || null,
     })
     .select("id")
     .single();

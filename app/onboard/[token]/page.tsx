@@ -2,13 +2,18 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, daysUntil } from "@/lib/trips";
+import { inputCls, labelCls } from "@/lib/forms";
+import {
+  RoleField,
+  AgeBandField,
+  SubjectStrengthsField,
+  HostedBeforeField,
+  HostMonthsField,
+  WhyHostField,
+} from "@/components/host-profile-fields";
 import { submitIntake } from "../actions";
 
 export const dynamic = "force-dynamic";
-
-const inputCls =
-  "mt-1 w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm focus:border-brand-600 focus:outline-none";
-const labelCls = "block text-sm font-medium";
 
 const TEMPLATE_TITLES: Record<string, string> = {
   gcc: "Global Citizen Camp host intake",
@@ -129,6 +134,10 @@ export default async function OnboardPage({
           </div>
           <div className="grid gap-4 sm:grid-cols-3">
             <div>
+              <label className={labelCls} htmlFor="state">State / Region</label>
+              <input className={inputCls} id="state" name="state" />
+            </div>
+            <div>
               <label className={labelCls} htmlFor="city">City</label>
               <input className={inputCls} id="city" name="city" />
             </div>
@@ -136,35 +145,28 @@ export default async function OnboardPage({
               <label className={labelCls} htmlFor="website">Website</label>
               <input className={inputCls} id="website" name="website" type="url" placeholder="https://" />
             </div>
-            <div>
-              <label className={labelCls} htmlFor="contact_name">Your name</label>
-              <input className={inputCls} id="contact_name" name="contact_name" defaultValue={invite.contact_name ?? ""} required />
-            </div>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div>
-              <label className={labelCls} htmlFor="role_at_school">Your role</label>
-              <input className={inputCls} id="role_at_school" name="role_at_school" placeholder="e.g. Deputy Head" />
-            </div>
-            <div>
-              <label className={labelCls} htmlFor="age_range_min">Ages from</label>
-              <input className={inputCls} id="age_range_min" name="age_range_min" type="number" min={3} max={19} />
-            </div>
-            <div>
-              <label className={labelCls} htmlFor="age_range_max">Ages to</label>
-              <input className={inputCls} id="age_range_max" name="age_range_max" type="number" min={3} max={19} />
-            </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className={labelCls} htmlFor="capacity">Group capacity</label>
-              <input className={inputCls} id="capacity" name="capacity" type="number" min={1} />
+              <label className={labelCls} htmlFor="contact_first_name">First name</label>
+              <input className={inputCls} id="contact_first_name" name="contact_first_name" required />
             </div>
             <div>
-              <label className={labelCls} htmlFor="languages">Languages (comma-separated)</label>
-              <input className={inputCls} id="languages" name="languages" placeholder="English, Spanish" />
+              <label className={labelCls} htmlFor="contact_last_name">Last name</label>
+              <input className={inputCls} id="contact_last_name" name="contact_last_name" required />
             </div>
           </div>
+          <RoleField defaultValue={invite.contact_name ?? ""} />
+          <AgeBandField />
+          <div>
+            <label className={labelCls} htmlFor="capacity">Max student group size</label>
+            <input className={inputCls} id="capacity" name="capacity" type="number" min={1} />
+          </div>
+          <div>
+            <label className={labelCls} htmlFor="languages">Languages (comma-separated)</label>
+            <input className={inputCls} id="languages" name="languages" placeholder="English, Spanish" />
+          </div>
+          <SubjectStrengthsField />
           <div className="flex flex-wrap gap-6 text-sm">
             <label className="flex items-center gap-2">
               <input type="checkbox" name="boarding" className="accent-warm-600" /> Boarding available
@@ -173,6 +175,9 @@ export default async function OnboardPage({
               <input type="checkbox" name="homestay" className="accent-warm-600" /> Homestay available
             </label>
           </div>
+          <HostedBeforeField />
+          <HostMonthsField />
+          <WhyHostField />
 
           {/* Template-specific sections */}
           {invite.template === "gcc" && (
@@ -201,20 +206,12 @@ export default async function OnboardPage({
             </fieldset>
           )}
           {invite.template === "standard" && (
-            <>
-              <div>
-                <label className={labelCls} htmlFor="hosting_experience">
-                  Hosting experience so far
-                </label>
-                <textarea className={inputCls} id="hosting_experience" name="hosting_experience" rows={3} />
-              </div>
-              <div>
-                <label className={labelCls} htmlFor="why_host">
-                  Why does your school want to host?
-                </label>
-                <textarea className={inputCls} id="why_host" name="why_host" rows={3} />
-              </div>
-            </>
+            <div>
+              <label className={labelCls} htmlFor="hosting_experience">
+                Hosting experience so far
+              </label>
+              <textarea className={inputCls} id="hosting_experience" name="hosting_experience" rows={3} />
+            </div>
           )}
           {invite.template === "other" && (
             <div>

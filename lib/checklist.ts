@@ -13,19 +13,19 @@ export const VERIFICATION_CHECKS = [
     description: "Named lead with contact details verified.",
   },
   {
-    key: "identity_registration",
-    label: "School identity & registration verified",
-    description: "School exists, is registered with its national education authority, and the applicant represents it.",
+    key: "health_safety",
+    label: "Health & safety policies reviewed",
+    description: "Current H&S policy and risk assessments provided.",
   },
   {
-    key: "references",
-    label: "References checked",
-    description: "At least two references from partner schools or education bodies.",
+    key: "identity_registration",
+    label: "School identity & registration verified",
+    description: "Evidence the school is legally registered (URN / national ID / certificate) and the applicant represents it.",
   },
   {
     key: "insurance",
-    label: "Insurance confirmed",
-    description: "Public liability insurance covering visiting groups.",
+    label: "Public liability insurance confirmed",
+    description: "Policy number and certificate covering visiting groups.",
   },
   {
     key: "virtual_meeting",

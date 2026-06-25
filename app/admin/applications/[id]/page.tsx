@@ -9,7 +9,7 @@ import {
   requestMoreInfo,
 } from "../../actions";
 
-type EvidenceFile = { name: string; path: string; size: number; uploaded_at: string };
+type EvidenceFile = { name: string; path: string; size: number; uploaded_at: string; category?: string };
 
 const CHECK_BADGES: Record<string, string> = {
   passed: "bg-green-50 text-green-700",
@@ -106,14 +106,21 @@ export default async function ApplicationDetail({
           </h2>
           <ul className="mt-3 divide-y divide-gray-100 rounded-lg border border-gray-100">
             {evidenceLinks.map((f) => (
-              <li key={f.path} className="flex items-center justify-between px-4 py-3 text-sm">
-                <span>{f.name}</span>
+              <li key={f.path} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+                <span className="min-w-0">
+                  {f.category && (
+                    <span className="mr-2 rounded bg-gray-100 px-1.5 py-0.5 text-[11px] font-medium text-gray-500">
+                      {f.category.replace(/_/g, " ")}
+                    </span>
+                  )}
+                  {f.name}
+                </span>
                 {f.url ? (
-                  <a href={f.url} target="_blank" className="text-xs font-medium text-blue-700 underline">
+                  <a href={f.url} target="_blank" className="shrink-0 text-xs font-medium text-blue-700 underline">
                     Download
                   </a>
                 ) : (
-                  <span className="text-xs text-gray-400">unavailable</span>
+                  <span className="shrink-0 text-xs text-gray-400">unavailable</span>
                 )}
               </li>
             ))}

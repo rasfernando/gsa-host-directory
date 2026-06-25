@@ -249,7 +249,7 @@ export async function updateApplication(formData: FormData) {
 
   const { data: app } = await supabase
     .from("host_applications")
-    .select("id, status, schools(name)")
+    .select("id, status, answers, schools(name)")
     .eq("school_id", schoolId)
     .order("created_at", { ascending: false })
     .limit(1)
@@ -259,7 +259,10 @@ export async function updateApplication(formData: FormData) {
   if (!app || !EDITABLE.includes(app.status)) redirect("/your-school");
 
   const num = (k: string) => (formData.get(k) ? Number(formData.get(k)) : null);
+  // Merge over existing answers so fields collected at intake (age_band,
+  // host_months, state…) survive an edit that doesn't render them.
   const answers = {
+    ...((app.answers as Record<string, unknown>) ?? {}),
     role_at_school: formData.get("role_at_school"),
     age_range_min: num("age_range_min"),
     age_range_max: num("age_range_max"),
@@ -271,8 +274,13 @@ export async function updateApplication(formData: FormData) {
     focus_areas: formData.getAll("focus_areas").map(String),
     hosting_experience: formData.get("hosting_experience"),
     why_host: formData.get("why_host"),
+    // Verification (Workstream B)
     safeguarding_lead_name: formData.get("safeguarding_lead_name"),
     safeguarding_lead_email: formData.get("safeguarding_lead_email"),
+    safeguarding_lead_phone: formData.get("safeguarding_lead_phone"),
+    insurance_policy_number: formData.get("insurance_policy_number"),
+    about_school: formData.get("about_school"),
+    welcome_letter: formData.get("welcome_letter"),
     typical_hosting_windows: formData.get("typical_hosting_windows"),
   };
 
@@ -321,7 +329,22 @@ async function editableApplication() {
   return { supabase, schoolId, app };
 }
 
-type EvidenceFile = { name: string; path: string; size: number; uploaded_at: string };
+type EvidenceFile = {
+  name: string;
+  path: string;
+  size: number;
+  uploaded_at: string;
+  category?: string;
+};
+
+// Categories the verification step collects (kept loose — a tag, not an enum).
+const EVIDENCE_CATEGORIES = [
+  "safeguarding_policy",
+  "health_safety",
+  "school_verification",
+  "public_liability",
+  "other",
+];
 
 export async function addEvidence(formData: FormData) {
   const { supabase, schoolId, app } = await editableApplication();
@@ -329,6 +352,9 @@ export async function addEvidence(formData: FormData) {
   if (!file || file.size === 0) redirect("/your-school/application?error=nofile");
   if (file.size > 10 * 1024 * 1024)
     redirect("/your-school/application?error=toobig");
+
+  const categoryRaw = String(formData.get("category") || "other");
+  const category = EVIDENCE_CATEGORIES.includes(categoryRaw) ? categoryRaw : "other";
 
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 80);
   const path = `${schoolId}/${app.id}/${Date.now()}-${safeName}`;
@@ -343,6 +369,7 @@ export async function addEvidence(formData: FormData) {
     path,
     size: file.size,
     uploaded_at: new Date().toISOString(),
+    category,
   });
   const { error } = await supabase
     .from("host_applications")
@@ -350,8 +377,8 @@ export async function addEvidence(formData: FormData) {
     .eq("id", app.id);
   if (error) throw new Error(error.message);
 
-  await logEvent("evidence_uploaded", { school_id: schoolId });
-  redirect("/your-school/application?saved=doc");
+  await logEvent("evidence_uploaded", { school_id: schoolId, meta: { category } });
+  redirect(`/your-school/application?saved=doc#${category}`);
 }
 
 export async function removeEvidence(formData: FormData) {

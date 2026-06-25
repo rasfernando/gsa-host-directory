@@ -31,6 +31,10 @@ export async function submitIntake(formData: FormData) {
     .eq("id", user.id)
     .single();
 
+  // Role: dropdown value, or the free-text "Other" entry.
+  const roleRaw = String(formData.get("contact_role") || formData.get("role_at_school") || "");
+  const role = roleRaw === "Other" ? String(formData.get("contact_role_other") || "Other") : roleRaw;
+
   let schoolId = (invite.school_id as string | null) ?? profile?.school_id ?? null;
   if (!schoolId) {
     // Atomic create-and-link via RPC: a fresh user can't INSERT…RETURNING on
@@ -40,9 +44,12 @@ export async function submitIntake(formData: FormData) {
       {
         p_name: String(formData.get("school_name") || invite.school_name),
         p_country: String(formData.get("country") || invite.country || ""),
+        p_state: String(formData.get("state") || "") || null,
         p_city: String(formData.get("city") || "") || null,
         p_website: String(formData.get("website") || "") || null,
-        p_contact_name: String(formData.get("contact_name") || "") || null,
+        p_contact_first_name: String(formData.get("contact_first_name") || "") || null,
+        p_contact_last_name: String(formData.get("contact_last_name") || "") || null,
+        p_contact_role: role || null,
         p_contact_email: user.email,
       }
     );
@@ -51,12 +58,18 @@ export async function submitIntake(formData: FormData) {
     schoolId = newSchoolId as string;
   }
 
+  const composedName =
+    [formData.get("contact_first_name"), formData.get("contact_last_name")]
+      .map((s) => String(s || "").trim())
+      .filter(Boolean)
+      .join(" ") || undefined;
+
   if (profile?.school_id !== schoolId) {
     await supabase
       .from("user_profiles")
       .update({
         school_id: schoolId,
-        full_name: String(formData.get("contact_name") || "") || undefined,
+        full_name: composedName,
       })
       .eq("id", user.id);
   }
@@ -80,13 +93,21 @@ export async function submitIntake(formData: FormData) {
 
   const answers: Record<string, unknown> = {
     intake_template: invite.template,
-    role_at_school: formData.get("role_at_school"),
+    role_at_school: role,
+    state: formData.get("state"),
+    age_band: formData.get("age_band"),
     age_range_min: num("age_range_min"),
     age_range_max: num("age_range_max"),
     capacity: num("capacity"),
     languages: list("languages"),
+    subject_strengths: formData.getAll("subject_strengths").map(String).filter(Boolean),
     boarding: formData.get("boarding") === "on",
     homestay: formData.get("homestay") === "on",
+    hosted_before: formData.has("hosted_before")
+      ? formData.get("hosted_before") === "yes"
+      : null,
+    host_months: formData.getAll("host_months").map(String).filter(Boolean),
+    why_host: formData.get("why_host"),
     safeguarding_lead_name: formData.get("safeguarding_lead_name"),
     safeguarding_lead_email: formData.get("safeguarding_lead_email"),
     typical_hosting_windows: formData.get("typical_hosting_windows"),
@@ -99,7 +120,6 @@ export async function submitIntake(formData: FormData) {
     answers.product_description = formData.get("product_description");
   } else {
     answers.hosting_experience = formData.get("hosting_experience");
-    answers.why_host = formData.get("why_host");
   }
 
   const { error: appError } = await supabase.from("host_applications").insert({
