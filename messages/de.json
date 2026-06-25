@@ -72,7 +72,8 @@
     "message": "Was haben Sie vor?",
     "messageHint": "Erzählen Sie uns von Ihrer Gruppe, der gewünschten Besuchsart und allem, was hilfreich ist.",
     "send": "Anfrage an das GSA-Team senden",
-    "noCommitment": "Unverbindlich — das ist der Beginn eines Gesprächs, keine Buchung."
+    "noCommitment": "Unverbindlich — das ist der Beginn eines Gesprächs, keine Buchung.",
+    "ofsted": "Ofsted-Bewertung"
   },
   "pay": {
     "kicker": "Zahlung für Schulreise",

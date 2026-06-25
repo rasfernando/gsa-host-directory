@@ -141,8 +141,13 @@ export default async function ProfilePage({
             .join(", ") || t("dayVisits")}
         </Fact>
         <Fact label={t("hostingWindows")}>
-          {localized(profile, "typical_hosting_windows", locale) || t("askGsa")}
+          {(profile.host_months ?? []).length > 0
+            ? (profile.host_months as string[]).map(v).join(", ")
+            : localized(profile, "typical_hosting_windows", locale) || t("askGsa")}
         </Fact>
+        {profile.ofsted_rating && (
+          <Fact label={t("ofsted")}>{profile.ofsted_rating}</Fact>
+        )}
       </dl>
 
       {/* Where in the world */}

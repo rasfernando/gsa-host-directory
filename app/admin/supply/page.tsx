@@ -41,6 +41,7 @@ export default async function AdminSupplyPage({
     { data: cohorts },
     { data: invites },
     { count: listedCount },
+    { data: needContact },
     { data: agents },
     { data: commissions },
     { data: blocks },
@@ -59,6 +60,11 @@ export default async function AdminSupplyPage({
       .from("host_profiles")
       .select("id", { count: "exact", head: true })
       .eq("tier", "listed"),
+    supabase
+      .from("schools")
+      .select("id, name, country, city")
+      .is("contact_email", null)
+      .order("name"),
     supabase.from("agents").select("*").order("created_at"),
     supabase
       .from("agent_commissions")
@@ -186,6 +192,29 @@ export default async function AdminSupplyPage({
           </button>
         </form>
       </section>
+
+      {/* Schools imported without a contact email — Heather to chase */}
+      {(needContact ?? []).length > 0 && (
+        <section className="mt-4 rounded-xl border border-amber-200 bg-amber-50/50 p-5">
+          <h2 className="text-sm font-semibold text-gray-900">
+            Schools awaiting a contact ({(needContact ?? []).length})
+          </h2>
+          <p className="mt-0.5 text-sm text-gray-500">
+            Imported (AIP) or created without an email — chase a contact, then
+            send them an intake invite below.
+          </p>
+          <ul className="mt-3 flex flex-wrap gap-2 text-sm">
+            {(needContact ?? []).map((s) => (
+              <li key={s.id} className="rounded-full bg-white px-3 py-1 text-xs text-gray-600 ring-1 ring-amber-200">
+                {s.name}
+                <span className="text-gray-400">
+                  {s.city ? ` · ${s.city}` : ""}{s.country ? ` · ${s.country}` : ""}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {/* Staff-create school */}
       <section className="mt-4 rounded-xl border border-gray-200 bg-white p-5">

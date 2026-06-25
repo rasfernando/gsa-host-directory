@@ -72,7 +72,8 @@
     "message": "您希望开展什么活动？",
     "messageHint": "请介绍您的团组、期望的访问类型以及其他有用信息。",
     "send": "发送咨询给 GSA 团队",
-    "noCommitment": "无需承诺——这只是对话的开始，而非预订。"
+    "noCommitment": "无需承诺——这只是对话的开始，而非预订。",
+    "ofsted": "Ofsted 评级"
   },
   "pay": {
     "kicker": "学校出行付款",

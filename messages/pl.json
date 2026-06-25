@@ -72,7 +72,8 @@
     "message": "Co chcecie zrobić?",
     "messageHint": "Opowiedz nam o grupie, jakiej wizyty szukacie i o wszystkim, co może pomóc.",
     "send": "Wyślij zapytanie do zespołu GSA",
-    "noCommitment": "Bez zobowiązań — to początek rozmowy, nie rezerwacja."
+    "noCommitment": "Bez zobowiązań — to początek rozmowy, nie rezerwacja.",
+    "ofsted": "Ocena Ofsted"
   },
   "pay": {
     "kicker": "Płatność za wyjazd szkolny",

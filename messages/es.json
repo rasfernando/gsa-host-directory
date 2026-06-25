@@ -72,7 +72,8 @@
     "message": "¿Qué os gustaría hacer?",
     "messageHint": "Cuéntanos sobre el grupo, el tipo de visita que tenéis en mente y cualquier detalle útil.",
     "send": "Enviar consulta al equipo de la GSA",
-    "noCommitment": "Sin compromiso: esto inicia una conversación, no una reserva."
+    "noCommitment": "Sin compromiso: esto inicia una conversación, no una reserva.",
+    "ofsted": "Calificación Ofsted"
   },
   "pay": {
     "kicker": "Pago de viaje escolar",

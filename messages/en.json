@@ -72,7 +72,8 @@
     "message": "What are you hoping to do?",
     "messageHint": "Tell us about your group, what kind of visit you have in mind, and anything else useful.",
     "send": "Send enquiry to the GSA team",
-    "noCommitment": "No commitment — this starts a conversation, not a booking."
+    "noCommitment": "No commitment — this starts a conversation, not a booking.",
+    "ofsted": "Ofsted rating"
   },
   "pay": {
     "kicker": "School trip payment",
