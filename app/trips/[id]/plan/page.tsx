@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/trips";
+import { getBookedWindows, clashesFor } from "@/lib/availability";
 import { reserveTrip, updateTripPlan } from "../../actions";
 
 export const dynamic = "force-dynamic";
@@ -52,6 +53,18 @@ export default async function TripPlanPage({
           .eq("country", trip.country ?? "")
           .order("tier", { ascending: true })
       : { data: null };
+
+  // Availability at the chosen host (steps 3–4): other groups' booked windows
+  // and whether the chosen dates clash. Cross-organiser via the RPC.
+  const windows =
+    step !== "2" && trip.host_profile_id
+      ? await getBookedWindows(trip.host_profile_id)
+      : [];
+  const otherWindows = windows.filter((w) => !w.is_own);
+  const clashes =
+    trip.start_date
+      ? clashesFor(otherWindows, trip.start_date, trip.num_days ?? 1)
+      : [];
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -226,6 +239,27 @@ export default async function TripPlanPage({
             Nothing is owed until you confirm with the £1,000 refundable
             deposit.
           </p>
+          {clashes.length > 0 && (
+            <div className="mt-6 rounded-2xl border border-warm-300 bg-warm-50 p-5">
+              <p className="text-sm font-semibold text-warm-800">
+                Heads up — {host?.name ?? "this school"} is already hosting
+                another group on these dates.
+              </p>
+              <ul className="mt-2 space-y-1 text-sm text-warm-700">
+                {clashes.map((w) => (
+                  <li key={w.trip_id}>
+                    {formatDate(w.start_date)} – {formatDate(w.end_date)}
+                    {w.num_students ? ` · ${w.num_students} students` : ""}
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2 text-xs text-warm-700">
+                You can still reserve — the GSA team will confirm the school can
+                take both — but you may want to pick a clear week.
+              </p>
+            </div>
+          )}
+
           <div className="mt-6 rounded-2xl border border-stone-200/70 bg-white p-6 shadow-sm sm:p-8">
             <dl className="grid grid-cols-2 gap-x-6 gap-y-5 text-sm sm:grid-cols-3">
               <Fact label="Host school">{host?.name ?? "—"}</Fact>
@@ -235,6 +269,22 @@ export default async function TripPlanPage({
               <Fact label="Students">{trip.num_students ?? "—"}</Fact>
               <Fact label="Staff">{trip.staff_count ?? "—"}</Fact>
             </dl>
+
+            {otherWindows.length > 0 && (
+              <div className="mt-5 border-t border-stone-100 pt-4">
+                <p className="text-xs font-semibold uppercase tracking-wider text-stone-500">
+                  This school is also hosting
+                </p>
+                <ul className="mt-2 space-y-1 text-sm text-stone-600">
+                  {otherWindows.slice(0, 6).map((w) => (
+                    <li key={w.trip_id}>
+                      {formatDate(w.start_date)} – {formatDate(w.end_date)}
+                      {w.num_students ? ` · ${w.num_students} students` : ""}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <form action={reserveTrip}>
                 <input type="hidden" name="trip_id" value={id} />

@@ -2,6 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { inputCls, labelCls } from "@/lib/forms";
+import { formatDate } from "@/lib/trips";
+import { getBookedWindows } from "@/lib/availability";
 import { updateContact } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -94,6 +96,13 @@ export default async function YourSchoolPage({
         (new Date(cohort.evidence_deadline).getTime() - Date.now()) / 86_400_000
       )
     : null;
+
+  // Groups booked to visit this school (RLS hides the trips otherwise; the RPC
+  // exposes the windows). Future visits only.
+  const today = new Date().toISOString().slice(0, 10);
+  const bookings = profile
+    ? (await getBookedWindows(profile.id)).filter((w) => w.end_date >= today)
+    : [];
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -263,6 +272,53 @@ export default async function YourSchoolPage({
             Apply for GSA accreditation →
           </Link>
         </p>
+      )}
+
+      {/* Groups booked to visit */}
+      {profile && (
+        <section className="mt-4 rounded-2xl border border-stone-200/70 bg-white p-6 shadow-sm sm:p-8">
+          <h2 className="text-lg font-bold tracking-tight">
+            Groups booked to visit you
+          </h2>
+          {bookings.length === 0 ? (
+            <p className="mt-1 text-sm text-stone-500">
+              No visiting groups booked yet. When a school reserves a trip to
+              your school, the dates will appear here.
+            </p>
+          ) : (
+            <ul className="mt-3 divide-y divide-stone-100 rounded-xl border border-stone-200/70">
+              {bookings.map((w) => (
+                <li key={w.trip_id} className="flex items-center justify-between px-4 py-3 text-sm">
+                  <span className="text-stone-700">
+                    {formatDate(w.start_date)} – {formatDate(w.end_date)}
+                    {w.num_students ? ` · ${w.num_students} students` : ""}
+                  </span>
+                  <span
+                    className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
+                      w.status === "confirmed"
+                        ? "bg-brand-700 text-white"
+                        : w.status === "invoiced" || w.status === "deposit_paid"
+                          ? "bg-brand-50 text-brand-700"
+                          : "bg-stone-100 text-stone-600"
+                    }`}
+                  >
+                    {w.status === "deposit_paid"
+                      ? "deposit paid"
+                      : w.status === "confirmed"
+                        ? "confirmed"
+                        : w.status === "invoiced"
+                          ? "invoiced"
+                          : "reserved"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="mt-3 text-xs text-stone-500">
+            Dates are shown so you can plan around them. The GSA team confirms
+            every visit with you directly.
+          </p>
+        </section>
       )}
 
       {/* Contact details */}
