@@ -22,7 +22,7 @@ type EditableFields = {
   boarding: boolean;
   homestay: boolean;
   capacity: number | null;
-  typical_hosting_windows: string | null;
+  host_months: string[];
 };
 
 async function requireSchool() {
@@ -64,8 +64,7 @@ function readEditableFields(formData: FormData): EditableFields {
     boarding: formData.get("boarding") === "on",
     homestay: formData.get("homestay") === "on",
     capacity: num("capacity"),
-    typical_hosting_windows:
-      String(formData.get("typical_hosting_windows") || "") || null,
+    host_months: formData.getAll("host_months").map(String),
   };
 }
 
@@ -282,7 +281,7 @@ export async function updateApplication(formData: FormData) {
     insurance_policy_number: formData.get("insurance_policy_number"),
     about_school: formData.get("about_school"),
     welcome_letter: formData.get("welcome_letter"),
-    typical_hosting_windows: formData.get("typical_hosting_windows"),
+    host_months: formData.getAll("host_months").map(String),
   };
 
   // Responding to a GSA info request: clear the request and hand it back for review.

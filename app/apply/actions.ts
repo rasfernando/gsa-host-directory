@@ -66,7 +66,7 @@ export async function submitApplication(formData: FormData) {
     why_host: formData.get("why_host"),
     safeguarding_lead_name: formData.get("safeguarding_lead_name"),
     safeguarding_lead_email: formData.get("safeguarding_lead_email"),
-    typical_hosting_windows: formData.get("typical_hosting_windows"),
+    host_months: formData.getAll("host_months").map(String),
   };
 
   // Attach to the soonest open verification cohort so the evidence window

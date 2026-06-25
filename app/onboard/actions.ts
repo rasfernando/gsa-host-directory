@@ -106,15 +106,12 @@ export async function submitIntake(formData: FormData) {
     why_host: formData.get("why_host"),
     safeguarding_lead_name: formData.get("safeguarding_lead_name"),
     safeguarding_lead_email: formData.get("safeguarding_lead_email"),
-    typical_hosting_windows: formData.get("typical_hosting_windows"),
   };
-  if (invite.template === "gcc") {
-    answers.gcc_delivery_windows = formData.get("gcc_delivery_windows");
-    answers.gcc_residential = formData.get("gcc_residential") === "on";
-    answers.gcc_excursion_access = formData.get("gcc_excursion_access");
-  } else if (invite.template === "other") {
+  if (invite.template === "other") {
     answers.product_description = formData.get("product_description");
   } else {
+    // standard + gcc both capture free-text hosting experience for now;
+    // GCC-specific logistics fields were intentionally removed.
     answers.hosting_experience = formData.get("hosting_experience");
   }
 

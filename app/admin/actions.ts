@@ -318,7 +318,7 @@ export async function approvePendingChanges(formData: FormData) {
     boarding: Boolean(pending.boarding),
     homestay: Boolean(pending.homestay),
     capacity: pending.capacity ?? null,
-    typical_hosting_windows: pending.typical_hosting_windows ?? null,
+    host_months: pending.host_months ?? [],
     media: newMedia,
     pending_changes: null,
     pending_review: false,

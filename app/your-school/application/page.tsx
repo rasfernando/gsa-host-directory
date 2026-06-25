@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { FOCUS_AREAS, inputCls, labelCls } from "@/lib/forms";
-import { CountedTextarea } from "@/components/host-profile-fields";
+import { CountedTextarea, HostMonthsField } from "@/components/host-profile-fields";
 import { updateApplication, addEvidence, removeEvidence } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -201,10 +201,7 @@ export default async function EditApplicationPage({
               Homestay available
             </label>
           </div>
-          <div>
-            <label className={labelCls} htmlFor="typical_hosting_windows">When can you typically host?</label>
-            <input className={inputCls} id="typical_hosting_windows" name="typical_hosting_windows" defaultValue={str("typical_hosting_windows")} />
-          </div>
+          <HostMonthsField defaultValue={(a.host_months as string[]) ?? []} />
         </section>
 
         <section className="space-y-4 rounded-2xl border border-stone-200/70 bg-white p-6 shadow-sm sm:p-8">

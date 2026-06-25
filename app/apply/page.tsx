@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { submitApplication } from "./actions";
+import { HostMonthsField } from "@/components/host-profile-fields";
 import Link from "next/link";
 
 const FOCUS_AREAS = [
@@ -140,12 +141,7 @@ export default async function ApplyPage({
               Homestay available
             </label>
           </div>
-          <div>
-            <label className={labelCls} htmlFor="typical_hosting_windows">
-              When can you typically host? (free text)
-            </label>
-            <input className={inputCls} id="typical_hosting_windows" name="typical_hosting_windows" placeholder="e.g. September–November, term time only" />
-          </div>
+          <HostMonthsField />
         </section>
 
         <section className="space-y-4 rounded-2xl border border-stone-200/70 bg-white p-6 shadow-sm sm:p-8">

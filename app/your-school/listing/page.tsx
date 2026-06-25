@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { FOCUS_AREAS, inputCls, labelCls } from "@/lib/forms";
+import { HostMonthsField } from "@/components/host-profile-fields";
 import {
   updateListing,
   addPhoto,
@@ -42,7 +43,7 @@ export default async function EditListingPage({
   const { data: profile } = await supabase
     .from("host_profiles")
     .select(
-      "id, name, published, media, pending_changes, pending_review, headline, description, city, languages, age_range_min, age_range_max, subject_strengths, focus_tags, boarding, homestay, capacity, typical_hosting_windows"
+      "id, name, published, media, pending_changes, pending_review, headline, description, city, languages, age_range_min, age_range_max, subject_strengths, focus_tags, boarding, homestay, capacity, host_months"
     )
     .eq("school_id", up.school_id)
     .maybeSingle();
@@ -227,10 +228,7 @@ export default async function EditListingPage({
             Homestay available
           </label>
         </div>
-        <div>
-          <label className={labelCls} htmlFor="typical_hosting_windows">When can you typically host?</label>
-          <input className={inputCls} id="typical_hosting_windows" name="typical_hosting_windows" defaultValue={v("typical_hosting_windows", profile.typical_hosting_windows) ?? ""} />
-        </div>
+        <HostMonthsField defaultValue={v<string[]>("host_months", profile.host_months ?? []) ?? []} />
         <button className="rounded-lg bg-warm-600 px-5 py-3 text-sm font-semibold text-white transition-colors duration-150 hover:bg-warm-700">
           {live ? "Save changes" : "Submit changes for review"}
         </button>
