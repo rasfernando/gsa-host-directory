@@ -12,6 +12,7 @@ import {
   markCommissionPaid,
   createBlockBooking,
   releaseBlockBooking,
+  setLaunchSettings,
 } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -46,6 +47,8 @@ export default async function AdminSupplyPage({
     { data: commissions },
     { data: blocks },
     { data: hostOptions },
+    { data: settingsRows },
+    { data: showcaseOptions },
   ] = await Promise.all([
     supabase
       .from("verification_cohorts")
@@ -80,7 +83,17 @@ export default async function AdminSupplyPage({
       .select("id, name")
       .eq("published", true)
       .order("name"),
+    supabase.from("app_settings").select("key, value"),
+    supabase
+      .from("host_profiles")
+      .select("slug, name")
+      .eq("published", true)
+      .order("name"),
   ]);
+
+  const settings = new Map((settingsRows ?? []).map((s) => [s.key, s.value ?? ""]));
+  const launchMode = settings.get("launch_mode") ?? "public";
+  const showcaseSlug = settings.get("showcase_slug") ?? "";
 
   return (
     <div>
@@ -101,6 +114,41 @@ export default async function AdminSupplyPage({
           {decodeURIComponent(flags.error)}
         </div>
       )}
+
+      {/* Soft-launch mode */}
+      <section
+        className={`mt-6 rounded-xl border p-5 ${
+          launchMode === "onboarding" ? "border-amber-300 bg-amber-50/60" : "border-gray-200 bg-white"
+        }`}
+      >
+        <h2 className="text-sm font-semibold text-gray-900">Launch visibility</h2>
+        <p className="mt-0.5 text-sm text-gray-500">
+          {launchMode === "onboarding"
+            ? "Onboarding mode is ON — the public sees only the coming-soon page, the showcase profile and the explanation pages. Signed-in hosts, agents and admins are unaffected."
+            : "Public mode — the whole site is live for everyone."}
+        </p>
+        <form action={setLaunchSettings} className="mt-3 flex flex-wrap items-end gap-3">
+          <label className="text-xs text-gray-600">
+            Mode
+            <select name="launch_mode" defaultValue={launchMode} className={`${inputCls} mt-1 block`}>
+              <option value="public">Public — everything visible</option>
+              <option value="onboarding">Onboarding — restricted</option>
+            </select>
+          </label>
+          <label className="text-xs text-gray-600">
+            Showcase profile (shown publicly in onboarding mode)
+            <select name="showcase_slug" defaultValue={showcaseSlug} className={`${inputCls} mt-1 block`}>
+              <option value="">None</option>
+              {(showcaseOptions ?? []).map((s) => (
+                <option key={s.slug} value={s.slug}>{s.name}</option>
+              ))}
+            </select>
+          </label>
+          <button className="rounded-lg bg-gray-900 px-3.5 py-2 text-sm font-medium text-white hover:bg-gray-700">
+            Save
+          </button>
+        </form>
+      </section>
 
       {/* Cohorts */}
       <section className="mt-6 rounded-xl border border-gray-200 bg-white p-5">

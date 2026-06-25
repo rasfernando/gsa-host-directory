@@ -46,6 +46,46 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // ── Soft-launch gate (Workstream C) ───────────────────────────────────────
+  // Only anonymous visitors are ever gated; any signed-in user (host, agent,
+  // admin) passes. Mode lives in app_settings (admin-flippable), with an
+  // optional LAUNCH_MODE env override for emergencies.
+  if (!user) {
+    let mode = process.env.LAUNCH_MODE ?? "";
+    let showcase = "";
+    if (mode !== "public") {
+      const { data: settings } = await supabase
+        .from("app_settings")
+        .select("key, value")
+        .in("key", ["launch_mode", "showcase_slug"]);
+      const map = new Map((settings ?? []).map((s) => [s.key, s.value ?? ""]));
+      if (!mode) mode = map.get("launch_mode") ?? "public";
+      showcase = map.get("showcase_slug") ?? "";
+    }
+
+    if (mode === "onboarding") {
+      const allowed =
+        path === "/coming-soon" ||
+        path.startsWith("/login") ||
+        path.startsWith("/auth") ||
+        path.startsWith("/onboard") ||
+        path.startsWith("/api") ||
+        path.startsWith("/pay") ||
+        path === "/accreditation" ||
+        path === "/privacy" ||
+        path === "/terms" ||
+        (showcase !== "" && path === `/directory/${showcase}`) ||
+        (showcase !== "" && path.startsWith(`/directory/${showcase}/`));
+
+      if (!allowed) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/coming-soon";
+        url.search = "";
+        return NextResponse.redirect(url);
+      }
+    }
+  }
+
   return response;
 }
 

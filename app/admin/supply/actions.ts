@@ -24,6 +24,25 @@ function fail(message: string): never {
   redirect(`/admin/supply?error=${encodeURIComponent(message)}`);
 }
 
+// ── Soft-launch mode (Workstream C) ─────────────────────────────────────────
+export async function setLaunchSettings(formData: FormData) {
+  const { supabase } = await requireAdmin();
+  const mode = String(formData.get("launch_mode"));
+  const showcase = String(formData.get("showcase_slug") || "").trim();
+  if (!["public", "onboarding"].includes(mode)) fail("Invalid launch mode");
+
+  const { error } = await supabase.from("app_settings").upsert(
+    [
+      { key: "launch_mode", value: mode },
+      { key: "showcase_slug", value: showcase },
+    ],
+    { onConflict: "key" }
+  );
+  if (error) fail(error.message);
+  await logEvent("launch_mode_set", { meta: { mode, showcase } });
+  redirect("/admin/supply?saved=launch");
+}
+
 // ── Verification cohorts (batched evidence windows) ─────────────────────────
 export async function createCohort(formData: FormData) {
   const { supabase } = await requireAdmin();
