@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { notifyGsa } from "@/lib/notify";
+import { notifyGsa, escapeHtml } from "@/lib/notify";
 import { logEvent } from "@/lib/events";
 import { normalizeUrl } from "@/lib/forms";
 
@@ -115,9 +115,9 @@ export async function submitListing(formData: FormData) {
 
   await logEvent("listing_created", { school_id: schoolId, profile_id: newProfile.id });
   await notifyGsa(
-    `New host listing: ${schoolName}`,
-    `<p><strong>${schoolName}</strong> (${formData.get("country")}) has listed as a host school (Tier 1 — needs a quick review before publishing).</p>
-     <p>Contact: ${formData.get("contact_name")} — ${user.email}</p>
+    `New host listing: ${escapeHtml(schoolName)}`,
+    `<p><strong>${escapeHtml(schoolName)}</strong> (${escapeHtml(formData.get("country"))}) has listed as a host school (Tier 1 — needs a quick review before publishing).</p>
+     <p>Contact: ${escapeHtml(formData.get("contact_name"))} — ${escapeHtml(user.email)}</p>
      <p><a href="https://gsa-host-directory.vercel.app/admin/profiles">Review listings</a></p>`
   );
 

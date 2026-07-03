@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { logEvent } from "@/lib/events";
-import { sendEmail } from "@/lib/notify";
+import { sendEmail, escapeHtml } from "@/lib/notify";
 
 async function requireAdmin() {
   const supabase = await createClient();
@@ -110,8 +110,8 @@ export async function sendIntakeInvite(formData: FormData) {
 
   await sendEmail(
     invite.contact_email,
-    `GSA has invited ${invite.school_name} to join as a host school`,
-    `<p>The Global School Alliance would like ${invite.school_name} on the platform.</p>
+    `GSA has invited ${escapeHtml(invite.school_name)} to join as a host school`,
+    `<p>The Global School Alliance would like ${escapeHtml(invite.school_name)} on the platform.</p>
      <p>Use your private link to tell us about your school — it takes about ten minutes:</p>
      <p><a href="https://gsa-host-directory.vercel.app/onboard/${invite.token}">Complete your school's intake</a></p>`
   );

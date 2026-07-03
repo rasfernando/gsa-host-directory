@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
-import { notifyGsa } from "@/lib/notify";
+import { notifyGsa, escapeHtml } from "@/lib/notify";
 import { logEvent } from "@/lib/events";
 import { createCheckoutSession } from "@/lib/stripe";
 import { createXeroInvoice, xeroEnabled } from "@/lib/xero";
@@ -223,8 +223,8 @@ export async function reserveTrip(formData: FormData) {
     meta: { trip_id: tripId },
   });
   await notifyGsa(
-    `Trip reserved — ${trip.organiser_school_name ?? "a school"}`,
-    `<p><strong>${trip.organiser_school_name ?? "A school"}</strong> has reserved dates for a trip and now needs deposit confirmation.</p>
+    `Trip reserved — ${escapeHtml(trip.organiser_school_name ?? "a school")}`,
+    `<p><strong>${escapeHtml(trip.organiser_school_name ?? "A school")}</strong> has reserved dates for a trip and now needs deposit confirmation.</p>
      <p><a href="https://gsa-host-directory.vercel.app/admin/trips">Open trips</a></p>`
   );
   redirect(`/trips/${tripId}?reserved=1`);
@@ -297,9 +297,9 @@ export async function requestLaunchCall(formData: FormData) {
     meta: { trip_id: tripId },
   });
   await notifyGsa(
-    `1-2-1 launch call requested — ${trip.organiser_school_name ?? "a school"}`,
-    `<p><strong>${trip.organiser_school_name ?? "A school"}</strong> (${user.email}) has requested a 1-2-1 call and parent-launch support.</p>
-     <p>Preferred times: ${preferred}</p>
+    `1-2-1 launch call requested — ${escapeHtml(trip.organiser_school_name ?? "a school")}`,
+    `<p><strong>${escapeHtml(trip.organiser_school_name ?? "A school")}</strong> (${escapeHtml(user.email)}) has requested a 1-2-1 call and parent-launch support.</p>
+     <p>Preferred times: ${escapeHtml(preferred)}</p>
      <p><a href="https://gsa-host-directory.vercel.app/admin/trips">Open trips</a></p>`
   );
   redirect(`/trips/${tripId}?call=requested`);
@@ -318,7 +318,7 @@ export async function cancelTrip(formData: FormData) {
     meta: { trip_id: tripId },
   });
   await notifyGsa(
-    `Trip cancelled — ${trip.organiser_school_name ?? "a school"}`,
+    `Trip cancelled — ${escapeHtml(trip.organiser_school_name ?? "a school")}`,
     `<p>A trip has been cancelled by the organiser. Any refundable deposit has been marked for refund.</p>`
   );
   redirect(`/trips/${tripId}?cancelled=1`);
@@ -356,8 +356,8 @@ export async function payDeposit(formData: FormData) {
     meta: { trip_id: tripId },
   });
   await notifyGsa(
-    `Deposit confirmation needed — ${trip.organiser_school_name ?? "a school"}`,
-    `<p><strong>${trip.organiser_school_name ?? "A school"}</strong> wants to pay the ${formatPounds(trip.deposit_amount_pennies)} deposit, but card payments aren't configured. Arrange a transfer and mark the deposit paid in the admin area.</p>
+    `Deposit confirmation needed — ${escapeHtml(trip.organiser_school_name ?? "a school")}`,
+    `<p><strong>${escapeHtml(trip.organiser_school_name ?? "A school")}</strong> wants to pay the ${formatPounds(trip.deposit_amount_pennies)} deposit, but card payments aren't configured. Arrange a transfer and mark the deposit paid in the admin area.</p>
      <p><a href="https://gsa-host-directory.vercel.app/admin/trips">Open trips</a></p>`
   );
   redirect(`/trips/${tripId}?deposit=manual`);
@@ -404,8 +404,8 @@ export async function commitPlan(formData: FormData) {
     { profile_id: trip.host_profile_id, meta: { trip_id: tripId, choice } }
   );
   await notifyGsa(
-    `Payment plan committed — ${trip.organiser_school_name ?? "a school"}`,
-    `<p><strong>${trip.organiser_school_name ?? "A school"}</strong> committed to ${
+    `Payment plan committed — ${escapeHtml(trip.organiser_school_name ?? "a school")}`,
+    `<p><strong>${escapeHtml(trip.organiser_school_name ?? "A school")}</strong> committed to ${
       choice === "upfront" ? "paying upfront (10% discount)" : "a payment plan (+10%)"
     } via ${mode === "school_invoice" ? "a school invoice" : "individual parent payment links"}.</p>
      <p><a href="https://gsa-host-directory.vercel.app/admin/trips">Open trips</a></p>`
@@ -459,8 +459,8 @@ export async function requestQuotes(formData: FormData) {
     meta: { trip_id: tripId, items: count },
   });
   await notifyGsa(
-    `Firm quotes requested — ${trip.organiser_school_name ?? "a school"}`,
-    `<p><strong>${trip.organiser_school_name ?? "A school"}</strong> wants firm quotes for ${count} bolt-on item${count === 1 ? "" : "s"}. Confirm them with the suppliers' real prices.</p>
+    `Firm quotes requested — ${escapeHtml(trip.organiser_school_name ?? "a school")}`,
+    `<p><strong>${escapeHtml(trip.organiser_school_name ?? "A school")}</strong> wants firm quotes for ${count} bolt-on item${count === 1 ? "" : "s"}. Confirm them with the suppliers' real prices.</p>
      <p><a href="https://gsa-host-directory.vercel.app/admin/trips/${tripId}">Open the trip</a></p>`
   );
   redirect(`/trips/${tripId}?quotes=requested`);
@@ -538,9 +538,9 @@ export async function requestAlteration(formData: FormData) {
     meta: { trip_id: tripId },
   });
   await notifyGsa(
-    `Booking alteration requested — ${trip.organiser_school_name ?? "a school"}`,
-    `<p><strong>${trip.organiser_school_name ?? "A school"}</strong> has requested a change to a booked trip:</p>
-     <blockquote>${description}</blockquote>
+    `Booking alteration requested — ${escapeHtml(trip.organiser_school_name ?? "a school")}`,
+    `<p><strong>${escapeHtml(trip.organiser_school_name ?? "A school")}</strong> has requested a change to a booked trip:</p>
+     <blockquote>${escapeHtml(description)}</blockquote>
      <p><a href="https://gsa-host-directory.vercel.app/admin/trips/${tripId}">Review and price the change</a></p>`
   );
   redirect(`/trips/${tripId}?alteration=requested`);

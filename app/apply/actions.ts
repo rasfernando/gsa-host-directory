@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { notifyGsa } from "@/lib/notify";
+import { notifyGsa, escapeHtml } from "@/lib/notify";
 import { logEvent } from "@/lib/events";
 import { normalizeUrl } from "@/lib/forms";
 
@@ -91,9 +91,9 @@ export async function submitApplication(formData: FormData) {
 
   await logEvent("accreditation_applied", { school_id: schoolId });
   await notifyGsa(
-    `New host application: ${formData.get("school_name") || "a school"}`,
-    `<p><strong>${formData.get("school_name")}</strong> (${formData.get("country")}) has applied to become a GSA host school.</p>
-     <p>Contact: ${formData.get("contact_name")} — ${user.email}</p>
+    `New host application: ${escapeHtml(formData.get("school_name") || "a school")}`,
+    `<p><strong>${escapeHtml(formData.get("school_name"))}</strong> (${escapeHtml(formData.get("country"))}) has applied to become a GSA host school.</p>
+     <p>Contact: ${escapeHtml(formData.get("contact_name"))} — ${escapeHtml(user.email)}</p>
      <p><a href="https://gsa-host-directory.vercel.app/admin">Open the review queue</a></p>`
   );
 

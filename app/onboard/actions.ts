@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { notifyGsa } from "@/lib/notify";
+import { notifyGsa, escapeHtml } from "@/lib/notify";
 import { logEvent } from "@/lib/events";
 import { normalizeUrl } from "@/lib/forms";
 
@@ -135,8 +135,8 @@ export async function submitIntake(formData: FormData) {
     meta: { template: invite.template, cohort_id: cohort?.id ?? null },
   });
   await notifyGsa(
-    `GSA intake completed — ${invite.school_name}`,
-    `<p><strong>${invite.school_name}</strong> has completed the ${invite.template} intake you invited them to.</p>
+    `GSA intake completed — ${escapeHtml(invite.school_name)}`,
+    `<p><strong>${escapeHtml(invite.school_name)}</strong> has completed the ${escapeHtml(invite.template)} intake you invited them to.</p>
      <p>${cohort ? "Attached to the open verification cohort." : "No open cohort — assign one when the next window opens."}</p>
      <p><a href="https://gsa-host-directory.vercel.app/admin">Open the review queue</a></p>`
   );

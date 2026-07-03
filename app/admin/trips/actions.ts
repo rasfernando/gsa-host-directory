@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { logEvent } from "@/lib/events";
-import { sendEmail } from "@/lib/notify";
+import { sendEmail, escapeHtml } from "@/lib/notify";
 import { formatPounds } from "@/lib/money";
 import { formatDate } from "@/lib/trips";
 import { awardCredits } from "@/lib/credits";
@@ -136,8 +136,8 @@ export async function adminMarkParentPaymentPaid(formData: FormData) {
   if (payment?.parent_email) {
     await sendEmail(
       payment.parent_email,
-      `Payment received — ${trip.organiser_school_name ?? "school"} trip`,
-      `<p>Thanks ${payment.parent_name} — we've received your payment of ${formatPounds(payment.amount_pennies)}.</p>
+      `Payment received — ${escapeHtml(trip.organiser_school_name ?? "school")} trip`,
+      `<p>Thanks ${escapeHtml(payment.parent_name)} — we've received your payment of ${formatPounds(payment.amount_pennies)}.</p>
        <p>Your receipt: <a href="https://gsa-host-directory.vercel.app/pay/${payment.token}">view it any time</a>.</p>`
     );
   }
@@ -186,8 +186,8 @@ export async function sendParentReminder(formData: FormData) {
   if (payment?.parent_email) {
     await sendEmail(
       payment.parent_email,
-      `Payment reminder — ${trip.organiser_school_name ?? "school"} trip`,
-      `<p>Hello ${payment.parent_name}, a reminder that your trip payment of ${formatPounds(payment.amount_pennies)} is still outstanding.</p>
+      `Payment reminder — ${escapeHtml(trip.organiser_school_name ?? "school")} trip`,
+      `<p>Hello ${escapeHtml(payment.parent_name)}, a reminder that your trip payment of ${formatPounds(payment.amount_pennies)} is still outstanding.</p>
        <p><a href="https://gsa-host-directory.vercel.app/pay/${payment.token}">Pay securely here</a></p>`
     );
     await supabase

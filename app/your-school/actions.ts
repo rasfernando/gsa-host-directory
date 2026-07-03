@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { notifyGsa } from "@/lib/notify";
+import { notifyGsa, escapeHtml } from "@/lib/notify";
 import { logEvent } from "@/lib/events";
 import { normalizeUrl } from "@/lib/forms";
 
@@ -127,8 +127,8 @@ export async function updateListing(formData: FormData) {
 
   await logEvent("profile_changes_submitted", { profile_id: profile.id });
   await notifyGsa(
-    `Profile changes to review: ${profile.name}`,
-    `<p><strong>${profile.name}</strong> has submitted changes to its live profile. They are held for re-approval and not yet public.</p>
+    `Profile changes to review: ${escapeHtml(profile.name)}`,
+    `<p><strong>${escapeHtml(profile.name)}</strong> has submitted changes to its live profile. They are held for re-approval and not yet public.</p>
      <p><a href="https://gsa-host-directory.vercel.app/admin/profiles">Review changes</a></p>`
   );
   redirect("/your-school/listing?staged=1");
@@ -303,8 +303,8 @@ export async function updateApplication(formData: FormData) {
     const school = Array.isArray(app.schools) ? app.schools[0] : app.schools;
     await logEvent("application_resubmitted", { school_id: schoolId });
     await notifyGsa(
-      `Application updated — ${school?.name ?? "a school"} responded to your request`,
-      `<p><strong>${school?.name ?? "A school"}</strong> has updated its application in response to your request for more information.</p>
+      `Application updated — ${escapeHtml(school?.name ?? "a school")} responded to your request`,
+      `<p><strong>${escapeHtml(school?.name ?? "A school")}</strong> has updated its application in response to your request for more information.</p>
        <p><a href="https://gsa-host-directory.vercel.app/admin">Open the review queue</a></p>`
     );
     redirect("/your-school/application?responded=1");

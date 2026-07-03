@@ -11,7 +11,12 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get("code");
   const token_hash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
-  const next = searchParams.get("next") ?? "/apply";
+  // Only allow same-origin relative redirects. `new URL(next, base)` would
+  // happily resolve an absolute (`https://evil.com`) or protocol-relative
+  // (`//evil.com`) target off-site — an open redirect after login.
+  const rawNext = searchParams.get("next") ?? "/apply";
+  const next =
+    rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/apply";
 
   const supabase = await createClient();
 

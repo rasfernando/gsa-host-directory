@@ -1,5 +1,5 @@
 import { createServiceClient } from "@/lib/supabase/service";
-import { sendEmail, notifyGsa } from "@/lib/notify";
+import { sendEmail, notifyGsa, escapeHtml } from "@/lib/notify";
 import { contentHash, translateAndStoreProfile, translationEnabled } from "@/lib/translate";
 import { getXeroInvoiceStatus, xeroEnabled } from "@/lib/xero";
 import { formatPounds } from "@/lib/money";
@@ -45,7 +45,7 @@ export async function GET(req: Request) {
          <p>If you still want to run the trip, you can start a new reservation any time: <a href="${tripUrl}">view the trip</a>.</p>`
       );
       await notifyGsa(
-        `Reservation auto-cancelled — ${row.school_name ?? "a school"}`,
+        `Reservation auto-cancelled — ${escapeHtml(row.school_name ?? "a school")}`,
         `<p>The 30-day conversion window expired. Deposit marked refunded — process the refund.</p>
          <p><a href="https://gsa-host-directory.vercel.app/admin/trips/${row.trip_id}">Open the trip</a></p>`
       );
@@ -112,7 +112,7 @@ export async function GET(req: Request) {
     } else if (row.kind === "travel_pack") {
       if (row.missing_doc) {
         await notifyGsa(
-          `Travel pack missing — ${row.school_name ?? "a trip"} departs in ${row.days_left} days`,
+          `Travel pack missing — ${escapeHtml(row.school_name ?? "a trip")} departs in ${row.days_left} days`,
           `<p>No final travel pack has been uploaded yet for this trip. Upload it so the school has tickets, transfers and emergency contacts in one place.</p>
            <p><a href="https://gsa-host-directory.vercel.app/admin/trips/${row.trip_id}">Upload the pack</a></p>`
         );
@@ -193,8 +193,8 @@ export async function GET(req: Request) {
     await sendEmail(
       organiser?.email,
       overdue
-        ? `Overdue: invoice ${inv.invoice_number}`
-        : `${d} day${d === 1 ? "" : "s"} to pay invoice ${inv.invoice_number}`,
+        ? `Overdue: invoice ${escapeHtml(inv.invoice_number)}`
+        : `${d} day${d === 1 ? "" : "s"} to pay invoice ${escapeHtml(inv.invoice_number)}`,
       `<p>${overdue ? "Your school invoice is now overdue." : `Your school invoice is due in ${d} day${d === 1 ? "" : "s"}.`} Amount outstanding: ${formatPounds(inv.amount_pennies)}.</p>
        ${inv.xero_url ? `<p><a href="${inv.xero_url}">View &amp; pay the invoice</a></p>` : `<p><a href="https://gsa-host-directory.vercel.app/trips/${inv.trip_id}">View your trip &amp; invoice</a></p>`}`
     );

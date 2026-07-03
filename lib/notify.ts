@@ -1,3 +1,16 @@
+// Escape user/DB-supplied text before interpolating into email HTML.
+// Our emails are built by string interpolation (no framework escaping), so any
+// value that originates from a form or the database MUST pass through this or an
+// attacker can inject markup/links into mail sent from our domain.
+export function escapeHtml(value: unknown): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 // Sends an email notification to the GSA team via Resend.
 // Gracefully does nothing if RESEND_API_KEY isn't configured —
 // submissions must never fail because email is down or unconfigured.

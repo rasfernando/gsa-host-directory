@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { logEvent } from "@/lib/events";
-import { sendEmail } from "@/lib/notify";
+import { sendEmail, escapeHtml } from "@/lib/notify";
 import { geocodeSchool } from "@/lib/geocode";
 import { translateAndStoreProfile } from "@/lib/translate";
 import { awardCredits } from "@/lib/credits";
@@ -421,9 +421,9 @@ export async function requestMoreInfo(formData: FormData) {
   // sending domain is verified. The in-portal banner is the reliable channel.
   await sendEmail(
     school?.contact_email ?? undefined,
-    `GSA needs a little more information — ${school?.name ?? "your application"}`,
+    `GSA needs a little more information — ${escapeHtml(school?.name ?? "your application")}`,
     `<p>The GSA team has reviewed your accreditation application and needs a bit more from you:</p>
-     <blockquote>${note}</blockquote>
+     <blockquote>${escapeHtml(note)}</blockquote>
      <p>Please respond here: <a href="https://gsa-host-directory.vercel.app/your-school/application">your application</a>.</p>`
   );
 

@@ -15,6 +15,17 @@ export type MapSchool = {
   lng: number;
 };
 
+// Popups are built with setHTML (raw HTML, bypasses React escaping), so any
+// host-controlled text (name, city) must be escaped to prevent stored XSS.
+function esc(value: string | null | undefined): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 // Brand rules carried onto the map: emerald is accreditation-only,
 // navy for verified.
 const PIN_COLORS: Record<string, string> = {
@@ -53,8 +64,8 @@ export function DirectoryMap({
     for (const s of schools) {
       const popup = new mapboxgl.Popup({ offset: 24, closeButton: false }).setHTML(
         `<div style="font-family:inherit;min-width:160px">
-           <a href="/directory/${s.slug}" style="font-weight:600;color:#1c1917;text-decoration:none">${s.name}</a>
-           <div style="font-size:12px;color:#78716c;margin-top:2px">${s.city ? `${s.city}, ` : ""}${s.country}</div>
+           <a href="/directory/${esc(s.slug)}" style="font-weight:600;color:#1c1917;text-decoration:none">${esc(s.name)}</a>
+           <div style="font-size:12px;color:#78716c;margin-top:2px">${s.city ? `${esc(s.city)}, ` : ""}${esc(s.country)}</div>
            ${
              s.tier === "accredited"
                ? '<div style="font-size:11px;font-weight:600;color:#065f46;margin-top:4px">GSA Accredited</div>'
