@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, daysUntil } from "@/lib/trips";
 import { inputCls, labelCls } from "@/lib/forms";
@@ -24,10 +25,10 @@ function splitName(full: string | null | undefined): { first: string; last: stri
 
 export const dynamic = "force-dynamic";
 
-const TEMPLATE_TITLES: Record<string, string> = {
-  gcc: "Global Citizen Camp host intake",
-  standard: "Host school intake",
-  other: "Partner school intake",
+const TEMPLATE_TITLE_KEYS: Record<string, string> = {
+  gcc: "titleGcc",
+  standard: "titleStandard",
+  other: "titleOther",
 };
 
 // Private "GSA invited you" landing — bypasses the public register form.
@@ -40,6 +41,7 @@ export default async function OnboardPage({
 }) {
   const { token } = await params;
   const { error } = await searchParams;
+  const t = await getTranslations("onboard");
   const supabase = await createClient();
 
   const { data: inviteRows } = await supabase.rpc("intake_invite_by_token", {
@@ -94,22 +96,21 @@ export default async function OnboardPage({
     return (
       <div className="mx-auto max-w-xl py-16 text-center">
         <h1 className="text-3xl font-bold tracking-tight">
-          Looks like your profile needs some further details…
+          {t("alreadyTitle")}
         </h1>
         <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-stone-600">
-          We&apos;ve already got the start of {invite.school_name}&apos;s
-          profile. Pick up where you left off and add what&apos;s outstanding.
+          {t("alreadyBody", { school: invite.school_name })}
         </p>
         <Link
           href="/your-school"
           className="mt-6 inline-block rounded-lg bg-warm-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-warm-700"
         >
-          Complete Profile
+          {t("alreadyCta")}
         </Link>
         <p className="mt-4 text-xs text-stone-500">
-          Need a hand?{" "}
+          {t("needHand")}{" "}
           <a href="mailto:hello@globalschoolalliance.com" className="underline">
-            Get in touch
+            {t("getInTouch")}
           </a>
           .
         </p>
@@ -123,43 +124,46 @@ export default async function OnboardPage({
   return (
     <div className="mx-auto max-w-2xl">
       <p className="text-xs font-semibold uppercase tracking-wider text-warm-600">
-        GSA invited you
+        {t("kicker")}
       </p>
       <h1 className="mt-2 text-3xl font-bold tracking-tight">
-        {TEMPLATE_TITLES[invite.template] ?? "School intake"} —{" "}
+        {t(TEMPLATE_TITLE_KEYS[invite.template] ?? "titleDefault")} —{" "}
         {invite.school_name}
       </h1>
       <p className="mt-2 text-sm leading-relaxed text-stone-600">
-        {invite.message ||
-          "The Global School Alliance would like your school on the platform. Tell us about your school — it takes about ten minutes, and the GSA team handles the rest."}
+        {invite.message || t("introDefault")}
       </p>
       {cohort && (
         <p className="mt-3 rounded-xl bg-warm-50 p-4 text-sm text-warm-700">
-          The <strong>{cohort.name}</strong> verification window closes{" "}
-          {formatDate(cohort.evidence_deadline)}
-          {daysUntil(cohort.evidence_deadline) != null &&
-            ` — ${daysUntil(cohort.evidence_deadline)} days left`}
-          . Complete your intake now and submit evidence to make this cohort.
+          {t.rich("cohortWindow", {
+            name: cohort.name,
+            date: formatDate(cohort.evidence_deadline),
+            strong: (chunks) => <strong>{chunks}</strong>,
+          })}
+          {(() => {
+            const days = daysUntil(cohort.evidence_deadline);
+            return days != null ? ` — ${t("cohortDaysLeft", { days })}` : "";
+          })()}
+          . {t("cohortCta")}
         </p>
       )}
 
       {error && (
         <p className="mt-4 rounded-xl border border-warm-200 bg-warm-50 px-4 py-3 text-sm text-warm-700">
-          {decodeURIComponent(error)} — please try again.
+          {t("errorRetry", { error: decodeURIComponent(error) })}
         </p>
       )}
 
       {!user ? (
         <div className="mt-8 rounded-2xl border border-stone-200/70 bg-white p-8 text-center shadow-sm">
           <p className="text-sm text-stone-600">
-            Sign in with your school email to complete the intake — we&apos;ll
-            bring you straight back here.
+            {t("signInPrompt")}
           </p>
           <Link
             href={`/login?next=${encodeURIComponent(`/onboard/${token}`)}`}
             className="mt-4 inline-block rounded-lg bg-warm-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-warm-700"
           >
-            Sign in to continue
+            {t("signInCta")}
           </Link>
         </div>
       ) : (
@@ -171,56 +175,56 @@ export default async function OnboardPage({
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className={labelCls} htmlFor="school_name">School name</label>
+              <label className={labelCls} htmlFor="school_name">{t("schoolName")}</label>
               <input className={inputCls} id="school_name" name="school_name" defaultValue={invite.school_name} required />
             </div>
             <div>
-              <label className={labelCls} htmlFor="country">Country</label>
+              <label className={labelCls} htmlFor="country">{t("country")}</label>
               <input className={inputCls} id="country" name="country" defaultValue={invite.country ?? ""} required />
             </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-3">
             <div>
-              <label className={labelCls} htmlFor="state">State / Region</label>
+              <label className={labelCls} htmlFor="state">{t("stateRegion")}</label>
               <input className={inputCls} id="state" name="state" />
             </div>
             <div>
-              <label className={labelCls} htmlFor="city">City</label>
+              <label className={labelCls} htmlFor="city">{t("city")}</label>
               <input className={inputCls} id="city" name="city" />
             </div>
             <div>
-              <label className={labelCls} htmlFor="website">Website</label>
-              <input className={inputCls} id="website" name="website" type="text" inputMode="url" placeholder="yourschool.org" />
+              <label className={labelCls} htmlFor="website">{t("website")}</label>
+              <input className={inputCls} id="website" name="website" type="text" inputMode="url" placeholder={t("websitePlaceholder")} />
             </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className={labelCls} htmlFor="contact_first_name">First name</label>
+              <label className={labelCls} htmlFor="contact_first_name">{t("firstName")}</label>
               <input className={inputCls} id="contact_first_name" name="contact_first_name" defaultValue={invited.first} required />
             </div>
             <div>
-              <label className={labelCls} htmlFor="contact_last_name">Last name</label>
+              <label className={labelCls} htmlFor="contact_last_name">{t("lastName")}</label>
               <input className={inputCls} id="contact_last_name" name="contact_last_name" defaultValue={invited.last} required />
             </div>
           </div>
           <div>
-            <label className={labelCls} htmlFor="contact_email">Contact email</label>
+            <label className={labelCls} htmlFor="contact_email">{t("contactEmail")}</label>
             <input className={inputCls} id="contact_email" name="contact_email" type="email" defaultValue={invite.contact_email ?? user.email ?? ""} />
           </div>
           <RoleField />
           <AgeBandField />
           <div>
-            <label className={labelCls} htmlFor="capacity">Max student group size</label>
+            <label className={labelCls} htmlFor="capacity">{t("capacity")}</label>
             <input className={inputCls} id="capacity" name="capacity" type="number" min={1} />
           </div>
           <LanguagesField />
           <SubjectStrengthsField />
           <div className="flex flex-wrap gap-6 text-sm">
             <label className="flex items-center gap-2">
-              <input type="checkbox" name="boarding" className="accent-warm-600" /> Boarding available
+              <input type="checkbox" name="boarding" className="accent-warm-600" /> {t("boarding")}
             </label>
             <label className="flex items-center gap-2">
-              <input type="checkbox" name="homestay" className="accent-warm-600" /> Homestay available
+              <input type="checkbox" name="homestay" className="accent-warm-600" /> {t("homestay")}
             </label>
           </div>
           <HostedBeforeField />
@@ -235,7 +239,7 @@ export default async function OnboardPage({
           {(invite.template === "standard" || invite.template === "gcc") && (
             <div>
               <label className={labelCls} htmlFor="hosting_experience">
-                Hosting experience so far
+                {t("hostingExperience")}
               </label>
               <textarea className={inputCls} id="hosting_experience" name="hosting_experience" rows={3} />
             </div>
@@ -243,35 +247,37 @@ export default async function OnboardPage({
           {invite.template === "other" && (
             <div>
               <label className={labelCls} htmlFor="product_description">
-                Tell us what you have in mind
+                {t("productDescription")}
               </label>
-              <textarea className={inputCls} id="product_description" name="product_description" rows={4} placeholder="The programme, exchange or partnership you'd like to offer through GSA." />
+              <textarea className={inputCls} id="product_description" name="product_description" rows={4} placeholder={t("productPlaceholder")} />
             </div>
           )}
 
           <div className="rounded-xl bg-stone-50 p-4">
             <p className="text-xs text-stone-500">
-              Information here is confidential and only shared internally with
-              Global School Alliance.
+              {t("confidentialNote")}
             </p>
             <div className="mt-3 grid gap-4 sm:grid-cols-2">
               <div>
-                <label className={labelCls} htmlFor="safeguarding_lead_name">Safeguarding lead</label>
+                <label className={labelCls} htmlFor="safeguarding_lead_name">{t("safeguardingLead")}</label>
                 <input className={inputCls} id="safeguarding_lead_name" name="safeguarding_lead_name" />
               </div>
               <div>
-                <label className={labelCls} htmlFor="safeguarding_lead_email">Safeguarding lead email</label>
+                <label className={labelCls} htmlFor="safeguarding_lead_email">{t("safeguardingLeadEmail")}</label>
                 <input className={inputCls} id="safeguarding_lead_email" name="safeguarding_lead_email" type="email" />
               </div>
             </div>
           </div>
 
           <button className="rounded-lg bg-warm-600 px-5 py-3 text-sm font-semibold text-white transition-colors duration-150 hover:bg-warm-700">
-            Submit intake to GSA
+            {t("submit")}
           </button>
           <p className="text-xs text-stone-500">
-            Next: you&apos;ll upload your safeguarding and risk-assessment
-            evidence for verification{cohort ? ` before ${formatDate(cohort.evidence_deadline)}` : ""}.
+            {t("nextEvidence", {
+              deadline: cohort
+                ? t("beforeDate", { date: formatDate(cohort.evidence_deadline) })
+                : "",
+            })}
           </p>
         </form>
       )}

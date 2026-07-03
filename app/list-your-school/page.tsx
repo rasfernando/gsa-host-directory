@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { inputCls, labelCls } from "@/lib/forms";
 import {
@@ -19,6 +20,7 @@ export default async function ListYourSchoolPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const { error } = await searchParams;
+  const t = await getTranslations("listYourSchool");
   const supabase = await createClient();
   const {
     data: { user },
@@ -31,23 +33,22 @@ export default async function ListYourSchoolPage({
     return (
       <div className="mx-auto max-w-xl py-16 text-center">
         <p className="text-xs font-semibold uppercase tracking-widest text-stone-500">
-          Become a host
+          {t("kicker")}
         </p>
         <h1 className="mt-2 text-3xl font-bold tracking-tight">
-          List your school as a host
+          {t("title")}
         </h1>
         <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-stone-600">
-          Join the global directory in a few minutes. Welcome overseas groups,
-          build global citizenship at your school, and get paid for hosting.
+          {t("intro")}
         </p>
         <Link
           href="/login?next=/list-your-school"
           className="mt-8 inline-block rounded-lg bg-warm-600 px-6 py-3 text-sm font-semibold text-white transition-colors duration-150 hover:bg-warm-700"
         >
-          Sign in to get started
+          {t("signInCta")}
         </Link>
         <p className="mt-3 text-xs text-stone-500">
-          No password needed — we&apos;ll email you a sign-in link.
+          {t("signInHint")}
         </p>
       </div>
     );
@@ -74,32 +75,33 @@ export default async function ListYourSchoolPage({
   return (
     <div className="mx-auto max-w-xl">
       <p className="text-xs font-semibold uppercase tracking-widest text-stone-500">
-        Become a host
+        {t("kicker")}
       </p>
       <h1 className="mt-2 text-3xl font-bold tracking-tight">
-        List your school as a host
+        {t("title")}
       </h1>
       <p className="mt-3 text-sm leading-relaxed text-stone-600">
-        Join the global directory in a few minutes. Welcome overseas groups,
-        build global citizenship at your school, and get paid for hosting.
+        {t("intro")}
       </p>
       <p className="mt-2 text-sm leading-relaxed text-stone-500">
-        Signed in as {user?.email}. Listings get a quick review from the GSA
-        team before going live. You can apply for full{" "}
-        <Link href="/apply" className="underline">GSA accreditation</Link>{" "}
-        — the gold standard, actively promoted by GSA — at any time.
+        {t("signedInAs", { email: user?.email ?? "" })}{" "}
+        {t.rich("accreditationNote", {
+          link: (chunks) => (
+            <Link href="/apply" className="underline">
+              {chunks}
+            </Link>
+          ),
+        })}
       </p>
 
       {error && (
         <p className="mt-4 rounded-xl border border-warm-200 bg-warm-50 px-4 py-3 text-sm text-warm-700">
-          {decodeURIComponent(error)} — please try again, or email
-          hello@globalschoolalliance.com if it persists.
+          {t("errorBanner", { message: decodeURIComponent(error) })}
         </p>
       )}
 
       <p className="mt-6 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-800">
-        Information shared here will be visible on your profile after
-        verification.
+        {t("visibilityNote")}
       </p>
 
       <form
@@ -107,51 +109,51 @@ export default async function ListYourSchoolPage({
         className="mt-4 space-y-4 rounded-2xl border border-stone-200/70 bg-white p-6 shadow-sm sm:p-8"
       >
         <div>
-          <label className={labelCls} htmlFor="school_name">School name</label>
+          <label className={labelCls} htmlFor="school_name">{t("schoolNameLabel")}</label>
           <input className={inputCls} id="school_name" name="school_name" required />
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
-            <label className={labelCls} htmlFor="country">Country</label>
+            <label className={labelCls} htmlFor="country">{t("countryLabel")}</label>
             <input className={inputCls} id="country" name="country" required />
           </div>
           <div>
             <label className={labelCls} htmlFor="state">
-              State / Region <span className="font-normal text-stone-500">(if applicable)</span>
+              {t("stateLabel")} <span className="font-normal text-stone-500">{t("stateHint")}</span>
             </label>
             <input className={inputCls} id="state" name="state" />
           </div>
           <div>
-            <label className={labelCls} htmlFor="city">City</label>
+            <label className={labelCls} htmlFor="city">{t("cityLabel")}</label>
             <input className={inputCls} id="city" name="city" />
           </div>
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className={labelCls} htmlFor="contact_first_name">First name</label>
+            <label className={labelCls} htmlFor="contact_first_name">{t("firstNameLabel")}</label>
             <input className={inputCls} id="contact_first_name" name="contact_first_name" required />
           </div>
           <div>
-            <label className={labelCls} htmlFor="contact_last_name">Last name</label>
+            <label className={labelCls} htmlFor="contact_last_name">{t("lastNameLabel")}</label>
             <input className={inputCls} id="contact_last_name" name="contact_last_name" required />
           </div>
         </div>
         <RoleField />
         <div>
-          <label className={labelCls} htmlFor="website">School website</label>
-          <input className={inputCls} id="website" name="website" type="text" inputMode="url" placeholder="yourschool.org" required />
-          <p className="mt-1 text-xs text-stone-500">No need for https:// — we&apos;ll add it.</p>
+          <label className={labelCls} htmlFor="website">{t("websiteLabel")}</label>
+          <input className={inputCls} id="website" name="website" type="text" inputMode="url" placeholder={t("websitePlaceholder")} required />
+          <p className="mt-1 text-xs text-stone-500">{t("websiteHint")}</p>
         </div>
         <div>
           <label className={labelCls} htmlFor="headline">
-            One-line description of your school
+            {t("headlineLabel")}
           </label>
-          <input className={inputCls} id="headline" name="headline" placeholder="e.g. Bilingual secondary school with a strong arts programme" />
+          <input className={inputCls} id="headline" name="headline" placeholder={t("headlinePlaceholder")} />
         </div>
         <WhyHostField />
         <AgeBandField />
         <div>
-          <label className={labelCls} htmlFor="capacity">Max student group size</label>
+          <label className={labelCls} htmlFor="capacity">{t("capacityLabel")}</label>
           <input className={inputCls} id="capacity" name="capacity" type="number" min={1} />
         </div>
         <LanguagesField />
@@ -159,18 +161,18 @@ export default async function ListYourSchoolPage({
         <div className="flex gap-6">
           <label className="flex items-center gap-2 text-sm text-stone-700">
             <input type="checkbox" name="boarding" className="rounded border-stone-300" />
-            Boarding available
+            {t("boardingLabel")}
           </label>
           <label className="flex items-center gap-2 text-sm text-stone-700">
             <input type="checkbox" name="homestay" className="rounded border-stone-300" />
-            Homestay available
+            {t("homestayLabel")}
           </label>
         </div>
         <HostedBeforeField />
         <HostMonthsField />
         <div>
           <label className={labelCls} htmlFor="photo">
-            A photo of your school <span className="font-normal text-stone-500">(optional, but listings with photos get far more interest)</span>
+            {t("photoLabel")} <span className="font-normal text-stone-500">{t("photoHint")}</span>
           </label>
           <input
             className="mt-1 w-full text-sm text-stone-600 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-brand-700 hover:file:bg-brand-100"
@@ -184,11 +186,10 @@ export default async function ListYourSchoolPage({
           type="submit"
           className="w-full rounded-lg bg-warm-600 px-4 py-3 text-sm font-semibold text-white transition-colors duration-150 hover:bg-warm-700"
         >
-          Submit my profile for review
+          {t("submitButton")}
         </button>
         <p className="text-center text-xs text-stone-500">
-          The GSA team reviews every listing — we&apos;ll contact you with
-          updates on your profile.
+          {t("reviewNote")}
         </p>
       </form>
     </div>

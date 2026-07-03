@@ -1,10 +1,12 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { SchoolCard } from "@/components/school-card";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
+  const t = await getTranslations("home");
   const supabase = await createClient();
   const { data: featured } = await supabase
     .from("host_profiles")
@@ -31,21 +33,20 @@ export default async function Home() {
         <div className="relative mx-auto max-w-5xl px-6 py-24 sm:py-32">
           <div className="max-w-xl">
             <p className="text-xs font-semibold uppercase tracking-widest text-warm-200">
-              Global School Alliance
+              {t("heroKicker")}
             </p>
             <h1 className="mt-4 text-4xl font-bold leading-tight tracking-tight text-white sm:text-6xl">
-              Find a host school for your students
+              {t("heroTitle")}
             </h1>
             <p className="mt-5 max-w-md text-base leading-relaxed text-brand-100 sm:text-lg">
-              Browse schools around the world ready to welcome visiting groups —
-              every one reviewed by the GSA team.
+              {t("heroSubtitle")}
             </p>
 
             <Link
               href="/directory"
               className="mt-8 inline-block rounded-lg bg-warm-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-colors duration-150 hover:bg-warm-700"
             >
-              Browse all host schools
+              {t("browseAllHostSchools")}
             </Link>
           </div>
         </div>
@@ -57,17 +58,17 @@ export default async function Home() {
           <div className="flex items-end justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-widest text-warm-700">
-                Host schools
+                {t("featuredKicker")}
               </p>
               <h2 className="mt-2 text-2xl font-bold tracking-tight">
-                Schools welcoming visiting groups
+                {t("featuredTitle")}
               </h2>
             </div>
             <Link
               href="/directory"
               className="hidden shrink-0 text-sm font-semibold text-warm-700 transition-colors duration-150 hover:text-warm-600 sm:inline-flex sm:items-center sm:gap-1"
             >
-              Browse all <span aria-hidden>→</span>
+              {t("browseAll")} <span aria-hidden>→</span>
             </Link>
           </div>
           <ul className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -81,7 +82,7 @@ export default async function Home() {
             href="/directory"
             className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-warm-700 sm:hidden"
           >
-            Browse all host schools <span aria-hidden>→</span>
+            {t("browseAllHostSchools")} <span aria-hidden>→</span>
           </Link>
         </section>
       )}
@@ -89,23 +90,20 @@ export default async function Home() {
       {/* How it works */}
       <section className="mt-16">
         <p className="text-center text-xs font-semibold uppercase tracking-widest text-warm-700">
-          How it works
+          {t("howItWorksKicker")}
         </p>
         <h2 className="mt-2 text-center text-2xl font-bold tracking-tight">
-          Every visit is looked after by the GSA team
+          {t("howItWorksTitle")}
         </h2>
         <ol className="mt-8 grid gap-4 sm:grid-cols-3">
-          <Step n={1} title="Find a host school">
-            Browse the directory of host schools worldwide — every listing is
-            reviewed by the GSA team before it appears.
+          <Step n={1} title={t("step1Title")}>
+            {t("step1Body")}
           </Step>
-          <Step n={2} title="Send an enquiry">
-            Tell us about your group and what you have in mind. No commitment —
-            it starts a conversation, not a booking.
+          <Step n={2} title={t("step2Title")}>
+            {t("step2Body")}
           </Step>
-          <Step n={3} title="GSA makes it happen">
-            The GSA team introduces you to the school and supports planning
-            from there. You&apos;re never left to arrange things alone.
+          <Step n={3} title={t("step3Title")}>
+            {t("step3Body")}
           </Step>
         </ol>
       </section>
@@ -115,28 +113,25 @@ export default async function Home() {
         <div>
           <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800">
             <CheckIcon className="h-3.5 w-3.5" />
-            GSA Accredited
+            {t("accreditedBadge")}
           </span>
           <p className="mt-3 max-w-xl text-sm leading-relaxed text-stone-600">
-            Look for the accredited badge. It means the GSA team has fully
-            verified the school and issues a verification statement your
-            leadership team can use for trip approval. Every other listing is a
-            reviewed member of the network.
+            {t("accreditedBody")}
           </p>
         </div>
         <Link
           href="/accreditation"
           className="shrink-0 rounded-lg border border-stone-300 px-5 py-2.5 text-center text-sm font-semibold text-stone-700 transition-colors duration-150 hover:border-stone-400"
         >
-          How accreditation works
+          {t("accreditationLink")}
         </Link>
       </section>
 
       {/* Quiet host line — hosting is deliberately de-emphasised here */}
       <p className="mt-8 text-center text-sm text-stone-500">
-        Run a school and want to welcome visiting groups?{" "}
+        {t("hostPrompt")}{" "}
         <Link href="/list-your-school" className="font-semibold text-warm-700 underline">
-          List your school
+          {t("listYourSchool")}
         </Link>
         .
       </p>

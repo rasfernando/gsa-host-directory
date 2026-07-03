@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 
-export default function SubmittedPage() {
+export default async function SubmittedPage() {
+  const t = await getTranslations("apply");
   return (
     <div className="mx-auto max-w-xl py-16 text-center">
       <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
@@ -18,18 +20,16 @@ export default function SubmittedPage() {
         </svg>
       </span>
       <h1 className="mt-5 text-3xl font-bold tracking-tight">
-        Application received
+        {t("submittedTitle")}
       </h1>
       <p className="mt-3 leading-relaxed text-stone-500">
-        Thank you — the GSA team reviews every application personally. We&apos;ll
-        contact you to arrange verification, including a video call with your
-        leadership team.
+        {t("submittedBody")}
       </p>
       <Link
         href="/"
         className="mt-6 inline-block text-sm text-stone-500 underline transition-colors duration-150 hover:text-stone-900"
       >
-        Back to home
+        {t("backHome")}
       </Link>
     </div>
   );

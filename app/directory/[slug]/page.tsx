@@ -212,7 +212,11 @@ export default async function ProfilePage({
           {t("enquireBody")}
         </p>
 
-        {enquiry === "sent" ? (
+        {enquiry === "throttled" ? (
+          <div className="mt-5 rounded-xl bg-amber-50 p-5 text-sm text-amber-900">
+            <p>{t("throttled")}</p>
+          </div>
+        ) : enquiry === "sent" ? (
           <div className="mt-5 rounded-xl bg-emerald-50 p-5 text-sm text-emerald-900">
             <p className="font-semibold">{t("sentTitle")}</p>
             <ol className="mt-2 list-decimal space-y-1.5 pl-5">
