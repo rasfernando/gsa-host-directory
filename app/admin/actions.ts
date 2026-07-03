@@ -7,6 +7,7 @@ import { logEvent } from "@/lib/events";
 import { sendEmail } from "@/lib/notify";
 import { geocodeSchool } from "@/lib/geocode";
 import { translateAndStoreProfile } from "@/lib/translate";
+import { awardCredits } from "@/lib/credits";
 
 // Pin a profile to the map (no-op without GOOGLE_PLACES_API_KEY).
 async function geocodeProfile(
@@ -171,6 +172,7 @@ export async function approveApplication(formData: FormData) {
     school_id: app.school_id,
     profile_id: upserted?.id,
   });
+  await awardCredits(supabase, app.school_id, "profile_verified", applicationId);
 
   revalidatePath("/admin");
   revalidatePath(`/admin/applications/${applicationId}`);
@@ -230,6 +232,9 @@ export async function verifyAndPublish(formData: FormData) {
     school_id: updated?.school_id,
     profile_id: profileId,
   });
+  if (updated?.school_id) {
+    await awardCredits(supabase, updated.school_id, "profile_verified", profileId);
+  }
   await geocodeProfile(supabase, profileId);
   await translateAndStoreProfile(supabase, profileId);
   revalidatePath("/admin/profiles");

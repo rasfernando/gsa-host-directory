@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { inputCls, labelCls } from "@/lib/forms";
 import { formatDate } from "@/lib/trips";
 import { getBookedWindows } from "@/lib/availability";
+import { creditHistory, CREDIT_REASON_LABELS } from "@/lib/credits";
 import { updateContact } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -103,6 +104,8 @@ export default async function YourSchoolPage({
   const bookings = profile
     ? (await getBookedWindows(profile.id)).filter((w) => w.end_date >= today)
     : [];
+
+  const credits = await creditHistory(supabase, up.school_id);
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -320,6 +323,46 @@ export default async function YourSchoolPage({
           </p>
         </section>
       )}
+
+      {/* GSA credits */}
+      <section className="mt-4 rounded-2xl border border-stone-200/70 bg-white p-6 shadow-sm sm:p-8">
+        <div className="flex items-baseline justify-between">
+          <h2 className="text-lg font-bold tracking-tight">Your GSA credits</h2>
+          <p className="text-2xl font-bold text-brand-700">{credits.balance}</p>
+        </div>
+        {credits.rows.length === 0 ? (
+          <p className="mt-1 text-sm text-stone-500">
+            You&apos;ll earn credits as your school takes part — getting
+            verified, booking trips, hosting groups and referring schools.
+          </p>
+        ) : (
+          <ul className="mt-3 divide-y divide-stone-100 rounded-xl border border-stone-200/70">
+            {credits.rows.slice(0, 8).map((r) => (
+              <li
+                key={r.id}
+                className="flex items-center justify-between px-4 py-2.5 text-sm"
+              >
+                <span className="text-stone-700">
+                  {CREDIT_REASON_LABELS[r.reason] ?? r.reason}
+                  {r.note ? (
+                    <span className="text-stone-400"> — {r.note}</span>
+                  ) : null}
+                </span>
+                <span className="flex items-center gap-3">
+                  <span className="text-xs text-stone-400">
+                    {formatDate(r.created_at)}
+                  </span>
+                  <span
+                    className={`font-semibold ${r.delta < 0 ? "text-red-600" : "text-emerald-700"}`}
+                  >
+                    {r.delta > 0 ? `+${r.delta}` : r.delta}
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       {/* Contact details */}
       <section className="mt-8 rounded-2xl border border-stone-200/70 bg-white p-6 shadow-sm sm:p-8">

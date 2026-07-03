@@ -1,5 +1,6 @@
 import { verifyStripeSignature } from "@/lib/stripe";
 import { createServiceClient } from "@/lib/supabase/service";
+import { awardCredits } from "@/lib/credits";
 
 // Stripe test-mode webhook: records completed Checkout Sessions against the
 // matching payment object via the SECURITY DEFINER mark-paid RPCs. Fully
@@ -41,6 +42,24 @@ export async function POST(req: Request) {
         p_trip: md.trip_id,
         p_ref: ref,
       }));
+      if (!error) {
+        // Booking credits to the visiting school (idempotent by ledger key).
+        const { data: trip } = await supabase
+          .from("trips")
+          .select("organiser_id")
+          .eq("id", md.trip_id)
+          .single();
+        const { data: organiser } = trip
+          ? await supabase
+              .from("user_profiles")
+              .select("school_id")
+              .eq("id", trip.organiser_id)
+              .single()
+          : { data: null };
+        if (organiser?.school_id) {
+          await awardCredits(supabase, organiser.school_id, "booking", md.trip_id);
+        }
+      }
     } else if (md.kind === "installment" && md.id) {
       ({ error } = await supabase.rpc("mark_installment_paid", {
         p_installment: md.id,

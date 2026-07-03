@@ -3,6 +3,7 @@ import { sendEmail, notifyGsa } from "@/lib/notify";
 import { contentHash, translateAndStoreProfile, translationEnabled } from "@/lib/translate";
 import { getXeroInvoiceStatus, xeroEnabled } from "@/lib/xero";
 import { formatPounds } from "@/lib/money";
+import { awardCredits } from "@/lib/credits";
 
 // Daily conversion clock (Vercel cron). Expires reservations that didn't
 // convert within 30 days (deposit refunded) and sends the in-window
@@ -201,11 +202,33 @@ export async function GET(req: Request) {
     invoiceReminders++;
   }
 
+  // ── Hosting credits: once a confirmed trip's dates have passed, the host
+  // school earns its hosting credits. Idempotent — the ledger's unique
+  // (school, reason, ref) key makes re-runs a no-op.
+  let hostingCredits = 0;
+  const today = new Date().toISOString().slice(0, 10);
+  const { data: pastTrips } = await supabase
+    .from("trips")
+    .select("id, start_date, num_days, host_profile_id, host_profiles(school_id)")
+    .eq("status", "confirmed")
+    .not("start_date", "is", null)
+    .lt("start_date", today);
+  for (const t of pastTrips ?? []) {
+    const end = new Date(t.start_date);
+    end.setDate(end.getDate() + Math.max(t.num_days ?? 1, 1) - 1);
+    if (end.toISOString().slice(0, 10) >= today) continue; // still running
+    const host = Array.isArray(t.host_profiles) ? t.host_profiles[0] : t.host_profiles;
+    if (!host?.school_id) continue;
+    await awardCredits(supabase, host.school_id, "hosting", t.id);
+    hostingCredits++;
+  }
+
   return Response.json({
     cancelled: rows.filter((r) => r.kind === "cancelled").length,
     reminded: rows.filter((r) => r.kind === "reminder").length,
     departure_events: depRows.length,
     translated,
     invoice_reminders: invoiceReminders,
+    hosting_credit_checks: hostingCredits,
   });
 }

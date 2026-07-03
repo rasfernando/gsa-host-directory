@@ -7,6 +7,7 @@ import { logEvent } from "@/lib/events";
 import { sendEmail } from "@/lib/notify";
 import { formatPounds } from "@/lib/money";
 import { formatDate } from "@/lib/trips";
+import { awardCredits } from "@/lib/credits";
 
 async function requireAdmin() {
   const supabase = await createClient();
@@ -59,6 +60,15 @@ export async function adminMarkDepositPaid(formData: FormData) {
     profile_id: trip.host_profile_id,
     meta: { trip_id: tripId },
   });
+  // Booking credits go to the visiting school once its deposit lands.
+  const { data: organiserProfile } = await supabase
+    .from("user_profiles")
+    .select("school_id")
+    .eq("id", trip.organiser_id)
+    .single();
+  if (organiserProfile?.school_id) {
+    await awardCredits(supabase, organiserProfile.school_id, "booking", tripId);
+  }
   // Receipt to the organiser
   await sendEmail(
     organiser?.email,
