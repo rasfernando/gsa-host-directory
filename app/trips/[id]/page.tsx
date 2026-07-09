@@ -416,7 +416,7 @@ export default async function TripPage({
                 basketOpen={basketOpen}
               />
               <BasketGroup
-                title="Tourism — accommodation, meals, transport & activities"
+                title="Tourism bundle — accommodation, meals & transport included"
                 tone="stone"
                 items={tourismItems}
                 subtotal={tourismSubtotal}
@@ -482,15 +482,17 @@ export default async function TripPage({
         )}
       </section>
 
-      {/* Bolt-ons */}
+      {/* Add-ons — the airline-extras upsell: the immersion bundle already
+          includes accommodation, meals & transport; these are optional extras */}
       {boltOnsOpen && (
         <section className="mt-8">
           <h2 className="text-xl font-bold tracking-tight">
-            Upgrades &amp; bolt-ons
+            Add extras before you book
           </h2>
           <p className="mt-1 text-sm text-stone-500">
-            Flights, attractions and accommodation from GSA&apos;s travel
-            partners. Accommodation is a choice — budget or quality.
+            Your immersion bundle already includes accommodation, meals and
+            transport. Add optional extras here — flights, attractions or an
+            accommodation upgrade — or add more when you book with WeTravel.
           </p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             {boltOns.map((p) => {
