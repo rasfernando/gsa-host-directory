@@ -305,6 +305,24 @@ export async function requestLaunchCall(formData: FormData) {
   redirect(`/trips/${tripId}?call=requested`);
 }
 
+// ── Request the parent-launch pack (temporary: the self-serve toolkit is
+// still being finished, so for now this pings the GSA team to send it over) ──
+export async function requestLaunchPack(formData: FormData) {
+  const tripId = String(formData.get("trip_id"));
+  const { user, trip } = await ownTrip(tripId);
+
+  await logEvent("launch_pack_requested", {
+    profile_id: trip.host_profile_id,
+    meta: { trip_id: tripId },
+  });
+  await notifyGsa(
+    `Parent launch pack requested — ${escapeHtml(trip.organiser_school_name ?? "a school")}`,
+    `<p><strong>${escapeHtml(trip.organiser_school_name ?? "A school")}</strong> (${escapeHtml(user.email)}) has requested their parent-launch pack.</p>
+     <p><a href="https://gsa-host-directory.vercel.app/admin/trips">Open trips</a></p>`
+  );
+  redirect(`/trips/${tripId}?pack=requested`);
+}
+
 // ── Cancellation (refundable until the first payment is made) ───────────────
 export async function cancelTrip(formData: FormData) {
   const tripId = String(formData.get("trip_id"));

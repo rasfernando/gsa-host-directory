@@ -19,7 +19,7 @@ import {
 import {
   addItem,
   removeItem,
-  requestLaunchCall,
+  requestLaunchPack,
   cancelTrip,
   payDeposit,
   commitPlan,
@@ -87,6 +87,7 @@ export default async function TripPage({
     call?: string;
     cancelled?: string;
     error?: string;
+    pack?: string;
     deposit?: string;
     committed?: string;
     payment?: string;
@@ -253,10 +254,10 @@ export default async function TripPage({
           {formatPounds(DEPOSIT_PENNIES)} refundable deposit to lock them in.
         </Flash>
       )}
-      {flags.call && (
+      {flags.pack === "requested" && (
         <Flash tone="ok">
-          Call requested — the GSA team will be in touch to arrange your 1-2-1
-          and parent-launch support.
+          Parent launch pack requested — the GSA team will send yours over
+          shortly.
         </Flash>
       )}
       {flags.cancelled && <Flash tone="warn">This trip has been cancelled.</Flash>}
@@ -975,88 +976,41 @@ export default async function TripPage({
         </section>
       )}
 
-      {/* Quote: the ±10% rule (GSA programme only) */}
-      {!plan && gsaSubtotal > 0 && trip.status !== "cancelled" && (
-        <section className="mt-8 rounded-2xl border border-stone-200/70 bg-white p-6 shadow-sm sm:p-8">
-          <h2 className="text-xl font-bold tracking-tight">
-            Ways to pay your GSA programme
-          </h2>
-          <p className="mt-1 text-sm text-stone-500">
-            Pay upfront and save 10%, or spread the cost with a payment plan
-            (+10%). Both include the GSA service fee (
-            {formatPounds(feePreview)}) and credit your{" "}
-            {formatPounds(DEPOSIT_PENNIES)} deposit. Third-party items are
-            quoted and settled with each supplier directly.
-          </p>
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            <div className="rounded-xl border border-stone-200 p-5">
-              <p className="text-xs font-semibold uppercase tracking-wider text-stone-500">
-                Pay upfront · save 10%
-              </p>
-              <p className="mt-2 text-2xl font-bold text-stone-900">
-                {formatPounds(upfrontTotal(gsaSubtotal) + feePreview)}
-              </p>
-              <p className="mt-1 text-xs text-stone-500">
-                vs {formatPounds(gsaSubtotal + feePreview)} at list price
-              </p>
-            </div>
-            <div className="rounded-xl border border-stone-200 p-5">
-              <p className="text-xs font-semibold uppercase tracking-wider text-stone-500">
-                Payment plan · +10%
-              </p>
-              <p className="mt-2 text-2xl font-bold text-stone-900">
-                {formatPounds(planTotal(gsaSubtotal) + feePreview)}
-              </p>
-              <p className="mt-1 text-xs text-stone-500">
-                service fee first, balance monthly
-              </p>
-            </div>
-          </div>
-          <p className="mt-4 text-xs leading-relaxed text-stone-500">
-            You can invoice your school for the full amount or send each parent
-            their own payment link — you&apos;ll choose when committing the
-            plan{trip.status === "reserved" ? " after the deposit is confirmed" : ""}.
-          </p>
-        </section>
-      )}
-
       {/* Steps 6–7: parent launch pack + 1-2-1 call */}
       {trip.status !== "cancelled" && (
         <section className="mt-8 grid gap-3 sm:grid-cols-2">
           <div className="flex flex-col rounded-2xl border border-stone-200/70 bg-white p-6 shadow-sm">
             <h3 className="text-sm font-semibold text-stone-900">
-              Parent-launch toolkit
+              Parent launch pack
             </h3>
             <p className="mt-1.5 flex-1 text-sm leading-relaxed text-stone-600">
-              The printable pack, a 10-minute presentation script, and
-              copy-paste comms for your parent channels.
+              A printable pack, presentation script and copy-paste comms to
+              launch the trip to parents. Request it and the GSA team will send
+              yours over.
             </p>
-            <Link
-              href={`/trips/${id}/toolkit`}
-              className="mt-4 self-start rounded-lg bg-warm-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-warm-700"
-            >
-              Open the toolkit
-            </Link>
+            <form action={requestLaunchPack} className="mt-4">
+              <input type="hidden" name="trip_id" value={id} />
+              <button className="self-start rounded-lg bg-warm-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-warm-700">
+                Request parent launch pack
+              </button>
+            </form>
           </div>
           <div className="flex flex-col rounded-2xl border border-stone-200/70 bg-white p-6 shadow-sm">
             <h3 className="text-sm font-semibold text-stone-900">
               1-2-1 call &amp; parent-launch support
             </h3>
-            <p className="mt-1.5 text-sm leading-relaxed text-stone-600">
+            <p className="mt-1.5 flex-1 text-sm leading-relaxed text-stone-600">
               Book a call with the GSA team — we&apos;ll help you present the
               trip and answer parents&apos; questions.
             </p>
-            <form action={requestLaunchCall} className="mt-4 flex gap-2">
-              <input type="hidden" name="trip_id" value={id} />
-              <input
-                name="preferred_times"
-                placeholder="Preferred times, e.g. Tue/Wed after 4pm"
-                className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-xs focus:border-brand-600 focus:outline-none"
-              />
-              <button className="shrink-0 rounded-lg border border-warm-600 px-3.5 py-2 text-xs font-semibold text-warm-700 transition-colors duration-150 hover:bg-warm-50">
-                Book a call
-              </button>
-            </form>
+            <a
+              href="https://meetings-eu1.hubspot.com/toni1"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-4 self-start rounded-lg border border-warm-600 px-4 py-2.5 text-sm font-semibold text-warm-700 transition-colors duration-150 hover:bg-warm-50"
+            >
+              Book a call
+            </a>
           </div>
         </section>
       )}

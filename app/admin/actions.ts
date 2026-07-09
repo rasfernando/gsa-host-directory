@@ -178,6 +178,126 @@ export async function approveApplication(formData: FormData) {
   revalidatePath(`/admin/applications/${applicationId}`);
 }
 
+// ── Admin direct profile editing ────────────────────────────────────────────
+// GSA staff edit a school's directory profile in place — no staged-change/
+// re-approval flow (that's for schools editing their own live listing). Writes
+// apply immediately; admins are exempt from the host_profile edit-lock trigger.
+const parseCsv = (v: FormDataEntryValue | null) =>
+  String(v ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+export async function adminUpdateProfile(formData: FormData) {
+  const { supabase } = await requireAdmin();
+  const id = String(formData.get("profile_id"));
+  const num = (k: string) => (formData.get(k) ? Number(formData.get(k)) : null);
+
+  const fields = {
+    name: String(formData.get("name") || "") || null,
+    headline: String(formData.get("headline") || "") || null,
+    description: String(formData.get("description") || "") || null,
+    city: String(formData.get("city") || "") || null,
+    state: String(formData.get("state") || "") || null,
+    why_host: String(formData.get("why_host") || "") || null,
+    languages: parseCsv(formData.get("languages")),
+    subject_strengths: parseCsv(formData.get("subject_strengths")),
+    focus_tags: formData.getAll("focus_areas").map(String).filter(Boolean),
+    boarding: formData.get("boarding") === "on",
+    homestay: formData.get("homestay") === "on",
+    age_range_min: num("age_range_min"),
+    age_range_max: num("age_range_max"),
+    capacity: num("capacity"),
+    host_months: formData.getAll("host_months").map(String),
+  };
+
+  const { error } = await supabase
+    .from("host_profiles")
+    .update(fields)
+    .eq("id", id);
+  if (error) redirect(`/admin/profiles/${id}/edit?error=${encodeURIComponent(error.message)}`);
+
+  await logEvent("admin_profile_edited", { profile_id: id });
+  await geocodeProfile(supabase, id);
+  await translateAndStoreProfile(supabase, id);
+  revalidatePath(`/admin/profiles/${id}/edit`);
+  revalidatePath("/admin/profiles");
+  revalidatePath("/directory");
+  redirect(`/admin/profiles/${id}/edit?saved=1`);
+}
+
+async function adminProfileMedia(id: string) {
+  const { supabase } = await requireAdmin();
+  const { data: profile } = await supabase
+    .from("host_profiles")
+    .select("school_id, media")
+    .eq("id", id)
+    .single();
+  return { supabase, profile };
+}
+
+export async function adminAddProfilePhoto(formData: FormData) {
+  const id = String(formData.get("profile_id"));
+  const { supabase, profile } = await adminProfileMedia(id);
+  if (!profile) redirect("/admin/profiles");
+
+  const photo = formData.get("photo") as File | null;
+  if (!photo || photo.size === 0) redirect(`/admin/profiles/${id}/edit?error=nophoto`);
+  if (photo.size > 5 * 1024 * 1024) redirect(`/admin/profiles/${id}/edit?error=toobig`);
+  if (!["image/jpeg", "image/png", "image/webp"].includes(photo.type))
+    redirect(`/admin/profiles/${id}/edit?error=type`);
+
+  const media = ((profile.media as { url: string }[]) ?? []).slice();
+  if (media.length >= 8) redirect(`/admin/profiles/${id}/edit?error=max`);
+
+  const ext = photo.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+  const path = `${profile.school_id}/photo-${Date.now()}.${ext}`;
+  const { error: uploadError } = await supabase.storage
+    .from("school-media")
+    .upload(path, photo, { contentType: photo.type });
+  if (uploadError) redirect(`/admin/profiles/${id}/edit?error=${encodeURIComponent(uploadError.message)}`);
+
+  const { data: pub } = supabase.storage.from("school-media").getPublicUrl(path);
+  await supabase
+    .from("host_profiles")
+    .update({ media: [...media, { url: pub.publicUrl }] })
+    .eq("id", id);
+  revalidatePath(`/admin/profiles/${id}/edit`);
+  revalidatePath("/directory");
+  redirect(`/admin/profiles/${id}/edit?saved=photo`);
+}
+
+export async function adminRemoveProfilePhoto(formData: FormData) {
+  const id = String(formData.get("profile_id"));
+  const index = Number(formData.get("index"));
+  const { supabase, profile } = await adminProfileMedia(id);
+  if (!profile) redirect("/admin/profiles");
+  const media = ((profile.media as { url: string }[]) ?? []).slice();
+  if (Number.isInteger(index) && index >= 0 && index < media.length) {
+    media.splice(index, 1);
+    await supabase.from("host_profiles").update({ media }).eq("id", id);
+  }
+  revalidatePath(`/admin/profiles/${id}/edit`);
+  revalidatePath("/directory");
+  redirect(`/admin/profiles/${id}/edit?saved=photo`);
+}
+
+export async function adminSetProfileCover(formData: FormData) {
+  const id = String(formData.get("profile_id"));
+  const index = Number(formData.get("index"));
+  const { supabase, profile } = await adminProfileMedia(id);
+  if (!profile) redirect("/admin/profiles");
+  const media = ((profile.media as { url: string }[]) ?? []).slice();
+  if (Number.isInteger(index) && index > 0 && index < media.length) {
+    const [chosen] = media.splice(index, 1);
+    media.unshift(chosen);
+    await supabase.from("host_profiles").update({ media }).eq("id", id);
+  }
+  revalidatePath(`/admin/profiles/${id}/edit`);
+  revalidatePath("/directory");
+  redirect(`/admin/profiles/${id}/edit?saved=photo`);
+}
+
 // Publish / unpublish a directory profile
 export async function togglePublish(formData: FormData) {
   const { supabase } = await requireAdmin();

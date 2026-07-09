@@ -311,6 +311,12 @@ export default async function AdminProfiles({
                 </p>
               </div>
               <div className="flex items-center gap-2">
+                <Link
+                  href={`/admin/profiles/${p.id}/edit`}
+                  className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                >
+                  Edit profile
+                </Link>
                 {p.tier === "verified" && (
                   <form action={setProfileTier}>
                     <input type="hidden" name="profile_id" value={p.id} />

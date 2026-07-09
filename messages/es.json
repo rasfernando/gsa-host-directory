@@ -172,7 +172,8 @@
     "accreditedBody": "Busca el distintivo de acreditación. Significa que el equipo de GSA ha verificado por completo el colegio y emite una declaración de verificación que tu equipo directivo puede usar para aprobar el viaje. Todos los demás perfiles son miembros revisados de la red.",
     "accreditationLink": "Cómo funciona la acreditación",
     "hostPrompt": "¿Diriges un colegio y quieres recibir grupos visitantes?",
-    "listYourSchool": "Publica tu colegio"
+    "listYourSchool": "Publica tu colegio",
+    "featuredComingSoon": "Inmersión destacada próximamente"
   },
   "login": {
     "title": "Iniciar sesión",

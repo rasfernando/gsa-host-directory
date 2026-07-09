@@ -122,7 +122,8 @@
     "accreditedBody": "Look for the accredited badge. It means the GSA team has fully verified the school and issues a verification statement your leadership team can use for trip approval. Every other listing is a reviewed member of the network.",
     "accreditationLink": "How accreditation works",
     "hostPrompt": "Run a school and want to welcome visiting groups?",
-    "listYourSchool": "List your school"
+    "listYourSchool": "List your school",
+    "featuredComingSoon": "Featured immersion coming soon"
   },
   "login": {
     "title": "Sign in",

@@ -172,7 +172,8 @@
     "accreditedBody": "Repérez le badge d'accréditation. Il signifie que l'équipe GSA a entièrement vérifié l'école et délivre une attestation de vérification que votre direction peut utiliser pour l'approbation du voyage. Toutes les autres fiches correspondent à des membres examinés du réseau.",
     "accreditationLink": "Comment fonctionne l'accréditation",
     "hostPrompt": "Vous dirigez une école et souhaitez accueillir des groupes en visite ?",
-    "listYourSchool": "Référencez votre école"
+    "listYourSchool": "Référencez votre école",
+    "featuredComingSoon": "Immersion à la une bientôt disponible"
   },
   "login": {
     "title": "Se connecter",

@@ -52,25 +52,27 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Featured schools — the product, framed for sizing up the field */}
-      {featured && featured.length > 0 && (
-        <section className="mt-16">
-          <div className="flex items-end justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-warm-700">
-                {t("featuredKicker")}
-              </p>
-              <h2 className="mt-2 text-2xl font-bold tracking-tight">
-                {t("featuredTitle")}
-              </h2>
-            </div>
-            <Link
-              href="/directory"
-              className="hidden shrink-0 text-sm font-semibold text-warm-700 transition-colors duration-150 hover:text-warm-600 sm:inline-flex sm:items-center sm:gap-1"
-            >
-              {t("browseAll")} <span aria-hidden>→</span>
-            </Link>
+      {/* Featured immersions — the product, framed for sizing up the field.
+          Always shown: real cards once schools are published, ~6 placeholder
+          slots while the directory is still filling up. */}
+      <section className="mt-16">
+        <div className="flex items-end justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-warm-700">
+              {t("featuredKicker")}
+            </p>
+            <h2 className="mt-2 text-2xl font-bold tracking-tight">
+              {t("featuredTitle")}
+            </h2>
           </div>
+          <Link
+            href="/directory"
+            className="hidden shrink-0 text-sm font-semibold text-warm-700 transition-colors duration-150 hover:text-warm-600 sm:inline-flex sm:items-center sm:gap-1"
+          >
+            {t("browseAll")} <span aria-hidden>→</span>
+          </Link>
+        </div>
+        {featured && featured.length > 0 ? (
           <ul className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {featured.map((p) => (
               <li key={p.id}>
@@ -78,14 +80,32 @@ export default async function Home() {
               </li>
             ))}
           </ul>
-          <Link
-            href="/directory"
-            className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-warm-700 sm:hidden"
-          >
-            {t("browseAllHostSchools")} <span aria-hidden>→</span>
-          </Link>
-        </section>
-      )}
+        ) : (
+          <ul className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, idx) => (
+              <li
+                key={idx}
+                className="flex min-h-[200px] flex-col items-center justify-center rounded-2xl border border-dashed border-stone-300 bg-stone-50/60 p-6 text-center"
+              >
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-warm-100 text-warm-700">
+                  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h.01M15 9h.01M9 13h.01M15 13h.01M9 17h.01M15 17h.01" />
+                  </svg>
+                </span>
+                <p className="mt-3 text-sm font-medium text-stone-500">
+                  {t("featuredComingSoon")}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+        <Link
+          href="/directory"
+          className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-warm-700 sm:hidden"
+        >
+          {t("browseAllHostSchools")} <span aria-hidden>→</span>
+        </Link>
+      </section>
 
       {/* How it works */}
       <section className="mt-16">
