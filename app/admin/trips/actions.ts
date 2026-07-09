@@ -257,6 +257,21 @@ export async function setInvoiceStatus(formData: FormData) {
   redirect(`/admin/trips/${tripId}?saved=invoice`);
 }
 
+// ── WeTravel link (admin sets the trip's travel/tourism checkout URL) ───────
+export async function setWetravelUrl(formData: FormData) {
+  const { supabase } = await requireAdmin();
+  const tripId = String(formData.get("trip_id"));
+  const raw = String(formData.get("wetravel_url") || "").trim();
+  const url = raw ? (/^https?:\/\//i.test(raw) ? raw : `https://${raw}`) : null;
+
+  const { error } = await supabase
+    .from("trips")
+    .update({ wetravel_url: url })
+    .eq("id", tripId);
+  if (error) redirect(`/admin/trips/${tripId}?error=${encodeURIComponent(error.message)}`);
+  redirect(`/admin/trips/${tripId}?saved=wetravel`);
+}
+
 // ── Custom basket lines (admin only; price set by GSA) ──────────────────────
 export async function addCustomLine(formData: FormData) {
   const { supabase } = await requireAdmin();

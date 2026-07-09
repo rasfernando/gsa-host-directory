@@ -22,6 +22,7 @@ import {
   adminCompleteTrip,
   confirmQuote,
   adminMarkSettlement,
+  setWetravelUrl,
 } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -175,6 +176,28 @@ export default async function AdminTripPage({
           {decodeURIComponent(flags.error)}
         </div>
       )}
+
+      {/* WeTravel link for the flights & tourism portion */}
+      <section className="mt-6 rounded-xl border border-gray-200 bg-white p-5">
+        <h2 className="text-sm font-semibold text-gray-900">WeTravel link</h2>
+        <p className="mt-1 text-xs text-gray-500">
+          The WeTravel product URL for this trip&apos;s flights &amp; tourism.
+          Once set, the organiser sees a &quot;Book travel via WeTravel&quot;
+          button in their basket.
+        </p>
+        <form action={setWetravelUrl} className="mt-3 flex flex-wrap items-center gap-2">
+          <input type="hidden" name="trip_id" value={id} />
+          <input
+            name="wetravel_url"
+            defaultValue={trip.wetravel_url ?? ""}
+            placeholder="https://www.wetravel.com/trips/…"
+            className="min-w-[280px] flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none"
+          />
+          <button className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-700">
+            Save link
+          </button>
+        </form>
+      </section>
 
       {/* Deposit */}
       <section className="mt-6 rounded-xl border border-gray-200 bg-white p-5">

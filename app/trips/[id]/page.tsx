@@ -202,7 +202,16 @@ export default async function TripPage({
   const subtotal = items.reduce((s, i) => s + i.line_total_pennies, 0);
   const gsaItems = items.filter(isGsaItem);
   const thirdPartyItems = items.filter((i) => !isGsaItem(i));
+  // Three buyer-facing groups. Immersion is paid through the GSA plan; flights &
+  // tourism are booked separately via WeTravel (kept un-packaged on purpose).
+  const flightItems = thirdPartyItems.filter((i) => i.category === "flight");
+  const tourismItems = thirdPartyItems.filter((i) => i.category !== "flight");
+  const sum = (arr: Item[]) => arr.reduce((s, i) => s + i.line_total_pennies, 0);
   const gsaSubtotal = gsaItems.reduce((s, i) => s + i.line_total_pennies, 0);
+  const flightSubtotal = sum(flightItems);
+  const tourismSubtotal = sum(tourismItems);
+  const travelSubtotal = flightSubtotal + tourismSubtotal; // WeTravel portion
+  const wetravelUrl = (trip.wetravel_url as string | null) ?? null;
   const feePreview = adjustment(gsaSubtotal); // service fee defaults to 10% of the GSA programme
   const estimateCount = thirdPartyItems.filter((i) => i.quote_status === "estimate").length;
   const confirmedQuotes = thirdPartyItems.filter((i) => i.quote_status === "quote_confirmed");
@@ -368,11 +377,14 @@ export default async function TripPage({
         </div>
       )}
 
-      {/* Basket */}
+      {/* Basket — three groups: School Immersion (GSA plan), Flights & Tourism
+          (booked separately via WeTravel). Itemised so a school can book the
+          immersion alone, see the full price, and keep travel un-packaged. */}
       <section id="basket" className="mt-8">
         <h2 className="text-xl font-bold tracking-tight">Your basket</h2>
         <p className="mt-1 text-sm text-stone-500">
-          Itemised across suppliers. Prices come from the GSA catalogue.
+          Your school immersion is paid through the GSA plan. Flights and
+          tourism are booked separately with our travel partners.
         </p>
 
         <div className="mt-4 overflow-hidden rounded-2xl border border-stone-200/70 bg-white shadow-sm">
@@ -387,26 +399,30 @@ export default async function TripPage({
               </tr>
             </thead>
             <tbody>
-              {gsaItems.length > 0 && (
-                <tr className="bg-warm-50/50">
-                  <td colSpan={basketOpen ? 5 : 4} className="px-5 py-2 text-[11px] font-semibold uppercase tracking-wider text-warm-700">
-                    GSA programme — paid through your GSA plan
-                  </td>
-                </tr>
-              )}
-              {gsaItems.map((i) => (
-                <BasketRow key={i.id} i={i} tripId={id} basketOpen={basketOpen} />
-              ))}
-              {thirdPartyItems.length > 0 && (
-                <tr className="bg-stone-50">
-                  <td colSpan={basketOpen ? 5 : 4} className="px-5 py-2 text-[11px] font-semibold uppercase tracking-wider text-stone-500">
-                    Travel &amp; extras — separately priced, settled with each supplier
-                  </td>
-                </tr>
-              )}
-              {thirdPartyItems.map((i) => (
-                <BasketRow key={i.id} i={i} tripId={id} basketOpen={basketOpen} />
-              ))}
+              <BasketGroup
+                title="School immersion — paid through your GSA plan"
+                tone="warm"
+                items={gsaItems}
+                subtotal={gsaSubtotal}
+                tripId={id}
+                basketOpen={basketOpen}
+              />
+              <BasketGroup
+                title="Flights — booked via our travel partner"
+                tone="stone"
+                items={flightItems}
+                subtotal={flightSubtotal}
+                tripId={id}
+                basketOpen={basketOpen}
+              />
+              <BasketGroup
+                title="Tourism — accommodation, meals, transport & activities"
+                tone="stone"
+                items={tourismItems}
+                subtotal={tourismSubtotal}
+                tripId={id}
+                basketOpen={basketOpen}
+              />
               {items.length === 0 && (
                 <tr>
                   <td colSpan={5} className="px-5 py-6 text-center text-stone-500">
@@ -416,25 +432,9 @@ export default async function TripPage({
               )}
             </tbody>
             <tfoot>
-              <tr className="border-t border-stone-100">
-                <td className="px-5 py-3 text-sm font-medium text-stone-600">GSA programme</td>
-                <td colSpan={basketOpen ? 4 : 3} className="px-5 py-3 text-right font-semibold text-stone-900">
-                  {formatPounds(gsaSubtotal)}
-                </td>
-              </tr>
-              {thirdPartyItems.length > 0 && (
-                <tr>
-                  <td className="px-5 py-3 text-sm font-medium text-stone-600">
-                    Third-party items (supplier quotes)
-                  </td>
-                  <td colSpan={basketOpen ? 4 : 3} className="px-5 py-3 text-right font-semibold text-stone-900">
-                    {formatPounds(subtotal - gsaSubtotal)}
-                  </td>
-                </tr>
-              )}
-              <tr className="border-t border-stone-100">
+              <tr className="border-t border-stone-100 bg-stone-50/60">
                 <td className="px-5 py-4 font-semibold text-stone-900">
-                  Whole trip, itemised
+                  Full trip total
                 </td>
                 <td colSpan={basketOpen ? 4 : 3} className="px-5 py-4 text-right text-lg font-bold text-stone-900">
                   {formatPounds(subtotal)}
@@ -444,11 +444,40 @@ export default async function TripPage({
           </table>
         </div>
 
+        {/* WeTravel — the separate travel & tourism checkout (flights + tourism) */}
+        {travelSubtotal > 0 && (
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-stone-200/70 bg-white p-5 shadow-sm">
+            <div>
+              <p className="text-sm font-semibold text-stone-900">
+                Flights &amp; tourism — {formatPounds(travelSubtotal)}
+              </p>
+              <p className="mt-0.5 text-xs text-stone-500">
+                Booked and paid separately from your GSA programme, through our
+                travel partner WeTravel.
+              </p>
+            </div>
+            {wetravelUrl ? (
+              <a
+                href={wetravelUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="shrink-0 rounded-lg bg-warm-600 px-5 py-3 text-sm font-semibold text-white transition-colors duration-150 hover:bg-warm-700"
+              >
+                Book travel via WeTravel
+              </a>
+            ) : (
+              <span className="shrink-0 rounded-lg border border-stone-200 px-5 py-3 text-sm font-medium text-stone-400">
+                WeTravel link coming soon
+              </span>
+            )}
+          </div>
+        )}
+
         {parents && subtotal > 0 && (
           <p className="mt-3 text-sm text-stone-600">
-            Indicative whole-trip cost split between {parents} parents ≈{" "}
-            <strong>{formatPounds(perParent!)} per parent</strong> (each item
-            priced and settled separately).
+            Indicative full-trip cost split between {parents} parents ≈{" "}
+            <strong>{formatPounds(perParent!)} per parent</strong> (immersion via
+            the GSA plan; travel booked separately).
           </p>
         )}
       </section>
@@ -1126,6 +1155,49 @@ export default async function TripPage({
         </section>
       )}
     </div>
+  );
+}
+
+function BasketGroup({
+  title,
+  tone,
+  items,
+  subtotal,
+  tripId,
+  basketOpen,
+}: {
+  title: string;
+  tone: "warm" | "stone";
+  items: Item[];
+  subtotal: number;
+  tripId: string;
+  basketOpen: boolean;
+}) {
+  if (items.length === 0) return null;
+  const span = basketOpen ? 5 : 4;
+  return (
+    <>
+      <tr className={tone === "warm" ? "bg-warm-50/50" : "bg-stone-50"}>
+        <td
+          colSpan={span}
+          className={`px-5 py-2 text-[11px] font-semibold uppercase tracking-wider ${tone === "warm" ? "text-warm-700" : "text-stone-500"}`}
+        >
+          {title}
+        </td>
+      </tr>
+      {items.map((i) => (
+        <BasketRow key={i.id} i={i} tripId={tripId} basketOpen={basketOpen} />
+      ))}
+      <tr className="border-b border-stone-100">
+        <td className="px-5 py-2 text-right text-xs font-medium text-stone-500" colSpan={span - 1}>
+          Subtotal
+        </td>
+        <td className="px-5 py-2 text-right text-sm font-semibold text-stone-900">
+          {formatPounds(subtotal)}
+        </td>
+        {basketOpen && <td />}
+      </tr>
+    </>
   );
 }
 
