@@ -78,22 +78,6 @@ async function loadOwnProfile() {
   return { supabase, schoolId, profile };
 }
 
-// ── Change password (logged-in; no email needed) ───────────────────────────
-export async function changePassword(formData: FormData) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login?next=/your-school");
-
-  const password = String(formData.get("password") || "");
-  if (password.length < 8) redirect("/your-school?pw=short");
-
-  const { error } = await supabase.auth.updateUser({ password });
-  if (error) redirect(`/your-school?pw=${encodeURIComponent("error")}`);
-  redirect("/your-school?pw=changed");
-}
-
 // ── Contact details ────────────────────────────────────────────────────────
 // Always allowed (not a directory-visible, verified field).
 export async function updateContact(formData: FormData) {

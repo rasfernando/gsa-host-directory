@@ -7,7 +7,8 @@
     "agentHub": "Strefa agenta",
     "yourSchool": "Twoja szkoła",
     "signIn": "Zaloguj się",
-    "signOut": "Wyloguj się"
+    "signOut": "Wyloguj się",
+    "account": "Konto"
   },
   "footer": {
     "privacy": "Prywatność",
@@ -363,5 +364,16 @@
     "update": "Update password",
     "updated": "Password updated — you're all set.",
     "goToApp": "Go to your dashboard"
+  },
+  "account": {
+    "title": "Account",
+    "signedInAs": "Signed in as",
+    "passwordTitle": "Password",
+    "passwordBody": "Set or change your sign-in password. Minimum 8 characters.",
+    "changed": "Password updated.",
+    "short": "Password must be at least 8 characters.",
+    "error": "Could not update password — please try again.",
+    "newPassword": "New password",
+    "update": "Update password"
   }
 }

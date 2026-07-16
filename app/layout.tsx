@@ -79,6 +79,11 @@ export default async function RootLayout({
                   {t("yourSchool")}
                 </Link>
               )}
+              {user && (
+                <Link href="/account" className="transition-colors duration-150 hover:text-stone-900">
+                  {t("account")}
+                </Link>
+              )}
               {user ? (
                 <form action={signOut}>
                   <button
