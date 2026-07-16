@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { FOCUS_AREAS } from "@/lib/forms";
+import { VERIFICATION_CHECKS } from "@/lib/checklist";
 import { HostMonthsField } from "@/components/host-profile-fields";
 import {
   adminUpdateProfile,
@@ -39,7 +40,7 @@ export default async function AdminEditProfilePage({
   const { data: profile } = await supabase
     .from("host_profiles")
     .select(
-      "id, name, slug, published, tier, media, headline, description, city, state, why_host, languages, subject_strengths, focus_tags, boarding, homestay, age_range_min, age_range_max, capacity, host_months, schools(name)"
+      "id, school_id, name, slug, published, tier, media, headline, description, city, state, why_host, languages, subject_strengths, focus_tags, boarding, homestay, age_range_min, age_range_max, capacity, host_months, schools(name)"
     )
     .eq("id", id)
     .maybeSingle();
@@ -50,6 +51,42 @@ export default async function AdminEditProfilePage({
 
   const media = (profile.media as MediaItem[] | null) ?? [];
   const school = Array.isArray(profile.schools) ? profile.schools[0] : profile.schools;
+
+  // Verification: the school's most recent application, its evidence docs and
+  // check statuses — surfaced here with a link through to the full review.
+  const { data: app } = await supabase
+    .from("host_applications")
+    .select("id, status, evidence_files")
+    .eq("school_id", profile.school_id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const { data: checkRows } = app
+    ? await supabase
+        .from("verification_checks")
+        .select("check_key, status")
+        .eq("application_id", app.id)
+    : { data: [] };
+  const checkMap = new Map((checkRows ?? []).map((c) => [c.check_key, c.status]));
+
+  type Ev = { name: string; path: string; category?: string };
+  const evidence = (app?.evidence_files as Ev[] | null) ?? [];
+  const evidenceLinks = await Promise.all(
+    evidence.map(async (f) => {
+      const { data } = await supabase.storage
+        .from("evidence")
+        .createSignedUrl(f.path, 600);
+      return { ...f, url: data?.signedUrl ?? null };
+    })
+  );
+
+  const CHECK_BADGES: Record<string, string> = {
+    passed: "bg-green-50 text-green-700",
+    failed: "bg-red-50 text-red-600",
+    waived: "bg-gray-100 text-gray-500",
+    pending: "bg-amber-50 text-amber-700",
+  };
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -81,6 +118,73 @@ export default async function AdminEditProfilePage({
           {ERRORS[error] ?? decodeURIComponent(error)}
         </p>
       )}
+
+      {/* Verification */}
+      <section className="mt-6 rounded-xl border border-gray-200 bg-white p-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-gray-900">Verification</h2>
+          {app && (
+            <Link
+              href={`/admin/applications/${app.id}`}
+              className="text-xs font-medium text-blue-700 underline"
+            >
+              Open full review →
+            </Link>
+          )}
+        </div>
+        {!app ? (
+          <p className="mt-2 text-sm text-gray-500">
+            No verification application on file yet — this school hasn&apos;t
+            submitted evidence for review.
+          </p>
+        ) : (
+          <>
+            <ul className="mt-3 space-y-1.5">
+              {VERIFICATION_CHECKS.map((c) => {
+                const st = checkMap.get(c.key) ?? "pending";
+                return (
+                  <li key={c.key} className="flex items-center justify-between gap-3 text-sm">
+                    <span className="text-gray-700">{c.label}</span>
+                    <span
+                      className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${CHECK_BADGES[st] ?? CHECK_BADGES.pending}`}
+                    >
+                      {st}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+            <h3 className="mt-5 text-xs font-semibold uppercase tracking-wide text-gray-500">
+              Documents
+            </h3>
+            {evidenceLinks.length === 0 ? (
+              <p className="mt-1 text-sm text-gray-500">No documents uploaded.</p>
+            ) : (
+              <ul className="mt-2 divide-y divide-gray-100 rounded-lg border border-gray-100">
+                {evidenceLinks.map((f) => (
+                  <li key={f.path} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
+                    <span className="min-w-0">
+                      {f.category && (
+                        <span className="mr-2 rounded bg-gray-100 px-1.5 py-0.5 text-[11px] font-medium text-gray-500">
+                          {f.category.replace(/_/g, " ")}
+                        </span>
+                      )}
+                      {f.name}
+                    </span>
+                    {f.url ? (
+                      <a href={f.url} target="_blank" className="shrink-0 text-xs font-medium text-blue-700 underline">
+                        View
+                      </a>
+                    ) : (
+                      <span className="shrink-0 text-xs text-gray-400">unavailable</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
+        )}
+      </section>
 
       {/* Photos */}
       <section className="mt-6 rounded-xl border border-gray-200 bg-white p-6">
