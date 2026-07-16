@@ -8,7 +8,7 @@ export default async function LoginPage({
 }) {
   const { next: rawNext } = await searchParams;
   // Same-origin relative paths only — don't let ?next= carry an off-site URL
-  // into the post-login redirect (defence-in-depth; /auth/confirm re-checks).
+  // into the post-login redirect.
   const raw = rawNext ?? "/apply";
   const next = raw.startsWith("/") && !raw.startsWith("//") ? raw : "/apply";
 
@@ -23,9 +23,13 @@ export default async function LoginPage({
         labels={{
           emailLabel: t("emailLabel"),
           emailPlaceholder: t("emailPlaceholder"),
-          sending: t("sending"),
-          submit: t("submit"),
-          sentToTemplate: t("sentTo", { email: "{{EMAIL}}" }),
+          passwordLabel: t("passwordLabel"),
+          signIn: t("signIn"),
+          createAccount: t("createAccount"),
+          working: t("working"),
+          needAccount: t("needAccount"),
+          haveAccount: t("haveAccount"),
+          forgot: t("forgot"),
         }}
       />
     </div>

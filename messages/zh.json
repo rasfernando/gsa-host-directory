@@ -177,12 +177,19 @@
   },
   "login": {
     "title": "登录",
-    "subtitle": "无需密码——我们会通过电子邮件向您发送登录链接。",
+    "subtitle": "使用您的电子邮箱和密码登录。",
     "sentTo": "请查收邮箱——我们已向 {email} 发送了登录链接。",
     "emailLabel": "学校电子邮箱地址",
     "emailPlaceholder": "you@yourschool.edu",
     "sending": "发送中…",
-    "submit": "向我发送登录链接"
+    "submit": "向我发送登录链接",
+    "passwordLabel": "Password",
+    "signIn": "Sign in",
+    "createAccount": "Create account",
+    "working": "Please wait…",
+    "needAccount": "New to GSA? Create an account",
+    "haveAccount": "Already have an account? Sign in",
+    "forgot": "Forgot your password?"
   },
   "apply": {
     "kicker": "认证",
@@ -341,5 +348,20 @@
     "invitedHostPrompt": "我们邀请的接待学校？",
     "invitedHostSignIn": "登录",
     "invitedHostSuffix": "以完善您的资料，或使用邀请邮件中的专属链接。"
+  },
+  "reset": {
+    "requestTitle": "Reset your password",
+    "requestBody": "Enter your email and we'll send you a link to set a new password.",
+    "emailLabel": "Email",
+    "send": "Send reset link",
+    "working": "Please wait…",
+    "sent": "If an account exists for that email, a reset link is on its way. Check your inbox.",
+    "backToLogin": "Back to sign in",
+    "updateTitle": "Set a new password",
+    "updateBody": "Choose a new password for your account.",
+    "newPasswordLabel": "New password",
+    "update": "Update password",
+    "updated": "Password updated — you're all set.",
+    "goToApp": "Go to your dashboard"
   }
 }

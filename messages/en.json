@@ -127,12 +127,19 @@
   },
   "login": {
     "title": "Sign in",
-    "subtitle": "No password needed — we'll email you a sign-in link.",
+    "subtitle": "Sign in with your email and password.",
     "sentTo": "Check your inbox — we've sent a sign-in link to {email}.",
     "emailLabel": "School email address",
     "emailPlaceholder": "you@yourschool.edu",
     "sending": "Sending…",
-    "submit": "Email me a sign-in link"
+    "submit": "Email me a sign-in link",
+    "passwordLabel": "Password",
+    "signIn": "Sign in",
+    "createAccount": "Create account",
+    "working": "Please wait…",
+    "needAccount": "New to GSA? Create an account",
+    "haveAccount": "Already have an account? Sign in",
+    "forgot": "Forgot your password?"
   },
   "apply": {
     "kicker": "Accreditation",
@@ -291,5 +298,20 @@
     "invitedHostPrompt": "A host school we've invited?",
     "invitedHostSignIn": "Sign in",
     "invitedHostSuffix": "to complete your profile, or use the private link in your invitation email."
+  },
+  "reset": {
+    "requestTitle": "Reset your password",
+    "requestBody": "Enter your email and we'll send you a link to set a new password.",
+    "emailLabel": "Email",
+    "send": "Send reset link",
+    "working": "Please wait…",
+    "sent": "If an account exists for that email, a reset link is on its way. Check your inbox.",
+    "backToLogin": "Back to sign in",
+    "updateTitle": "Set a new password",
+    "updateBody": "Choose a new password for your account.",
+    "newPasswordLabel": "New password",
+    "update": "Update password",
+    "updated": "Password updated — you're all set.",
+    "goToApp": "Go to your dashboard"
   }
 }

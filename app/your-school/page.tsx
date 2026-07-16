@@ -5,7 +5,7 @@ import { inputCls, labelCls } from "@/lib/forms";
 import { formatDate } from "@/lib/trips";
 import { getBookedWindows } from "@/lib/availability";
 import { creditHistory, CREDIT_REASON_LABELS } from "@/lib/credits";
-import { updateContact } from "./actions";
+import { updateContact, changePassword } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -14,9 +14,9 @@ type MediaItem = { url: string };
 export default async function YourSchoolPage({
   searchParams,
 }: {
-  searchParams: Promise<{ saved?: string; intake?: string }>;
+  searchParams: Promise<{ saved?: string; intake?: string; pw?: string }>;
 }) {
-  const { saved, intake } = await searchParams;
+  const { saved, intake, pw } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -387,6 +387,46 @@ export default async function YourSchoolPage({
           </div>
           <button className="rounded-lg bg-warm-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-warm-700">
             Save contact details
+          </button>
+        </form>
+      </section>
+
+      {/* Password */}
+      <section className="mt-4 rounded-2xl border border-stone-200/70 bg-white p-6 shadow-sm sm:p-8">
+        <h2 className="text-lg font-bold tracking-tight">Password</h2>
+        <p className="mt-1 text-sm text-stone-500">
+          Set or change your sign-in password. Minimum 8 characters.
+        </p>
+        {pw === "changed" && (
+          <p className="mt-3 rounded-lg bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800">
+            Password updated.
+          </p>
+        )}
+        {pw === "short" && (
+          <p className="mt-3 rounded-lg bg-red-50 px-4 py-2.5 text-sm text-red-700">
+            Password must be at least 8 characters.
+          </p>
+        )}
+        {pw === "error" && (
+          <p className="mt-3 rounded-lg bg-red-50 px-4 py-2.5 text-sm text-red-700">
+            Could not update password — please try again.
+          </p>
+        )}
+        <form action={changePassword} className="mt-4 flex flex-wrap items-end gap-3">
+          <div className="flex-1">
+            <label className={labelCls} htmlFor="password">New password</label>
+            <input
+              className={inputCls}
+              id="password"
+              name="password"
+              type="password"
+              minLength={8}
+              autoComplete="new-password"
+              required
+            />
+          </div>
+          <button className="rounded-lg bg-warm-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-warm-700">
+            Update password
           </button>
         </form>
       </section>
