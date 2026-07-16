@@ -13,7 +13,9 @@ export async function changePassword(formData: FormData) {
   if (!user) redirect("/login?next=/account");
 
   const password = String(formData.get("password") || "");
+  const confirm = String(formData.get("confirm") || "");
   if (password.length < 8) redirect("/account?pw=short");
+  if (password !== confirm) redirect("/account?pw=mismatch");
 
   const { error } = await supabase.auth.updateUser({ password });
   if (error) redirect("/account?pw=error");

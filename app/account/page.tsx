@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
-import { inputCls, labelCls } from "@/lib/forms";
+import { ChangePasswordForm } from "@/components/change-password-form";
 import { changePassword } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -40,29 +40,26 @@ export default async function AccountPage({
             {t("short")}
           </p>
         )}
+        {pw === "mismatch" && (
+          <p className="mt-3 rounded-lg bg-red-50 px-4 py-2.5 text-sm text-red-700">
+            {t("mismatch")}
+          </p>
+        )}
         {pw === "error" && (
           <p className="mt-3 rounded-lg bg-red-50 px-4 py-2.5 text-sm text-red-700">
             {t("error")}
           </p>
         )}
 
-        <form action={changePassword} className="mt-4 flex flex-wrap items-end gap-3">
-          <div className="flex-1">
-            <label className={labelCls} htmlFor="password">{t("newPassword")}</label>
-            <input
-              className={inputCls}
-              id="password"
-              name="password"
-              type="password"
-              minLength={8}
-              autoComplete="new-password"
-              required
-            />
-          </div>
-          <button className="rounded-lg bg-warm-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-warm-700">
-            {t("update")}
-          </button>
-        </form>
+        <ChangePasswordForm
+          action={changePassword}
+          labels={{
+            newPassword: t("newPassword"),
+            confirmPassword: t("confirmPassword"),
+            update: t("update"),
+            mismatch: t("mismatch"),
+          }}
+        />
       </section>
     </div>
   );
