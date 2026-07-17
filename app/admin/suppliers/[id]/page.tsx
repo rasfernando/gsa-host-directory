@@ -1,16 +1,23 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { SUPPLIER_CHECKS } from "@/lib/checklist";
+import { SUPPLIER_CHECKS, SUPPLIER_DOC_CATEGORIES } from "@/lib/checklist";
 import {
   recordSupplierCheck,
   setSupplierStatus,
   createSupplierInvite,
+  adminUpdateSupplier,
+  adminAddSupplierDoc,
+  adminRemoveSupplierDoc,
 } from "../actions";
 
 export const dynamic = "force-dynamic";
 
 type Doc = { name: string; path: string; category?: string };
+
+const inputCls =
+  "mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-gray-900 focus:outline-none";
+const labelCls = "block text-xs font-medium text-gray-600";
 
 const CHECK_BADGES: Record<string, string> = {
   passed: "bg-green-50 text-green-700",
@@ -89,24 +96,64 @@ export default async function AdminSupplierDetail({
 
       {saved === "status" && <Flash>Status updated.</Flash>}
       {saved === "invite" && <Flash>Invite created — copy the link below to send it.</Flash>}
+      {saved === "details" && <Flash>Details saved.</Flash>}
+      {saved === "doc" && <Flash>Documents updated.</Flash>}
       {error && (
         <p className="mt-4 rounded-lg bg-red-50 px-4 py-2.5 text-sm text-red-700">
-          {error === "email" ? "Enter an email." : decodeURIComponent(error)}
+          {error === "email"
+            ? "Enter an email."
+            : error === "name"
+              ? "Enter a company name."
+              : error === "nofile"
+                ? "Choose a file to upload."
+                : error === "toobig"
+                  ? "That file is over 10 MB."
+                  : decodeURIComponent(error)}
         </p>
       )}
 
-      {s.description && (
-        <section className="mt-6 rounded-xl border border-gray-200 bg-white p-5">
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500">What they offer</h2>
-          <p className="mt-2 whitespace-pre-wrap text-sm text-gray-700">{s.description}</p>
-        </section>
-      )}
+      {/* Editable details */}
+      <section className="mt-6 rounded-xl border border-gray-200 bg-white p-5">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500">Details</h2>
+        <form action={adminUpdateSupplier} className="mt-3 space-y-4">
+          <input type="hidden" name="supplier_id" value={id} />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className={labelCls} htmlFor="company_name">Company name</label>
+              <input className={inputCls} id="company_name" name="company_name" required defaultValue={s.company_name ?? ""} />
+            </div>
+            <div>
+              <label className={labelCls} htmlFor="country">Country</label>
+              <input className={inputCls} id="country" name="country" defaultValue={s.country ?? ""} />
+            </div>
+            <div>
+              <label className={labelCls} htmlFor="contact_name">Contact name</label>
+              <input className={inputCls} id="contact_name" name="contact_name" defaultValue={s.contact_name ?? ""} />
+            </div>
+            <div>
+              <label className={labelCls} htmlFor="contact_email">Contact email</label>
+              <input className={inputCls} id="contact_email" name="contact_email" type="email" defaultValue={s.contact_email ?? ""} />
+            </div>
+            <div className="sm:col-span-2">
+              <label className={labelCls} htmlFor="website">Website</label>
+              <input className={inputCls} id="website" name="website" type="text" inputMode="url" placeholder="yourcompany.com" defaultValue={s.website ?? ""} />
+            </div>
+          </div>
+          <div>
+            <label className={labelCls} htmlFor="description">What they offer</label>
+            <textarea className={inputCls} id="description" name="description" rows={4} defaultValue={s.description ?? ""} />
+          </div>
+          <button className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-700">
+            Save details
+          </button>
+        </form>
+      </section>
 
-      {/* Documents */}
+      {/* Documents — houses supplier-submitted docs AND ones GSA adds */}
       <section className="mt-6 rounded-xl border border-gray-200 bg-white p-5">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500">Documents</h2>
         {docLinks.length === 0 ? (
-          <p className="mt-2 text-sm text-gray-500">No documents uploaded.</p>
+          <p className="mt-2 text-sm text-gray-500">No documents yet — upload any they&apos;ve emailed below.</p>
         ) : (
           <ul className="mt-2 divide-y divide-gray-100 rounded-lg border border-gray-100">
             {docLinks.map((d) => (
@@ -119,15 +166,39 @@ export default async function AdminSupplierDetail({
                   )}
                   {d.name}
                 </span>
-                {d.url ? (
-                  <a href={d.url} target="_blank" className="shrink-0 text-xs font-medium text-blue-700 underline">View</a>
-                ) : (
-                  <span className="shrink-0 text-xs text-gray-400">unavailable</span>
-                )}
+                <span className="flex shrink-0 items-center gap-3">
+                  {d.url ? (
+                    <a href={d.url} target="_blank" className="text-xs font-medium text-blue-700 underline">View</a>
+                  ) : (
+                    <span className="text-xs text-gray-400">unavailable</span>
+                  )}
+                  <form action={adminRemoveSupplierDoc}>
+                    <input type="hidden" name="supplier_id" value={id} />
+                    <input type="hidden" name="path" value={d.path} />
+                    <button className="text-gray-400 hover:text-red-600" title="Remove" aria-label="Remove">✕</button>
+                  </form>
+                </span>
               </li>
             ))}
           </ul>
         )}
+
+        {/* Add a document on the supplier's behalf */}
+        <form action={adminAddSupplierDoc} className="mt-4 flex flex-wrap items-end gap-2 rounded-lg border border-gray-100 bg-gray-50 p-3">
+          <input type="hidden" name="supplier_id" value={id} />
+          <div>
+            <label className={labelCls} htmlFor="category">Type</label>
+            <select id="category" name="category" className="mt-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm">
+              {SUPPLIER_DOC_CATEGORIES.map((c) => (
+                <option key={c.key} value={c.key}>{c.label}</option>
+              ))}
+            </select>
+          </div>
+          <input className="text-sm text-gray-600" name="document" type="file" required />
+          <button className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-700">
+            Add document
+          </button>
+        </form>
       </section>
 
       {/* Verification checks */}

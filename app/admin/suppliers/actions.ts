@@ -4,6 +4,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { logEvent } from "@/lib/events";
+import { normalizeUrl } from "@/lib/forms";
+
+type Doc = { name: string; path: string; category?: string };
 
 async function requireAdmin() {
   const supabase = await createClient();
@@ -36,6 +39,73 @@ export async function adminAddSupplier(formData: FormData) {
   if (error) redirect(`/admin/suppliers?error=${encodeURIComponent(error.message)}`);
   await logEvent("supplier_added", { meta: { supplier_id: data.id } });
   redirect(`/admin/suppliers/${data.id}`);
+}
+
+// Edit a supplier's profile fields (GSA fills these in for manually-added
+// suppliers, or corrects self-registered ones).
+export async function adminUpdateSupplier(formData: FormData) {
+  const { supabase } = await requireAdmin();
+  const id = String(formData.get("supplier_id"));
+  const company_name = String(formData.get("company_name") || "").trim();
+  if (!company_name) redirect(`/admin/suppliers/${id}?error=name`);
+  const { error } = await supabase
+    .from("supplier_profiles")
+    .update({
+      company_name,
+      contact_name: String(formData.get("contact_name") || "") || null,
+      contact_email: String(formData.get("contact_email") || "") || null,
+      country: String(formData.get("country") || "") || null,
+      website: normalizeUrl(formData.get("website") as string),
+      description: String(formData.get("description") || "") || null,
+    })
+    .eq("id", id);
+  if (error) redirect(`/admin/suppliers/${id}?error=${encodeURIComponent(error.message)}`);
+  redirect(`/admin/suppliers/${id}?saved=details`);
+}
+
+// GSA uploads a document on the supplier's behalf (e.g. emailed to us).
+export async function adminAddSupplierDoc(formData: FormData) {
+  const { supabase } = await requireAdmin();
+  const id = String(formData.get("supplier_id"));
+  const category = String(formData.get("category") || "other");
+  const file = formData.get("document") as File | null;
+  if (!file || file.size === 0) redirect(`/admin/suppliers/${id}?error=nofile`);
+  if (file.size > 10 * 1024 * 1024) redirect(`/admin/suppliers/${id}?error=toobig`);
+
+  const { data: sp } = await supabase
+    .from("supplier_profiles")
+    .select("evidence_files")
+    .eq("id", id)
+    .single();
+  if (!sp) redirect("/admin/suppliers");
+
+  const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 80);
+  const path = `${id}/${category}-${Date.now()}-${safe}`;
+  const { error: up } = await supabase.storage
+    .from("supplier-docs")
+    .upload(path, file, { contentType: file.type || "application/octet-stream" });
+  if (up) redirect(`/admin/suppliers/${id}?error=${encodeURIComponent(up.message)}`);
+
+  const docs = ((sp.evidence_files as Doc[] | null) ?? []).slice();
+  docs.push({ name: file.name, path, category });
+  await supabase.from("supplier_profiles").update({ evidence_files: docs }).eq("id", id);
+  redirect(`/admin/suppliers/${id}?saved=doc`);
+}
+
+export async function adminRemoveSupplierDoc(formData: FormData) {
+  const { supabase } = await requireAdmin();
+  const id = String(formData.get("supplier_id"));
+  const path = String(formData.get("path") || "");
+  const { data: sp } = await supabase
+    .from("supplier_profiles")
+    .select("evidence_files")
+    .eq("id", id)
+    .single();
+  if (!sp) redirect("/admin/suppliers");
+  const docs = ((sp.evidence_files as Doc[] | null) ?? []).filter((d) => d.path !== path);
+  await supabase.storage.from("supplier-docs").remove([path]);
+  await supabase.from("supplier_profiles").update({ evidence_files: docs }).eq("id", id);
+  redirect(`/admin/suppliers/${id}?saved=doc`);
 }
 
 // Record a verification check result.
