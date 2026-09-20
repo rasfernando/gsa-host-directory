@@ -10,7 +10,7 @@ import {
 // Calls the Claude API directly (same env-gated fetch pattern as lib/translate.ts).
 // Returns a structured Assessment or throws with a readable message.
 
-const MODEL = process.env.ERASMUS_MODEL ?? "claude-sonnet-4-5";
+const MODEL = process.env.ERASMUS_MODEL ?? "claude-sonnet-5";
 
 function systemPrompt() {
   return `You are an experienced Erasmus+ National Agency assessor for ${ACTION_TYPE} (short-term projects for mobility of pupils and staff in school education). You are also fluent in how UK schools actually write: you separate weak writing from weak projects, and you are specific, fair and useful rather than harsh or flattering.
@@ -76,7 +76,7 @@ ${input.draft.trim()}
     },
     body: JSON.stringify({
       model: MODEL,
-      max_tokens: 8000,
+      max_tokens: 16000,
       system: systemPrompt(),
       messages: [{ role: "user", content: user }],
     }),
