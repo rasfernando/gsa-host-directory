@@ -12,6 +12,7 @@ const TABS = [
   { href: "/admin/trips", label: "Trips" },
   { href: "/admin/products", label: "Products" },
   { href: "/admin/credits", label: "Credits" },
+  { href: "/admin/erasmus", label: "Erasmus+" },
   { href: "/admin/metrics", label: "Metrics" },
 ];
 
