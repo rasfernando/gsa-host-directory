@@ -9,13 +9,120 @@ import {
 
 // Calls the Claude API directly (same env-gated fetch pattern as lib/translate.ts).
 // Returns a structured Assessment or throws with a readable message.
+//
+// The assessment is collected through a FORCED TOOL CALL rather than free-form
+// JSON in the reply text. Calibrating against 16 real applications showed the
+// free-form approach failing on 12 of them: long documents produced long
+// assessments that either ran past max_tokens and truncated mid-string, or came
+// back with stray commas and unterminated arrays. A tool call returns parsed
+// JSON from the API, so those failure modes disappear. The output caps in the
+// prompt below keep a full 13-section assessment near 6k tokens (it was hitting
+// 16k), which also halves the wait.
 
 const MODEL = process.env.ERASMUS_MODEL ?? "claude-sonnet-5";
+const MAX_TOKENS = 24000;
+
+const SECTION_KEYS = SECTIONS.map((s) => s.key);
+const THREAD_KEYS = GOLDEN_THREAD.map((g) => g.key);
+
+const TOOL = {
+  name: "record_assessment",
+  description: "Record the structured assessment of the draft application.",
+  input_schema: {
+    type: "object",
+    additionalProperties: false,
+    required: [
+      "overall",
+      "criteria",
+      "golden_thread",
+      "sections",
+      "top_actions",
+      "missing_information",
+      "expert_spot_checks",
+    ],
+    properties: {
+      overall: {
+        type: "object",
+        additionalProperties: false,
+        required: ["verdict"],
+        properties: { verdict: { type: "string" } },
+      },
+      criteria: {
+        type: "array",
+        minItems: 3,
+        maxItems: 3,
+        items: {
+          type: "object",
+          additionalProperties: false,
+          required: ["key", "score", "rationale", "strengths", "weaknesses"],
+          properties: {
+            key: { type: "string", enum: CRITERIA.map((c) => c.key) },
+            score: { type: "integer" },
+            rationale: { type: "string" },
+            strengths: { type: "array", items: { type: "string" } },
+            weaknesses: { type: "array", items: { type: "string" } },
+          },
+        },
+      },
+      golden_thread: {
+        type: "array",
+        minItems: THREAD_KEYS.length,
+        maxItems: THREAD_KEYS.length,
+        items: {
+          type: "object",
+          additionalProperties: false,
+          required: ["key", "status", "note"],
+          properties: {
+            key: { type: "string", enum: THREAD_KEYS },
+            status: { type: "string", enum: ["strong", "weak", "missing"] },
+            note: { type: "string" },
+          },
+        },
+      },
+      sections: {
+        type: "array",
+        minItems: SECTION_KEYS.length,
+        maxItems: SECTION_KEYS.length,
+        items: {
+          type: "object",
+          additionalProperties: false,
+          required: ["key", "present", "quality", "issues"],
+          properties: {
+            key: { type: "string", enum: SECTION_KEYS },
+            present: { type: "boolean" },
+            quality: { type: "integer", minimum: 1, maximum: 5 },
+            issues: {
+              type: "array",
+              maxItems: 3,
+              items: {
+                type: "object",
+                additionalProperties: false,
+                required: ["severity", "issue", "fix"],
+                properties: {
+                  severity: { type: "string", enum: ["high", "medium", "low"] },
+                  issue: { type: "string" },
+                  fix: { type: "string" },
+                  quote: { type: "string" },
+                },
+              },
+            },
+            example_rewrite: { type: "string" },
+          },
+        },
+      },
+      top_actions: { type: "array", maxItems: 5, items: { type: "string" } },
+      missing_information: { type: "array", maxItems: 8, items: { type: "string" } },
+      expert_spot_checks: { type: "array", maxItems: 6, items: { type: "string" } },
+    },
+  },
+};
 
 function systemPrompt() {
   return `You are an experienced Erasmus+ National Agency assessor for ${ACTION_TYPE} (short-term projects for mobility of pupils and staff in school education). You are also fluent in how UK schools actually write: you separate weak writing from weak projects, and you are specific, fair and useful rather than harsh or flattering.
 
 You are assessing a DRAFT application written by or for a school, before submission. Your job is to score it the way the real evaluation would, explain exactly why, and tell the school what to change. You never write the application for the school; every fix must keep the school as the author and owner of the project.
+
+Note: the draft may have been written for a DIFFERENT funding scheme (most often the UK Turing Scheme) and is being tested against Erasmus+ criteria. Where that is clearly the case, say so plainly in the verdict, and frame the assessment as what Erasmus+ additionally requires rather than treating it as a failed Erasmus+ bid. Give full credit for material that already meets an Erasmus+ criterion even if it was written for another scheme.
 
 ## Award criteria and weights (official)
 ${CRITERIA.map((c) => `- ${c.label} (${c.key}) — max ${c.max}: ${c.description}`).join("\n")}
@@ -37,19 +144,16 @@ ${GOLDEN_THREAD.map((g) => `- ${g.key}: ${g.label}`).join("\n")}
 - Fixes must be concrete and actionable by a teacher in an afternoon: say what to add, where, and give a short example phrasing where useful. Quote the offending text when you flag it.
 - If the draft is a single section rather than a full application, assess that section in depth, mark the others as not present, and make the overall verdict about the section (say clearly that the overall score is provisional).
 
-## Output
-Reply with ONLY a JSON object (no markdown fences, no commentary) of exactly this shape:
-{
-  "overall": {"score": <0-100 integer, sum of criteria scores>, "pass": <boolean, both thresholds met>, "verdict": "<3-5 sentences, plain English, addressed to the school's project lead>"},
-  "criteria": [{"key": "relevance"|"design"|"followup", "score": <integer 0..max>, "pass": <boolean, >= half of max>, "rationale": "<2-4 sentences>", "strengths": ["..."], "weaknesses": ["..."]}],
-  "golden_thread": [{"key": <one of the golden thread keys>, "status": "strong"|"weak"|"missing", "note": "<one sentence>"}],
-  "sections": [{"key": <section key>, "present": <boolean>, "quality": <1-5>, "issues": [{"severity": "high"|"medium"|"low", "issue": "<what is wrong>", "fix": "<what to do>", "quote": "<short verbatim quote from the draft, optional>"}], "example_rewrite": "<optional: a 1-3 sentence example of the shape a stronger answer would take, clearly generic, never inventing school facts>"}],
-  "top_actions": ["<the 5 changes that would most raise the score, ordered>"],
-  "missing_information": ["<facts the school must supply before this can be finished, e.g. OID, participant numbers, host confirmation>"],
-  "expert_spot_checks": ["<things a human Erasmus expert should verify that you cannot: eligibility, current unit costs, NA-specific rules, dates>"]
+## Output discipline
+- At most THREE issues per section, highest severity first. Do not pad to fill the quota.
+- \`quote\` must be at most 20 words of verbatim text from the draft, or omitted.
+- \`example_rewrite\` ONLY where that section's quality is 1 or 2, and at most two sentences.
+- Keep each rationale to 2–3 sentences and the overall verdict to 3–5 sentences.
+
+Call the \`record_assessment\` tool exactly once. Include every criterion, every golden-thread item and every section exactly once.`;
 }
-Include every criterion, every golden-thread item and every section exactly once.`;
-}
+
+type ToolUseBlock = { type: string; name?: string; input?: unknown };
 
 export async function assessDraft(input: {
   schoolName: string;
@@ -76,8 +180,10 @@ ${input.draft.trim()}
     },
     body: JSON.stringify({
       model: MODEL,
-      max_tokens: 16000,
+      max_tokens: MAX_TOKENS,
       system: systemPrompt(),
+      tools: [TOOL],
+      tool_choice: { type: "tool", name: "record_assessment" },
       messages: [{ role: "user", content: user }],
     }),
   });
@@ -87,29 +193,30 @@ ${input.draft.trim()}
     throw new Error(`Claude API ${res.status}: ${body.slice(0, 300)}`);
   }
   const json = (await res.json()) as {
-    content?: { type: string; text?: string }[];
+    content?: ToolUseBlock[];
     model?: string;
+    stop_reason?: string;
   };
-  const text = (json.content ?? [])
-    .filter((c) => c.type === "text")
-    .map((c) => c.text ?? "")
-    .join("");
 
-  const assessment = parseAssessment(text);
+  if (json.stop_reason === "max_tokens") {
+    throw new Error(
+      "The assessment ran past the output limit before it finished. Try assessing the application in two halves."
+    );
+  }
+  const block = (json.content ?? []).find(
+    (c) => c.type === "tool_use" && c.name === "record_assessment"
+  );
+  if (!block?.input) {
+    throw new Error(`Assessor returned no assessment (stop_reason: ${json.stop_reason})`);
+  }
+
+  const assessment = normalise(block.input as Assessment);
   return { assessment, model: json.model ?? MODEL, durationMs: Date.now() - started };
 }
 
-function parseAssessment(text: string): Assessment {
-  let raw = text.trim();
-  // Tolerate accidental fences or leading prose.
-  raw = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
-  const first = raw.indexOf("{");
-  const last = raw.lastIndexOf("}");
-  if (first === -1 || last === -1) throw new Error("Assessor returned no JSON");
-  const parsed = JSON.parse(raw.slice(first, last + 1)) as Assessment;
-
-  // Normalise: recompute totals and passes from the rubric so the UI never
-  // shows a "pass" the numbers do not support.
+// Recompute totals and thresholds from the rubric so the UI can never show a
+// "pass" the numbers do not support, and fill any gaps the model left.
+function normalise(parsed: Assessment): Assessment {
   let total = 0;
   parsed.criteria = CRITERIA.map((c) => {
     const found = parsed.criteria?.find((x) => x.key === c.key);
