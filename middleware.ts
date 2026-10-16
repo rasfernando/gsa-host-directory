@@ -1,5 +1,6 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { disabledModuleFor } from "@/lib/features";
 
 // Refreshes the Supabase auth session on every request,
 // and guards /admin and /apply behind login.
@@ -34,6 +35,19 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const path = request.nextUrl.pathname;
+
+  // ── V1 module gate ────────────────────────────────────────────────────────
+  // Modules switched off for V1 lose access, not just their nav link, so a
+  // bookmarked URL can't reach a half-finished area. lib/features.ts holds the
+  // list; GSA_MODULES turns any of them back on without a code change.
+  const offModule = disabledModuleFor(path);
+  if (offModule) {
+    const url = request.nextUrl.clone();
+    url.pathname = path.startsWith("/admin") ? "/admin" : "/";
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
+
   const needsAuth =
     path.startsWith("/admin") ||
     path.startsWith("/apply") ||

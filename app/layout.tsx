@@ -4,6 +4,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "./actions";
 import { LocaleSwitcher } from "@/components/locale-switcher";
+import { isEnabled } from "@/lib/features";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -53,13 +54,15 @@ export default async function RootLayout({
               </span>
             </Link>
             <nav className="flex items-center gap-6 text-sm text-stone-600">
-              <Link href="/directory" className="transition-colors duration-150 hover:text-stone-900">
-                {t("directory")}
-              </Link>
+              {isEnabled("directory") && (
+                <Link href="/directory" className="transition-colors duration-150 hover:text-stone-900">
+                  {t("directory")}
+                </Link>
+              )}
               <Link href="/list-your-school" className="transition-colors duration-150 hover:text-stone-900">
                 {t("becomeHost")}
               </Link>
-              {user && (
+              {user && isEnabled("trips") && (
                 <Link href="/trips" className="transition-colors duration-150 hover:text-stone-900">
                   {t("myTrips")}
                 </Link>
@@ -69,7 +72,7 @@ export default async function RootLayout({
                   {t("admin")}
                 </Link>
               )}
-              {isAgent && (
+              {isAgent && isEnabled("agent") && (
                 <Link href="/agent" className="transition-colors duration-150 hover:text-stone-900">
                   {t("agentHub")}
                 </Link>

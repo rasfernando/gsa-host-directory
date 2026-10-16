@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AdminNav } from "@/components/admin-nav";
+import { enabledModules } from "@/lib/features";
 
 // Guards everything under /admin: GSA admins only.
 export default async function AdminLayout({
@@ -33,7 +34,7 @@ export default async function AdminLayout({
 
   return (
     <div>
-      <AdminNav />
+      <AdminNav enabled={[...enabledModules()]} />
       {children}
     </div>
   );
