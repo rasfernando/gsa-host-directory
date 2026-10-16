@@ -7,8 +7,11 @@ import { ruleset, RULESET_VERSION } from "@/lib/erasmus/rubric";
 // V1 module gate (lib/features.ts only gates /admin/erasmus), so switching the
 // Erasmus admin tab off never breaks a consumer of the rules.
 export async function GET() {
-  return NextResponse.json(ruleset(), {
+  // Pretty-printed: a person who opens this in a browser should see structure,
+  // not one unbroken line. Consumers parse it the same either way.
+  return new NextResponse(JSON.stringify(ruleset(), null, 2), {
     headers: {
+      "Content-Type": "application/json; charset=utf-8",
       "Cache-Control": "public, max-age=300, stale-while-revalidate=3600",
       "X-Erasmus-Ruleset-Version": RULESET_VERSION,
     },
