@@ -10,6 +10,7 @@ const TABS: { href: string; label: string; module?: Module }[] = [
   { href: "/admin", label: "Review queue" },
   { href: "/admin/profiles", label: "Profiles" },
   { href: "/admin/supply", label: "Onboarding" },
+  { href: "/admin/team", label: "Team" },
   { href: "/admin/enquiries", label: "Enquiries", module: "enquiries" },
   { href: "/admin/suppliers", label: "Suppliers", module: "suppliers" },
   { href: "/admin/trips", label: "Trips", module: "trips" },
