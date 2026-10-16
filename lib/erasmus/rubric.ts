@@ -111,8 +111,8 @@ export type Assessment = {
 // they drift — and the failure is a school being told "Strong" by one tool
 // and "would not pass" by the other. This block is that definition. It is
 // served as JSON at /api/erasmus/ruleset so a Builder on a different backend
-// (there is already a separate "Project Builder" Supabase project) reads the
-// same rules rather than a copy in a Word document.
+// (Heather's team may build it separately) reads the same rules rather than
+// a copy in a Word document.
 //
 // Version follows the Builder spec's §37 convention. "UK" marks where UK
 // National Agency overrides will go once the NA publishes; for now there are
