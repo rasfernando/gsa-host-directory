@@ -2,6 +2,7 @@ import {
   ACTION_TYPE,
   CRITERIA,
   GOLDEN_THREAD,
+  RULESET_VERSION,
   SECTIONS,
   THRESHOLDS,
   type Assessment,
@@ -253,5 +254,8 @@ function normalise(parsed: Assessment): Assessment {
   parsed.top_actions ??= [];
   parsed.missing_information ??= [];
   parsed.expert_spot_checks ??= [];
+  // Record which rules this was scored against, so an assessment from before
+  // a ruleset change can be told apart from one after it.
+  parsed.ruleset_version = RULESET_VERSION;
   return parsed;
 }

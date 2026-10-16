@@ -75,6 +75,7 @@ export default async function AssessmentPage({
             {row.school_name} · KA122-SCH · {new Date(row.created_at).toLocaleString("en-GB")}
             {row.model ? ` · ${row.model}` : ""}
             {row.duration_ms ? ` · ${Math.round(row.duration_ms / 1000)}s` : ""}
+            {a?.ruleset_version ? ` · ${a.ruleset_version}` : ""}
           </p>
         </div>
         <form action={deleteAssessment}>

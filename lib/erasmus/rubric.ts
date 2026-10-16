@@ -100,7 +100,148 @@ export type Assessment = {
   top_actions: string[];
   missing_information: string[];
   expert_spot_checks: string[];
+  // Which ruleset this result was scored against. Stamped by assess.ts so
+  // every stored assessment records the rules of its day (see RULESET_VERSION).
+  ruleset_version?: string;
 };
+
+// ── Shared ruleset ──────────────────────────────────────────────────────────
+//
+// The Assessor and the Project Builder must score against ONE definition or
+// they drift — and the failure is a school being told "Strong" by one tool
+// and "would not pass" by the other. This block is that definition. It is
+// served as JSON at /api/erasmus/ruleset so a Builder on a different backend
+// (there is already a separate "Project Builder" Supabase project) reads the
+// same rules rather than a copy in a Word document.
+//
+// Version follows the Builder spec's §37 convention. "UK" marks where UK
+// National Agency overrides will go once the NA publishes; for now there are
+// none, so this is the EC 2026 Programme Guide as-is.
+export const RULESET_VERSION = "KA122_SCH_2026_UK_v1";
+
+export type RuleConsumer = "assessor" | "builder";
+
+// The Builder spec's §32 rules, normalised: its Rules 6 and 12 (post-mobility
+// activity / learning continues after travel) are one rule here, and school
+// ownership of core tasks is added because it is an Erasmus quality standard
+// the Assessor already enforces. `golden_thread` is the Assessor check that
+// enforces the rule today, if any; `strength_area` is the Builder's §31 row
+// it feeds, so the Strength Check is derived from this list, not maintained
+// separately. `enforced_by` is the CURRENT state: three rules are Builder-only
+// until the Assessor's prompt is extended, which waits on Toni signing off
+// the present calibration (changing the prompt now would move the baseline
+// she is judging).
+export const RULES = [
+  {
+    key: "need_required",
+    statement: "No project can be generated, or scored as credible, without a stated school need backed by evidence.",
+    golden_thread: "need_evidenced",
+    strength_area: "Needs analysis",
+    enforced_by: ["assessor", "builder"],
+  },
+  {
+    key: "not_destination_led",
+    statement: "No project can be destination-led: country, trip and itinerary follow from the need and objective, never precede them.",
+    golden_thread: "activities_deliver_objectives",
+    strength_area: "Erasmus alignment",
+    enforced_by: ["assessor", "builder"],
+  },
+  {
+    key: "inclusion_embedded",
+    statement: "Every project embeds practical Inclusion & Diversity: barriers named, support planned, selection fair and never ability-to-pay.",
+    golden_thread: "inclusion_practical",
+    strength_area: "Inclusion",
+    enforced_by: ["assessor", "builder"],
+  },
+  {
+    key: "measurable_outcomes",
+    statement: "Every objective has a realistic way to measure success: a baseline, an indicator and a target or evidence.",
+    golden_thread: "measures_exist",
+    strength_area: "Impact measurement",
+    enforced_by: ["assessor", "builder"],
+  },
+  {
+    key: "pre_mobility_activity",
+    statement: "Every project contains pre-mobility activity that prepares participants and establishes a baseline before anyone travels.",
+    golden_thread: "activities_deliver_objectives",
+    strength_area: "Pre-mobility planning",
+    enforced_by: ["assessor", "builder"],
+  },
+  {
+    key: "mobility_serves_objective",
+    statement: "Every mobility activity connects to a stated objective; sightseeing, free time and tours count only when tied to a learning outcome.",
+    golden_thread: "activities_deliver_objectives",
+    strength_area: "Mobility learning",
+    enforced_by: ["assessor", "builder"],
+  },
+  {
+    key: "post_mobility_activity",
+    statement: "Every project describes how learning continues after travel: concrete follow-up with named owners and timeframes.",
+    golden_thread: "legacy_defined",
+    strength_area: "Integration",
+    enforced_by: ["assessor", "builder"],
+  },
+  {
+    key: "evaluation_method",
+    statement: "Every project contains an evaluation method that mirrors its objectives.",
+    golden_thread: "measures_exist",
+    strength_area: "Impact measurement",
+    enforced_by: ["assessor", "builder"],
+  },
+  {
+    key: "school_owns_core_tasks",
+    statement: "The school retains ownership of core tasks (selection, learning outcomes, finance, NA contact); any supporting organisation's role is limited and practical.",
+    golden_thread: "school_ownership",
+    strength_area: "Erasmus alignment",
+    enforced_by: ["assessor", "builder"],
+  },
+  {
+    key: "partner_educational_reason",
+    statement: "Every partner has an educational reason for being selected — never tourism, landmarks, popularity, weather or cost.",
+    golden_thread: null,
+    strength_area: "Partner rationale",
+    enforced_by: ["builder"],
+  },
+  {
+    key: "international_added_value",
+    statement: "Every project explains what each school contributes and why the collaboration produces something neither could alone.",
+    golden_thread: null,
+    strength_area: "International added value",
+    enforced_by: ["builder"],
+  },
+  {
+    key: "dissemination_planned",
+    statement: "Every project plans to share results internally and externally and to acknowledge EU funding — beyond photographs.",
+    golden_thread: null,
+    strength_area: "Dissemination",
+    enforced_by: ["builder"],
+  },
+] as const satisfies readonly {
+  key: string;
+  statement: string;
+  golden_thread: (typeof GOLDEN_THREAD)[number]["key"] | null;
+  strength_area: string;
+  enforced_by: readonly RuleConsumer[];
+}[];
+
+// The Builder's §31 Strength Check rows, derived from RULES so they cannot
+// drift from it. "Integration" is not in the spec's §31 list — the spec has no
+// legacy/follow-up area at all, despite follow-up being 30 of the 100 marks.
+export const STRENGTH_AREAS = [...new Set(RULES.map((r) => r.strength_area))];
+
+// Everything a consumer needs, JSON-serialisable, in one object.
+export function ruleset() {
+  return {
+    version: RULESET_VERSION,
+    action_type: ACTION_TYPE,
+    criteria: CRITERIA,
+    thresholds: THRESHOLDS,
+    sections: SECTIONS,
+    golden_thread: GOLDEN_THREAD,
+    rules: RULES,
+    strength_areas: STRENGTH_AREAS,
+  };
+}
 
 export function criterionMax(key: string) {
   return CRITERIA.find((c) => c.key === key)?.max ?? 0;
