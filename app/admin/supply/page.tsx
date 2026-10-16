@@ -98,7 +98,7 @@ export default async function AdminSupplyPage({
 
   return (
     <div>
-      <h1 className="text-2xl font-bold tracking-tight">Supply</h1>
+      <h1 className="text-2xl font-bold tracking-tight">Onboarding</h1>
       <p className="mt-1 text-sm text-gray-500">
         Verification cohorts, GSA-led onboarding, and direct school creation.
         {typeof listedCount === "number" &&

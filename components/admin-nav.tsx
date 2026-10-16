@@ -9,7 +9,7 @@ import type { Module } from "@/lib/features";
 const TABS: { href: string; label: string; module?: Module }[] = [
   { href: "/admin", label: "Review queue" },
   { href: "/admin/profiles", label: "Profiles" },
-  { href: "/admin/supply", label: "Supply" },
+  { href: "/admin/supply", label: "Onboarding" },
   { href: "/admin/enquiries", label: "Enquiries", module: "enquiries" },
   { href: "/admin/suppliers", label: "Suppliers", module: "suppliers" },
   { href: "/admin/trips", label: "Trips", module: "trips" },
