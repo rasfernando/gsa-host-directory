@@ -31,6 +31,19 @@ export const SUBJECT_SUGGESTIONS = [
 ];
 
 // Contact role dropdown (last option drives a free-text "Other" field).
+// Mirrors the "Type of School" dropdown in GSA's HubSpot (exact option values).
+export const SCHOOL_TYPES = [
+  "State School",
+  "Independent School",
+  "International School",
+  "Private School",
+  "Boarding School",
+  "K-12 School",
+  "IB School",
+  "Special School",
+  "Sixth Form College",
+] as const;
+
 export const CONTACT_ROLES = [
   "Headteacher / Principal",
   "CEO",

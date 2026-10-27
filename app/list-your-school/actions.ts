@@ -34,9 +34,15 @@ export async function submitListing(formData: FormData) {
 
   const phone = String(formData.get("contact_phone") || "").trim() || null;
   const postcode = String(formData.get("postcode") || "").trim() || null;
+  const schoolType = String(formData.get("school_type") || "").trim() || null;
   const hostMultiple = formData.has("host_multiple_per_year")
     ? formData.get("host_multiple_per_year") === "yes"
     : null;
+  const hostedBefore = formData.has("hosted_before")
+    ? formData.get("hosted_before") === "yes"
+    : null;
+  const num = (k: string) => (formData.get(k) ? Number(formData.get(k)) : null);
+  const list = (k: string) => formData.getAll(k).map(String).filter(Boolean);
 
   if (!schoolId) {
     // Atomic create-and-link via RPC: a fresh user can't INSERT…RETURNING on
@@ -115,11 +121,9 @@ export async function submitListing(formData: FormData) {
       age_range_max: formData.get("age_range_max") ? Number(formData.get("age_range_max")) : null,
       boarding: formData.get("boarding") === "on",
       homestay: formData.get("homestay") === "on",
-      hosted_before: formData.has("hosted_before")
-        ? formData.get("hosted_before") === "yes"
-        : null,
-      host_months: formData.getAll("host_months").map(String).filter(Boolean),
-      capacity: formData.get("capacity") ? Number(formData.get("capacity")) : null,
+      hosted_before: hostedBefore,
+      host_months: list("host_months"),
+      capacity: num("capacity"),
     })
     .select("id")
     .single();
@@ -133,10 +137,10 @@ export async function submitListing(formData: FormData) {
 
   // Directory V1 columns, written separately so the insert above can never
   // fail on a column that doesn't exist yet (42703 = pre-migration).
-  if (postcode !== null || hostMultiple !== null) {
+  if (postcode !== null || hostMultiple !== null || schoolType !== null) {
     const { error: v1Error } = await supabase
       .from("host_profiles")
-      .update({ postcode, host_multiple_per_year: hostMultiple })
+      .update({ postcode, host_multiple_per_year: hostMultiple, school_type: schoolType })
       .eq("id", newProfile.id);
     if (v1Error && v1Error.code !== "42703") console.warn(`[v1 fields not saved: ${v1Error.message}]`);
   }
@@ -157,6 +161,18 @@ export async function submitListing(formData: FormData) {
     country: String(formData.get("country") || "") || null,
     city: String(formData.get("city") || "") || null,
     postcode,
+    schoolType,
+    whyHost: String(formData.get("why_host") || "").trim() || null,
+    ageBand: String(formData.get("age_band") || "") || null,
+    agesFrom: num("age_range_min"),
+    agesTo: num("age_range_max"),
+    capacity: num("capacity"),
+    subjects: list("subject_strengths"),
+    boarding: formData.get("boarding") === "on",
+    homestay: formData.get("homestay") === "on",
+    hostedBefore,
+    hostMultiple,
+    hostMonths: list("host_months"),
   });
   await notifyGsa(
     `New host listing: ${escapeHtml(schoolName)}`,

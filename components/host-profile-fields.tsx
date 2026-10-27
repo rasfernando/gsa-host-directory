@@ -6,6 +6,7 @@ import {
   CONTACT_ROLES,
   LANGUAGE_SUGGESTIONS,
   MONTHS,
+  SCHOOL_TYPES,
   SUBJECT_SUGGESTIONS,
   inputCls,
   labelCls,
@@ -30,6 +31,21 @@ const WHY_HOST_LIMIT = 150;
 
 function wordCount(s: string) {
   return s.trim() ? s.trim().split(/\s+/).length : 0;
+}
+
+// Type of school: same options as GSA's HubSpot so the value maps 1:1.
+export function SchoolTypeField({ defaultValue = "" }: { defaultValue?: string }) {
+  return (
+    <div>
+      <label className={labelCls} htmlFor="school_type">Type of school</label>
+      <select className={inputCls} id="school_type" name="school_type" defaultValue={defaultValue}>
+        <option value="">Select a type…</option>
+        {SCHOOL_TYPES.map((t) => (
+          <option key={t} value={t}>{t}</option>
+        ))}
+      </select>
+    </div>
+  );
 }
 
 export function RoleField({ defaultValue }: { defaultValue?: string }) {

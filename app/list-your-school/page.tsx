@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { inputCls, labelCls } from "@/lib/forms";
 import {
+  SchoolTypeField,
   RoleField,
   WhyHostField,
   AgeBandField,
@@ -113,16 +114,11 @@ export default async function ListYourSchoolPage({
           <label className={labelCls} htmlFor="school_name">{t("schoolNameLabel")}</label>
           <input className={inputCls} id="school_name" name="school_name" required />
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <SchoolTypeField />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
             <label className={labelCls} htmlFor="country">{t("countryLabel")}</label>
             <input className={inputCls} id="country" name="country" required />
-          </div>
-          <div>
-            <label className={labelCls} htmlFor="state">
-              {t("stateLabel")} <span className="font-normal text-stone-500">{t("stateHint")}</span>
-            </label>
-            <input className={inputCls} id="state" name="state" />
           </div>
           <div>
             <label className={labelCls} htmlFor="city">{t("cityLabel")}</label>

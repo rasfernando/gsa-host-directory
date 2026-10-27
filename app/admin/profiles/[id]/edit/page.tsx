@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { FOCUS_AREAS } from "@/lib/forms";
+import { FOCUS_AREAS, SCHOOL_TYPES } from "@/lib/forms";
 import { VERIFICATION_CHECKS } from "@/lib/checklist";
 import { HostMonthsField } from "@/components/host-profile-fields";
 import {
@@ -411,7 +411,12 @@ export default async function AdminEditProfilePage({
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
             <label className={labelCls} htmlFor="school_type">Type of school</label>
-            <input className={inputCls} id="school_type" name="school_type" defaultValue={profile.school_type ?? ""} placeholder="Mixed secondary and Sixth Form (academy)" />
+            <select className={inputCls} id="school_type" name="school_type" defaultValue={profile.school_type ?? ""}>
+              <option value="">Not set</option>
+              {[...SCHOOL_TYPES, ...(profile.school_type && !(SCHOOL_TYPES as readonly string[]).includes(profile.school_type) ? [profile.school_type] : [])].map((t) => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </select>
           </div>
           <div>
             <label className={labelCls} htmlFor="ofsted_rating">Ofsted rating</label>
