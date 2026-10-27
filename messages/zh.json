@@ -258,7 +258,9 @@
     "photoLabel": "一张贵校的照片",
     "photoHint": "（可选，但带照片的信息会获得更多关注）",
     "submitButton": "提交我的资料以供审核",
-    "reviewNote": "GSA 团队会审核每一条信息——我们将就您的资料进展与您联系。"
+    "reviewNote": "GSA 团队会审核每一条信息——我们将就您的资料进展与您联系。",
+    "postcodeLabel": "邮政编码",
+    "phoneLabel": "联系电话"
   },
   "onboard": {
     "titleGcc": "Global Citizen Camp 接待学校信息登记",

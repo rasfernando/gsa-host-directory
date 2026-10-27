@@ -44,6 +44,15 @@ type ProfileRow = {
   distance_km?: number;
 };
 
+// An availability window from host_availability (Directory V1 migration).
+type Window = {
+  host_profile_id: string;
+  starts_on: string;
+  ends_on: string;
+  status: "available" | "reserved";
+  reserved_for: string | null;
+};
+
 // ── Filters (Heather's internal database: dates, location, age range…) ─────
 type Filters = {
   near: string;
@@ -65,10 +74,11 @@ const MONTHS = [
 function readFilters(sp: Record<string, string | undefined>): Filters {
   const age = sp.age === "primary" || sp.age === "secondary" ? sp.age : "";
   const hosted = sp.hosted === "yes" || sp.hosted === "no" ? sp.hosted : "";
-  const km = Number(sp.km);
+  const miles = Number(sp.km);
   return {
     near: (sp.near ?? "").trim(),
-    km: Number.isFinite(km) && km > 0 ? km : 25,
+    // The form field is in miles (what Heather's team thinks in); stored as km.
+    km: Number.isFinite(miles) && miles > 0 ? miles * 1.609 : 40,
     country: (sp.country ?? "").trim(),
     age,
     month: (sp.month ?? "").trim(),
@@ -94,6 +104,33 @@ function matchesMonth(p: ProfileRow, month: string) {
   if (!month) return true;
   const want = month.slice(0, 3).toLowerCase();
   return (p.host_months ?? []).some((m) => m.toLowerCase().startsWith(want));
+}
+
+const fmtDate = (d: string) =>
+  new Date(d + "T00:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+
+function WindowChips({ windows }: { windows: Window[] | undefined }) {
+  if (!windows || windows.length === 0) return null;
+  return (
+    <span className="mt-1 flex flex-wrap gap-1.5">
+      {windows.slice(0, 3).map((w, i) => (
+        <span
+          key={i}
+          className={
+            w.status === "reserved"
+              ? "rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700"
+              : "rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700"
+          }
+          title={w.status === "reserved" && w.reserved_for ? `Reserved for ${w.reserved_for}` : undefined}
+        >
+          {fmtDate(w.starts_on)}
+          {w.ends_on !== w.starts_on ? `–${fmtDate(w.ends_on)}` : ""}
+          {w.status === "reserved" ? ` · reserved${w.reserved_for ? ` for ${w.reserved_for}` : ""}` : ""}
+        </span>
+      ))}
+      {windows.length > 3 && <span className="text-[11px] text-gray-400">+{windows.length - 3} more</span>}
+    </span>
+  );
 }
 
 function TierBadge({ tier }: { tier: string }) {
@@ -257,7 +294,7 @@ function FilterBar({ f, countries, availabilityReady }: { f: Filters; countries:
       </div>
       {!availabilityReady && (
         <p className="mt-2 text-xs text-amber-700">
-          Date filters are off until supabase/migrations/20261027_directory_v1.sql is applied.
+          Dates and availability are off until supabase/migrations/20261027_directory_v1.sql is applied.
         </p>
       )}
     </form>
@@ -281,27 +318,40 @@ export default async function AdminProfiles({
     )
     .order("created_at", { ascending: false });
 
-  let list = (data ?? []) as ProfileRow[];
-  const countries = [...new Set(list.map((p) => p.country).filter(Boolean))].sort();
+  const all = (data ?? []) as ProfileRow[];
+  let list = all;
+  const countries = [...new Set(all.map((p) => p.country).filter(Boolean))].sort();
 
-  // Availability window filter: profiles with an "available" window overlapping
-  // the requested range. Table may not exist yet (pre-migration) → filter off.
+  // Upcoming availability for every school, shown inline and used for the
+  // date filter. One query; if the table isn't there yet (pre-migration) the
+  // list still renders and the date filters are disabled.
+  const today = new Date().toISOString().slice(0, 10);
   let availabilityReady = true;
-  let availableIds: Set<string> | null = null;
-  if (f.from || f.to) {
-    const from = f.from || "0001-01-01";
-    const to = f.to || "9999-12-31";
+  const upcoming = new Map<string, Window[]>();
+  {
     const { data: windows, error: avErr } = await supabase
       .from("host_availability")
-      .select("host_profile_id")
-      .eq("status", "available")
-      .lte("starts_on", to)
-      .gte("ends_on", from);
-    if (avErr) availabilityReady = avErr.code !== "42P01";
-    else availableIds = new Set((windows ?? []).map((w: { host_profile_id: string }) => w.host_profile_id));
-  } else {
-    const { error: probe } = await supabase.from("host_availability").select("id").limit(1);
-    if (probe?.code === "42P01") availabilityReady = false;
+      .select("host_profile_id, starts_on, ends_on, status, reserved_for")
+      .gte("ends_on", today)
+      .order("starts_on");
+    if (avErr) {
+      availabilityReady = avErr.code !== "42P01";
+    } else {
+      for (const w of (windows ?? []) as Window[]) {
+        const arr = upcoming.get(w.host_profile_id) ?? [];
+        arr.push(w);
+        upcoming.set(w.host_profile_id, arr);
+      }
+    }
+  }
+  let availableIds: Set<string> | null = null;
+  if ((f.from || f.to) && availabilityReady) {
+    const from = f.from || "0001-01-01";
+    const to = f.to || "9999-12-31";
+    availableIds = new Set<string>();
+    for (const [id, ws] of upcoming) {
+      if (ws.some((w) => w.status === "available" && w.starts_on <= to && w.ends_on >= from)) availableIds.add(id);
+    }
   }
 
   // "Near": geocode the query once, compute distance per profile, sort by it.
@@ -343,7 +393,7 @@ export default async function AdminProfiles({
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Directory profiles</h1>
           <p className="mb-6 mt-1 text-sm text-gray-500">
-            {(data ?? []).filter((p: ProfileRow) => p.published).length} published · {(data ?? []).length} total
+            {all.filter((p) => p.published).length} published · {all.length} total
             {isActive(f) ? ` · ${list.length} match` : ""}
           </p>
         </div>
@@ -506,6 +556,7 @@ export default async function AdminProfiles({
                     "unpublished"
                   )}
                 </p>
+                <WindowChips windows={upcoming.get(p.id)} />
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <Link

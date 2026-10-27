@@ -32,6 +32,12 @@ export async function submitListing(formData: FormData) {
   const roleRaw = String(formData.get("contact_role") || "");
   const role = roleRaw === "Other" ? String(formData.get("contact_role_other") || "Other") : roleRaw;
 
+  const phone = String(formData.get("contact_phone") || "").trim() || null;
+  const postcode = String(formData.get("postcode") || "").trim() || null;
+  const hostMultiple = formData.has("host_multiple_per_year")
+    ? formData.get("host_multiple_per_year") === "yes"
+    : null;
+
   if (!schoolId) {
     // Atomic create-and-link via RPC: a fresh user can't INSERT…RETURNING on
     // schools directly (the new row isn't visible to them until linked).
@@ -52,6 +58,17 @@ export async function submitListing(formData: FormData) {
     if (schoolError || !newSchoolId)
       redirect(`/list-your-school?error=${encodeURIComponent(schoolError?.message ?? "Could not register your school")}`);
     schoolId = newSchoolId as string;
+  }
+
+  // Phone is a Directory V1 column on schools (register_school doesn't take
+  // it). Best effort: a missing column (pre-migration) or an RLS refusal must
+  // never fail a registration — admins can add it on the profile page.
+  if (phone) {
+    const { error: phoneError } = await supabase
+      .from("schools")
+      .update({ contact_phone: phone })
+      .eq("id", schoolId);
+    if (phoneError) console.warn(`[contact_phone not saved: ${phoneError.code} ${phoneError.message}]`);
   }
 
   const slug =
@@ -114,6 +131,16 @@ export async function submitListing(formData: FormData) {
     );
   }
 
+  // Directory V1 columns, written separately so the insert above can never
+  // fail on a column that doesn't exist yet (42703 = pre-migration).
+  if (postcode !== null || hostMultiple !== null) {
+    const { error: v1Error } = await supabase
+      .from("host_profiles")
+      .update({ postcode, host_multiple_per_year: hostMultiple })
+      .eq("id", newProfile.id);
+    if (v1Error && v1Error.code !== "42703") console.warn(`[v1 fields not saved: ${v1Error.message}]`);
+  }
+
   await logEvent("listing_created", { school_id: schoolId, profile_id: newProfile.id });
 
   // One form, two systems: mirror the school and its contact into HubSpot so
@@ -124,10 +151,12 @@ export async function submitListing(formData: FormData) {
     firstName: String(formData.get("contact_first_name") || "") || null,
     lastName: String(formData.get("contact_last_name") || "") || null,
     role: role || null,
+    phone,
     schoolName,
     website: normalizeUrl(String(formData.get("website") || "")),
     country: String(formData.get("country") || "") || null,
     city: String(formData.get("city") || "") || null,
+    postcode,
   });
   await notifyGsa(
     `New host listing: ${escapeHtml(schoolName)}`,

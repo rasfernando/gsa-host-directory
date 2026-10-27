@@ -10,6 +10,7 @@ import {
   SubjectStrengthsField,
   LanguagesField,
   HostedBeforeField,
+  HostMultipleField,
   HostMonthsField,
 } from "@/components/host-profile-fields";
 import { submitListing } from "./actions";
@@ -112,7 +113,7 @@ export default async function ListYourSchoolPage({
           <label className={labelCls} htmlFor="school_name">{t("schoolNameLabel")}</label>
           <input className={inputCls} id="school_name" name="school_name" required />
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label className={labelCls} htmlFor="country">{t("countryLabel")}</label>
             <input className={inputCls} id="country" name="country" required />
@@ -127,8 +128,12 @@ export default async function ListYourSchoolPage({
             <label className={labelCls} htmlFor="city">{t("cityLabel")}</label>
             <input className={inputCls} id="city" name="city" />
           </div>
+          <div>
+            <label className={labelCls} htmlFor="postcode">{t("postcodeLabel")}</label>
+            <input className={inputCls} id="postcode" name="postcode" autoComplete="postal-code" />
+          </div>
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
             <label className={labelCls} htmlFor="contact_first_name">{t("firstNameLabel")}</label>
             <input className={inputCls} id="contact_first_name" name="contact_first_name" required />
@@ -136,6 +141,10 @@ export default async function ListYourSchoolPage({
           <div>
             <label className={labelCls} htmlFor="contact_last_name">{t("lastNameLabel")}</label>
             <input className={inputCls} id="contact_last_name" name="contact_last_name" required />
+          </div>
+          <div>
+            <label className={labelCls} htmlFor="contact_phone">{t("phoneLabel")}</label>
+            <input className={inputCls} id="contact_phone" name="contact_phone" type="tel" autoComplete="tel" />
           </div>
         </div>
         <RoleField />
@@ -169,6 +178,7 @@ export default async function ListYourSchoolPage({
           </label>
         </div>
         <HostedBeforeField />
+        <HostMultipleField />
         <HostMonthsField />
         <div>
           <label className={labelCls} htmlFor="photo">

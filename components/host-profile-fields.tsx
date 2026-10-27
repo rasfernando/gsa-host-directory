@@ -380,6 +380,33 @@ export function HostedBeforeField({ defaultValue }: { defaultValue?: boolean | n
   );
 }
 
+// Whether the school is happy to host more than once a year (Directory V1).
+// Same shape as HostedBeforeField; absent = not answered → null.
+export function HostMultipleField({ defaultValue }: { defaultValue?: boolean | null }) {
+  return (
+    <div>
+      <label className={labelCls}>Would you be happy to host more than once a year?</label>
+      <div className="mt-2 flex gap-4">
+        {[
+          { v: "yes", label: "Yes" },
+          { v: "no", label: "No" },
+        ].map((o) => (
+          <label key={o.v} className="flex items-center gap-2 text-sm text-stone-700">
+            <input
+              type="radio"
+              name="host_multiple_per_year"
+              value={o.v}
+              defaultChecked={defaultValue === (o.v === "yes")}
+              className="accent-warm-600"
+            />
+            {o.label}
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // Convenience bundle for forms that want the whole new block in order.
 export function HostProfileExtraFields({ d = {} }: { d?: Defaults }) {
   return (

@@ -258,7 +258,9 @@
     "photoLabel": "Zdjęcie Twojej szkoły",
     "photoHint": "(opcjonalnie, ale wpisy ze zdjęciami budzą znacznie większe zainteresowanie)",
     "submitButton": "Prześlij mój profil do weryfikacji",
-    "reviewNote": "Zespół GSA sprawdza każdy wpis — będziemy Cię informować o aktualizacjach Twojego profilu."
+    "reviewNote": "Zespół GSA sprawdza każdy wpis — będziemy Cię informować o aktualizacjach Twojego profilu.",
+    "postcodeLabel": "Kod pocztowy",
+    "phoneLabel": "Telefon kontaktowy"
   },
   "onboard": {
     "titleGcc": "Rejestracja szkoły goszczącej Global Citizen Camp",

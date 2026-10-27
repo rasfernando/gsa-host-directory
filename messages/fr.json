@@ -258,7 +258,9 @@
     "photoLabel": "Une photo de votre école",
     "photoHint": "(facultatif, mais les fiches avec photos suscitent bien plus d'intérêt)",
     "submitButton": "Soumettre mon profil pour examen",
-    "reviewNote": "L'équipe GSA examine chaque fiche — nous vous tiendrons informé de l'évolution de votre profil."
+    "reviewNote": "L'équipe GSA examine chaque fiche — nous vous tiendrons informé de l'évolution de votre profil.",
+    "postcodeLabel": "Code postal",
+    "phoneLabel": "Téléphone de contact"
   },
   "onboard": {
     "titleGcc": "Inscription des écoles d'accueil Global Citizen Camp",

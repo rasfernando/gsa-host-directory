@@ -208,7 +208,9 @@
     "photoLabel": "A photo of your school",
     "photoHint": "(optional, but listings with photos get far more interest)",
     "submitButton": "Submit my profile for review",
-    "reviewNote": "The GSA team reviews every listing — we'll contact you with updates on your profile."
+    "reviewNote": "The GSA team reviews every listing — we'll contact you with updates on your profile.",
+    "postcodeLabel": "Postcode",
+    "phoneLabel": "Contact phone"
   },
   "onboard": {
     "titleGcc": "Global Citizen Camp host intake",

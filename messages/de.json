@@ -258,7 +258,9 @@
     "photoLabel": "Ein Foto Ihrer Schule",
     "photoHint": "(optional, aber Einträge mit Fotos wecken deutlich mehr Interesse)",
     "submitButton": "Mein Profil zur Prüfung einreichen",
-    "reviewNote": "Das GSA-Team prüft jeden Eintrag — wir informieren Sie über Aktualisierungen zu Ihrem Profil."
+    "reviewNote": "Das GSA-Team prüft jeden Eintrag — wir informieren Sie über Aktualisierungen zu Ihrem Profil.",
+    "postcodeLabel": "Postleitzahl",
+    "phoneLabel": "Telefonnummer"
   },
   "onboard": {
     "titleGcc": "Global Citizen Camp – Aufnahme als Gastgeber",

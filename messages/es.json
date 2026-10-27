@@ -258,7 +258,9 @@
     "photoLabel": "Una foto de tu colegio",
     "photoHint": "(opcional, pero los perfiles con fotos despiertan mucho más interés)",
     "submitButton": "Enviar mi perfil para revisión",
-    "reviewNote": "El equipo de GSA revisa cada perfil — nos pondremos en contacto contigo con novedades sobre el tuyo."
+    "reviewNote": "El equipo de GSA revisa cada perfil — nos pondremos en contacto contigo con novedades sobre el tuyo.",
+    "postcodeLabel": "Código postal",
+    "phoneLabel": "Teléfono de contacto"
   },
   "onboard": {
     "titleGcc": "Alta de anfitrión del Global Citizen Camp",

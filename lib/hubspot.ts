@@ -17,10 +17,12 @@ export type SchoolContact = {
   firstName?: string | null;
   lastName?: string | null;
   role?: string | null;
+  phone?: string | null;
   schoolName: string;
   website?: string | null;
   country?: string | null;
   city?: string | null;
+  postcode?: string | null;
 };
 
 export async function syncSchoolToHubspot(c: SchoolContact): Promise<void> {
@@ -46,6 +48,7 @@ export async function syncSchoolToHubspot(c: SchoolContact): Promise<void> {
         firstname: c.firstName ?? "",
         lastname: c.lastName ?? "",
         jobtitle: c.role ?? "",
+        ...(c.phone ? { phone: c.phone } : {}),
       },
       headers
     );
@@ -67,6 +70,7 @@ export async function syncSchoolToHubspot(c: SchoolContact): Promise<void> {
         ...(domain ? { domain } : {}),
         country: c.country ?? "",
         city: c.city ?? "",
+        ...(c.postcode ? { zip: c.postcode } : {}),
       },
       headers
     );
