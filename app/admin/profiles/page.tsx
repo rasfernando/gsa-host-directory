@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { geocodeText } from "@/lib/geocode";
+import { distanceKm, formatDistance } from "@/lib/geo";
 import {
   togglePublish,
   approvePendingChanges,
@@ -19,10 +21,15 @@ type ProfileRow = {
   tier: string;
   headline: string | null;
   languages: string[];
+  age_band: string | null;
   age_range_min: number | null;
   age_range_max: number | null;
   boarding: boolean;
   homestay: boolean;
+  hosted_before: boolean | null;
+  host_months: string[] | null;
+  lat: number | null;
+  lng: number | null;
   capacity: number | null;
   typical_hosting_windows: string | null;
   created_at: string;
@@ -33,7 +40,61 @@ type ProfileRow = {
     | { contact_name: string | null; contact_email: string | null; website: string | null }[]
     | { contact_name: string | null; contact_email: string | null; website: string | null }
     | null;
+  // computed when a "near" filter is set
+  distance_km?: number;
 };
+
+// ── Filters (Heather's internal database: dates, location, age range…) ─────
+type Filters = {
+  near: string;
+  km: number;
+  country: string;
+  age: "" | "primary" | "secondary";
+  month: string;
+  hosted: "" | "yes" | "no";
+  from: string;
+  to: string;
+  q: string;
+};
+
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+function readFilters(sp: Record<string, string | undefined>): Filters {
+  const age = sp.age === "primary" || sp.age === "secondary" ? sp.age : "";
+  const hosted = sp.hosted === "yes" || sp.hosted === "no" ? sp.hosted : "";
+  const km = Number(sp.km);
+  return {
+    near: (sp.near ?? "").trim(),
+    km: Number.isFinite(km) && km > 0 ? km : 25,
+    country: (sp.country ?? "").trim(),
+    age,
+    month: (sp.month ?? "").trim(),
+    hosted,
+    from: (sp.from ?? "").trim(),
+    to: (sp.to ?? "").trim(),
+    q: (sp.q ?? "").trim(),
+  };
+}
+
+function isActive(f: Filters) {
+  return Boolean(f.near || f.country || f.age || f.month || f.hosted || f.from || f.to || f.q);
+}
+
+function matchesAge(p: ProfileRow, age: Filters["age"]) {
+  if (!age) return true;
+  const band = (p.age_band ?? "").toLowerCase();
+  if (age === "primary") return band.includes("prim") || (p.age_range_max != null && p.age_range_max <= 11);
+  return band.includes("second") || band.includes("sixth") || (p.age_range_min != null && p.age_range_min >= 11);
+}
+
+function matchesMonth(p: ProfileRow, month: string) {
+  if (!month) return true;
+  const want = month.slice(0, 3).toLowerCase();
+  return (p.host_months ?? []).some((m) => m.toLowerCase().startsWith(want));
+}
 
 function TierBadge({ tier }: { tier: string }) {
   return (
@@ -133,22 +194,143 @@ function PublishButton({ profile }: { profile: ProfileRow }) {
   );
 }
 
+const fieldCls = "rounded-lg border border-gray-300 px-2.5 py-1.5 text-xs";
+
+function FilterBar({ f, countries, availabilityReady }: { f: Filters; countries: string[]; availabilityReady: boolean }) {
+  return (
+    <form method="get" className="mb-6 rounded-xl border border-gray-200 bg-white p-4">
+      <div className="flex flex-wrap items-end gap-3">
+        <label className="block text-xs text-gray-600">
+          Near
+          <input id="f-near" name="near" defaultValue={f.near} placeholder="postcode or place" className={`${fieldCls} mt-1 block w-44`} />
+        </label>
+        <label className="block text-xs text-gray-600">
+          Within (miles)
+          <input id="f-km" name="km" type="number" min={1} defaultValue={Math.round(f.km / 1.609)} className={`${fieldCls} mt-1 block w-20`} />
+        </label>
+        <label className="block text-xs text-gray-600">
+          Country
+          <select id="f-country" name="country" defaultValue={f.country} className={`${fieldCls} mt-1 block`}>
+            <option value="">Any</option>
+            {countries.map((c) => (<option key={c} value={c}>{c}</option>))}
+          </select>
+        </label>
+        <label className="block text-xs text-gray-600">
+          Age range
+          <select id="f-age" name="age" defaultValue={f.age} className={`${fieldCls} mt-1 block`}>
+            <option value="">Any</option>
+            <option value="primary">Primary</option>
+            <option value="secondary">Secondary</option>
+          </select>
+        </label>
+        <label className="block text-xs text-gray-600">
+          Hosting month
+          <select id="f-month" name="month" defaultValue={f.month} className={`${fieldCls} mt-1 block`}>
+            <option value="">Any</option>
+            {MONTHS.map((m) => (<option key={m} value={m}>{m}</option>))}
+          </select>
+        </label>
+        <label className="block text-xs text-gray-600">
+          Hosted before
+          <select id="f-hosted" name="hosted" defaultValue={f.hosted} className={`${fieldCls} mt-1 block`}>
+            <option value="">Any</option>
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+          </select>
+        </label>
+        <label className="block text-xs text-gray-600" title={availabilityReady ? "" : "Needs the Directory V1 migration"}>
+          Available from
+          <input id="f-from" name="from" type="date" defaultValue={f.from} className={`${fieldCls} mt-1 block`} disabled={!availabilityReady} />
+        </label>
+        <label className="block text-xs text-gray-600">
+          to
+          <input id="f-to" name="to" type="date" defaultValue={f.to} className={`${fieldCls} mt-1 block`} disabled={!availabilityReady} />
+        </label>
+        <label className="block text-xs text-gray-600">
+          Name
+          <input id="f-q" name="q" defaultValue={f.q} placeholder="search" className={`${fieldCls} mt-1 block w-36`} />
+        </label>
+        <button className="rounded-lg bg-gray-900 px-4 py-2 text-xs font-medium text-white hover:bg-gray-700">Filter</button>
+        {isActive(f) && (
+          <Link href="/admin/profiles" className="text-xs text-gray-500 underline">Clear</Link>
+        )}
+      </div>
+      {!availabilityReady && (
+        <p className="mt-2 text-xs text-amber-700">
+          Date filters are off until supabase/migrations/20261027_directory_v1.sql is applied.
+        </p>
+      )}
+    </form>
+  );
+}
+
 export default async function AdminProfiles({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; geocoded?: string; of?: string }>;
+  searchParams: Promise<Record<string, string | undefined>>;
 }) {
-  const { error: errorFlag, geocoded, of } = await searchParams;
+  const sp = await searchParams;
+  const { error: errorFlag, geocoded, of } = sp;
+  const f = readFilters(sp);
   const supabase = await createClient();
 
   const { data } = await supabase
     .from("host_profiles")
     .select(
-      "id, name, slug, country, city, published, tier, headline, languages, age_range_min, age_range_max, boarding, homestay, capacity, typical_hosting_windows, created_at, pending_review, pending_changes, media, schools(contact_name, contact_email, website)"
+      "id, name, slug, country, city, published, tier, headline, languages, age_band, age_range_min, age_range_max, boarding, homestay, hosted_before, host_months, lat, lng, capacity, typical_hosting_windows, created_at, pending_review, pending_changes, media, schools(contact_name, contact_email, website)"
     )
     .order("created_at", { ascending: false });
 
-  const list = (data ?? []) as ProfileRow[];
+  let list = (data ?? []) as ProfileRow[];
+  const countries = [...new Set(list.map((p) => p.country).filter(Boolean))].sort();
+
+  // Availability window filter: profiles with an "available" window overlapping
+  // the requested range. Table may not exist yet (pre-migration) → filter off.
+  let availabilityReady = true;
+  let availableIds: Set<string> | null = null;
+  if (f.from || f.to) {
+    const from = f.from || "0001-01-01";
+    const to = f.to || "9999-12-31";
+    const { data: windows, error: avErr } = await supabase
+      .from("host_availability")
+      .select("host_profile_id")
+      .eq("status", "available")
+      .lte("starts_on", to)
+      .gte("ends_on", from);
+    if (avErr) availabilityReady = avErr.code !== "42P01";
+    else availableIds = new Set((windows ?? []).map((w: { host_profile_id: string }) => w.host_profile_id));
+  } else {
+    const { error: probe } = await supabase.from("host_availability").select("id").limit(1);
+    if (probe?.code === "42P01") availabilityReady = false;
+  }
+
+  // "Near": geocode the query once, compute distance per profile, sort by it.
+  let nearNote: string | null = null;
+  if (f.near) {
+    const origin = await geocodeText(f.near);
+    if (!origin) {
+      nearNote = process.env.GOOGLE_PLACES_API_KEY
+        ? `Couldn't find "${f.near}" on the map.`
+        : "Location search needs GOOGLE_PLACES_API_KEY.";
+    } else {
+      list = list
+        .filter((p) => p.lat != null && p.lng != null)
+        .map((p) => ({ ...p, distance_km: distanceKm(origin, { lat: p.lat as number, lng: p.lng as number }) }))
+        .filter((p) => (p.distance_km as number) <= f.km)
+        .sort((a, b) => (a.distance_km as number) - (b.distance_km as number));
+    }
+  }
+
+  list = list.filter(
+    (p) =>
+      (!f.country || p.country === f.country) &&
+      matchesAge(p, f.age) &&
+      matchesMonth(p, f.month) &&
+      (!f.hosted || (f.hosted === "yes" ? p.hosted_before === true : p.hosted_before === false)) &&
+      (!availableIds || availableIds.has(p.id)) &&
+      (!f.q || p.name.toLowerCase().includes(f.q.toLowerCase()))
+  );
+
   // Live profiles whose schools have submitted edits awaiting re-approval
   const pendingEdits = list.filter((p) => p.pending_review);
   // New Tier-1 listings awaiting their first review
@@ -160,8 +342,9 @@ export default async function AdminProfiles({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Directory profiles</h1>
-          <p className="mb-8 mt-1 text-sm text-gray-500">
-            {list.filter((p) => p.published).length} published · {list.length} total
+          <p className="mb-6 mt-1 text-sm text-gray-500">
+            {(data ?? []).filter((p: ProfileRow) => p.published).length} published · {(data ?? []).length} total
+            {isActive(f) ? ` · ${list.length} match` : ""}
           </p>
         </div>
         <form action={geocodeAllProfiles}>
@@ -170,6 +353,12 @@ export default async function AdminProfiles({
           </button>
         </form>
       </div>
+
+      <FilterBar f={f} countries={countries} availabilityReady={availabilityReady} />
+
+      {nearNote && (
+        <div className="mb-6 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">{nearNote}</div>
+      )}
 
       {geocoded != null && (
         <div className="mb-6 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
@@ -246,6 +435,7 @@ export default async function AdminProfiles({
                         {p.city ? `${p.city}, ` : ""}
                         {p.country} · listed{" "}
                         {new Date(p.created_at).toLocaleDateString("en-GB")}
+                        {p.distance_km != null ? ` · ${formatDistance(p.distance_km)} away` : ""}
                       </p>
                     </div>
                   </div>
@@ -283,23 +473,30 @@ export default async function AdminProfiles({
       )}
 
       <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">
-        All profiles
+        All profiles{isActive(f) ? ` (${rest.length})` : ""}
       </h2>
       {rest.length === 0 ? (
         <p className="rounded-lg border border-dashed border-gray-200 p-10 text-center text-sm text-gray-500">
-          No profiles yet — approve an application or review a listing.
+          {isActive(f) ? "No schools match those filters." : "No profiles yet — approve an application or review a listing."}
         </p>
       ) : (
         <ul className="divide-y divide-gray-100 rounded-lg border border-gray-100">
           {rest.map((p) => (
-            <li key={p.id} className="flex items-center justify-between px-5 py-4">
-              <div>
+            <li key={p.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+              <div className="min-w-0">
                 <p className="text-sm font-medium">
                   {p.name} <TierBadge tier={p.tier} />
+                  {p.distance_km != null && (
+                    <span className="ml-2 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+                      {formatDistance(p.distance_km)}
+                    </span>
+                  )}
                 </p>
                 <p className="text-xs text-gray-500">
                   {p.city ? `${p.city}, ` : ""}
                   {p.country}
+                  {p.age_range_min != null || p.age_range_max != null ? ` · ages ${p.age_range_min ?? "?"}–${p.age_range_max ?? "?"}` : ""}
+                  {p.hosted_before === true ? " · hosted before" : ""}
                   {" · "}
                   {p.published ? (
                     <Link href={`/directory/${p.slug}`} className="underline" target="_blank">
@@ -310,7 +507,13 @@ export default async function AdminProfiles({
                   )}
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <Link
+                  href={`/admin/profiles/${p.id}/catalogue`}
+                  className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                >
+                  Catalogue
+                </Link>
                 <Link
                   href={`/admin/profiles/${p.id}/edit`}
                   className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50"

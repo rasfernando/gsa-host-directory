@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { notifyGsa, escapeHtml } from "@/lib/notify";
 import { logEvent } from "@/lib/events";
 import { normalizeUrl } from "@/lib/forms";
+import { syncSchoolToHubspot } from "@/lib/hubspot";
 
 // Tier 1 self-serve listing: creates the school and an unpublished "listed"
 // profile in one step. GSA does a light sanity check (real school, real
@@ -114,6 +115,20 @@ export async function submitListing(formData: FormData) {
   }
 
   await logEvent("listing_created", { school_id: schoolId, profile_id: newProfile.id });
+
+  // One form, two systems: mirror the school and its contact into HubSpot so
+  // the CRM stays the record without the school filling anything in twice.
+  // Env-gated and non-throwing (lib/hubspot.ts); registration never waits on it.
+  await syncSchoolToHubspot({
+    email: user.email ?? "",
+    firstName: String(formData.get("contact_first_name") || "") || null,
+    lastName: String(formData.get("contact_last_name") || "") || null,
+    role: role || null,
+    schoolName,
+    website: normalizeUrl(String(formData.get("website") || "")),
+    country: String(formData.get("country") || "") || null,
+    city: String(formData.get("city") || "") || null,
+  });
   await notifyGsa(
     `New host listing: ${escapeHtml(schoolName)}`,
     `<p><strong>${escapeHtml(schoolName)}</strong> (${escapeHtml(formData.get("country"))}) has listed as a host school (Tier 1 — needs a quick review before publishing).</p>

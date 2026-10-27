@@ -44,3 +44,24 @@ export async function geocodeSchool(opts: {
     return null;
   }
 }
+
+// Geocode any free text — a postcode, "south London", a town. Same key and
+// gating as geocodeSchool. Used by the admin "near" filter.
+export async function geocodeText(query: string): Promise<{ lat: number; lng: number } | null> {
+  const apiKey = process.env.GOOGLE_PLACES_API_KEY;
+  const q = query.trim();
+  if (!apiKey || !q) return null;
+  try {
+    const res = await fetch(
+      `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(q)}&key=${apiKey}`
+    );
+    if (!res.ok) return null;
+    const data = (await res.json()) as {
+      results?: { geometry?: { location?: { lat: number; lng: number } } }[];
+    };
+    return data.results?.[0]?.geometry?.location ?? null;
+  } catch (err) {
+    console.error("[geocode failed]", err);
+    return null;
+  }
+}

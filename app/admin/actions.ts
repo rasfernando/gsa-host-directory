@@ -217,6 +217,61 @@ export async function adminUpdateProfile(formData: FormData) {
     .eq("id", id);
   if (error) redirect(`/admin/profiles/${id}/edit?error=${encodeURIComponent(error.message)}`);
 
+  // Directory V1 fields (supabase/migrations/20261027_directory_v1.sql).
+  // Written in a second update so that, before the migration is applied, the
+  // save above still succeeds and only these are skipped (42703 = no such column).
+  const tri = (k: string) => {
+    const v = String(formData.get(k) || "");
+    return v === "yes" ? true : v === "no" ? false : null;
+  };
+  const txt = (k: string) => String(formData.get(k) || "").trim() || null;
+  const url = (k: string) => {
+    const s = String(formData.get(k) || "").trim();
+    return s ? (/^https?:\/\//i.test(s) ? s : `https://${s}`) : null;
+  };
+  const v1 = {
+    postcode: txt("postcode"),
+    host_multiple_per_year: tri("host_multiple_per_year"),
+    hosted_before: tri("hosted_before"),
+    school_type: txt("school_type"),
+    ofsted_rating: txt("ofsted_rating"),
+    prospectus_url: url("prospectus_url"),
+    typical_hosting_windows: txt("typical_hosting_windows"),
+    overview: txt("overview"),
+    culture: txt("culture"),
+    curriculum: txt("curriculum"),
+    enrichment: txt("enrichment"),
+    standout: txt("standout"),
+  };
+  const { error: v1Error } = await supabase.from("host_profiles").update(v1).eq("id", id);
+  if (v1Error && v1Error.code !== "42703") {
+    redirect(`/admin/profiles/${id}/edit?error=${encodeURIComponent(v1Error.message)}`);
+  }
+  if (v1Error) console.warn("[directory v1 columns missing — apply 20261027_directory_v1.sql]");
+
+  // Contact details live on the school, not the profile. Phone is a new column,
+  // so it goes in its own tolerant update like the fields above.
+  const schoolId = String(formData.get("school_id") || "");
+  if (schoolId) {
+    const { error: schoolError } = await supabase
+      .from("schools")
+      .update({
+        contact_name: txt("contact_name"),
+        contact_email: txt("contact_email"),
+        contact_role: txt("contact_role"),
+        website: url("website"),
+      })
+      .eq("id", schoolId);
+    if (schoolError) redirect(`/admin/profiles/${id}/edit?error=${encodeURIComponent(schoolError.message)}`);
+    const { error: phoneError } = await supabase
+      .from("schools")
+      .update({ contact_phone: txt("contact_phone") })
+      .eq("id", schoolId);
+    if (phoneError && phoneError.code !== "42703") {
+      redirect(`/admin/profiles/${id}/edit?error=${encodeURIComponent(phoneError.message)}`);
+    }
+  }
+
   await logEvent("admin_profile_edited", { profile_id: id });
   await geocodeProfile(supabase, id);
   await translateAndStoreProfile(supabase, id);

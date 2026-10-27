@@ -10,6 +10,8 @@ import {
   adminRemoveProfilePhoto,
   adminSetProfileCover,
 } from "../../../actions";
+import { AvailabilityPanel } from "./availability-panel";
+import { NotesPanel } from "./notes-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -22,9 +24,36 @@ const ERRORS: Record<string, string> = {
   max: "Maximum of 8 photos — remove one to add another.",
 };
 
+const SAVED: Record<string, string> = {
+  availability: "Availability updated.",
+  note: "Note saved.",
+};
+
 const inputCls =
   "mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-gray-900 focus:outline-none";
 const labelCls = "block text-sm font-medium text-gray-700";
+
+// yes / no / not known — adminUpdateProfile maps "" to null.
+function TriField({ name, label, value }: { name: string; label: string; value: boolean | null | undefined }) {
+  const current = value === true ? "yes" : value === false ? "no" : "";
+  return (
+    <div>
+      <span className={labelCls}>{label}</span>
+      <div className="mt-2 flex gap-4">
+        {[
+          { v: "yes", l: "Yes" },
+          { v: "no", l: "No" },
+          { v: "", l: "Not known" },
+        ].map((o) => (
+          <label key={o.v || "unknown"} className="flex items-center gap-2 text-sm text-gray-700">
+            <input type="radio" name={name} value={o.v} defaultChecked={current === o.v} className="border-gray-300" />
+            {o.l}
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default async function AdminEditProfilePage({
   params,
@@ -37,20 +66,24 @@ export default async function AdminEditProfilePage({
   const { saved, error } = await searchParams;
   const supabase = await createClient();
 
-  const { data: profile } = await supabase
+  // "*" rather than a column list so the page keeps working before the
+  // Directory V1 migration adds columns (they simply come back undefined).
+  const { data } = await supabase
     .from("host_profiles")
-    .select(
-      "id, school_id, name, slug, published, tier, media, headline, description, city, state, why_host, languages, subject_strengths, focus_tags, boarding, homestay, age_range_min, age_range_max, capacity, host_months, schools(name)"
-    )
+    .select("*, schools(*)")
     .eq("id", id)
     .maybeSingle();
 
-  if (!profile) {
+  if (!data) {
     redirect("/admin/profiles");
   }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const profile = data as Record<string, any>;
 
   const media = (profile.media as MediaItem[] | null) ?? [];
-  const school = Array.isArray(profile.schools) ? profile.schools[0] : profile.schools;
+  const school = (Array.isArray(profile.schools) ? profile.schools[0] : profile.schools) as
+    | Record<string, string | null>
+    | null;
 
   // Verification: the school's most recent application, its evidence docs and
   // check statuses — surfaced here with a link through to the full review.
@@ -93,7 +126,7 @@ export default async function AdminEditProfilePage({
       <Link href="/admin/profiles" className="text-sm text-gray-500 hover:text-gray-900">
         ← Profiles
       </Link>
-      <div className="mt-3 flex items-center gap-3">
+      <div className="mt-3 flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-bold tracking-tight">
           Edit profile — {profile.name || school?.name}
         </h1>
@@ -102,6 +135,12 @@ export default async function AdminEditProfilePage({
         >
           {profile.published ? "Published" : "Unpublished"}
         </span>
+        <Link
+          href={`/admin/profiles/${id}/catalogue`}
+          className="ml-auto rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
+        >
+          Catalogue profile →
+        </Link>
       </div>
       <p className="mt-1 text-sm text-gray-500">
         Edits apply immediately and go live — no separate approval step. Changes
@@ -110,7 +149,7 @@ export default async function AdminEditProfilePage({
 
       {saved && (
         <p className="mt-4 rounded-lg bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800">
-          Saved.
+          {SAVED[saved] ?? "Saved."}
         </p>
       )}
       {error && (
@@ -251,6 +290,7 @@ export default async function AdminEditProfilePage({
       {/* Details */}
       <form action={adminUpdateProfile} className="mt-6 space-y-4 rounded-xl border border-gray-200 bg-white p-6">
         <input type="hidden" name="profile_id" value={id} />
+        <input type="hidden" name="school_id" value={profile.school_id ?? ""} />
         <h2 className="text-sm font-semibold text-gray-900">Details</h2>
         <div>
           <label className={labelCls} htmlFor="name">Display name</label>
@@ -264,7 +304,7 @@ export default async function AdminEditProfilePage({
           <label className={labelCls} htmlFor="description">About the school</label>
           <textarea className={inputCls} id="description" name="description" rows={4} defaultValue={profile.description ?? ""} />
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
             <label className={labelCls} htmlFor="city">City</label>
             <input className={inputCls} id="city" name="city" defaultValue={profile.city ?? ""} />
@@ -272,6 +312,10 @@ export default async function AdminEditProfilePage({
           <div>
             <label className={labelCls} htmlFor="state">State / Region</label>
             <input className={inputCls} id="state" name="state" defaultValue={profile.state ?? ""} />
+          </div>
+          <div>
+            <label className={labelCls} htmlFor="postcode">Postcode</label>
+            <input className={inputCls} id="postcode" name="postcode" defaultValue={profile.postcode ?? ""} />
           </div>
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -325,10 +369,87 @@ export default async function AdminEditProfilePage({
           <span className={labelCls}>Hosting months</span>
           <HostMonthsField defaultValue={(profile.host_months as string[] | null) ?? []} />
         </div>
+        <div>
+          <label className={labelCls} htmlFor="typical_hosting_windows">Typical hosting windows (free text)</label>
+          <input className={inputCls} id="typical_hosting_windows" name="typical_hosting_windows" defaultValue={profile.typical_hosting_windows ?? ""} placeholder="e.g. first two weeks of June, October half term" />
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <TriField name="hosted_before" label="Hosted with GSA before?" value={profile.hosted_before} />
+          <TriField name="host_multiple_per_year" label="Happy to host more than once a year?" value={profile.host_multiple_per_year} />
+        </div>
+
+        {/* Contact — lives on the school record */}
+        <h2 className="pt-2 text-sm font-semibold text-gray-900">Contact</h2>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label className={labelCls} htmlFor="contact_name">Contact name</label>
+            <input className={inputCls} id="contact_name" name="contact_name" defaultValue={school?.contact_name ?? ""} />
+          </div>
+          <div>
+            <label className={labelCls} htmlFor="contact_role">Role</label>
+            <input className={inputCls} id="contact_role" name="contact_role" defaultValue={school?.contact_role ?? ""} />
+          </div>
+          <div>
+            <label className={labelCls} htmlFor="contact_email">Email</label>
+            <input className={inputCls} id="contact_email" name="contact_email" type="email" defaultValue={school?.contact_email ?? ""} />
+          </div>
+          <div>
+            <label className={labelCls} htmlFor="contact_phone">Phone</label>
+            <input className={inputCls} id="contact_phone" name="contact_phone" type="tel" defaultValue={school?.contact_phone ?? ""} />
+          </div>
+          <div className="sm:col-span-2">
+            <label className={labelCls} htmlFor="website">Website</label>
+            <input className={inputCls} id="website" name="website" defaultValue={school?.website ?? ""} />
+          </div>
+        </div>
+
+        {/* Catalogue — the profile GSA sends to agents */}
+        <h2 className="pt-2 text-sm font-semibold text-gray-900">Catalogue profile</h2>
+        <p className="-mt-2 text-xs text-gray-500">
+          These fill the printable profile for agents. Leave a section blank and it falls back to the details above.
+        </p>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div>
+            <label className={labelCls} htmlFor="school_type">Type of school</label>
+            <input className={inputCls} id="school_type" name="school_type" defaultValue={profile.school_type ?? ""} placeholder="Mixed secondary and Sixth Form (academy)" />
+          </div>
+          <div>
+            <label className={labelCls} htmlFor="ofsted_rating">Ofsted rating</label>
+            <input className={inputCls} id="ofsted_rating" name="ofsted_rating" defaultValue={profile.ofsted_rating ?? ""} placeholder="Good" />
+          </div>
+          <div>
+            <label className={labelCls} htmlFor="prospectus_url">Prospectus link</label>
+            <input className={inputCls} id="prospectus_url" name="prospectus_url" defaultValue={profile.prospectus_url ?? ""} />
+          </div>
+        </div>
+        <div>
+          <label className={labelCls} htmlFor="overview">Overview</label>
+          <textarea className={inputCls} id="overview" name="overview" rows={4} defaultValue={profile.overview ?? ""} />
+        </div>
+        <div>
+          <label className={labelCls} htmlFor="culture">Student body &amp; culture</label>
+          <textarea className={inputCls} id="culture" name="culture" rows={4} defaultValue={profile.culture ?? ""} />
+        </div>
+        <div>
+          <label className={labelCls} htmlFor="curriculum">Curriculum &amp; subjects</label>
+          <textarea className={inputCls} id="curriculum" name="curriculum" rows={4} defaultValue={profile.curriculum ?? ""} placeholder="Blank = the subject strengths list above" />
+        </div>
+        <div>
+          <label className={labelCls} htmlFor="enrichment">Enrichment &amp; extracurricular</label>
+          <textarea className={inputCls} id="enrichment" name="enrichment" rows={3} defaultValue={profile.enrichment ?? ""} />
+        </div>
+        <div>
+          <label className={labelCls} htmlFor="standout">What makes the school stand out</label>
+          <textarea className={inputCls} id="standout" name="standout" rows={3} defaultValue={profile.standout ?? ""} placeholder="Blank = 'Why they host' above" />
+        </div>
+
         <button className="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-gray-700">
           Save changes
         </button>
       </form>
+
+      <AvailabilityPanel profileId={id} />
+      <NotesPanel profileId={id} />
     </div>
   );
 }
