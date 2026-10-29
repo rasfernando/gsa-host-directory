@@ -1,4 +1,3 @@
-import Link from "next/link";
 
 export default function ListingSubmittedPage() {
   return (
@@ -21,18 +20,11 @@ export default function ListingSubmittedPage() {
         Listing received
       </h1>
       <p className="mt-3 leading-relaxed text-stone-500">
-        The GSA team gives every new listing a quick review before it goes
-        live — usually within a couple of days. We&apos;ll email you when
-        you&apos;re in the directory.
+        Thank you for joining the GSA hosting network. The GSA team reviews
+        every new registration — usually within a couple of days — and
+        we&apos;ll be in touch once yours has been looked at.
       </p>
-      <p className="mx-auto mt-8 max-w-md rounded-xl border border-stone-200/70 bg-white p-5 text-sm leading-relaxed text-stone-600 shadow-sm">
-        Want more? <strong>GSA Accredited</strong> schools are actively
-        promoted to visiting groups worldwide and carry the gold-standard
-        verification badge.{" "}
-        <Link href="/apply" className="font-semibold text-brand-700 underline">
-          Apply for accreditation →
-        </Link>
-      </p>
+      {/* Accreditation upsell removed for V1 at Heather's request (29 Oct 2026). */}
     </div>
   );
 }

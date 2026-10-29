@@ -29,9 +29,12 @@ export const MODULES = [
 
 export type Module = (typeof MODULES)[number];
 
-// The directory is the point of registering, so it stays. Erasmus is a
-// separate live product Toni is already using.
-const V1: Module[] = ["directory", "erasmus"];
+// Erasmus is a separate live product Toni is already using. The public
+// directory ("browse host schools") is OFF for V1: Heather (29 Oct 2026) wants
+// schools to see "join the hosting network", not a shop window, so / sends
+// visitors to /list-your-school and /directory is admin-only (middleware.ts).
+// GSA_MODULES=directory,erasmus brings the public directory back.
+const V1: Module[] = ["erasmus"];
 
 // Route prefixes each module owns, so a disabled module loses access rather
 // than just losing its nav link.

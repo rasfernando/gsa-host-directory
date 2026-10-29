@@ -1,6 +1,6 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { disabledModuleFor } from "@/lib/features";
+import { disabledModuleFor, isEnabled } from "@/lib/features";
 
 // Refreshes the Supabase auth session on every request,
 // and guards /admin and /apply behind login.
@@ -40,10 +40,31 @@ export async function middleware(request: NextRequest) {
   // Modules switched off for V1 lose access, not just their nav link, so a
   // bookmarked URL can't reach a half-finished area. lib/features.ts holds the
   // list; GSA_MODULES turns any of them back on without a code change.
+  // GSA admins keep /directory (so "view live" and the showcase still work for
+  // them) even while the public directory is switched off. One RPC, only on
+  // the paths that need it.
+  const isAdmin = async () => {
+    if (!user) return false;
+    const { data } = await supabase
+      .from("user_profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+    return data?.role === "gsa_admin"; // same check as app/admin/layout.tsx
+  };
+
   const offModule = disabledModuleFor(path);
-  if (offModule) {
+  if (offModule && !(offModule === "directory" && (await isAdmin()))) {
     const url = request.nextUrl.clone();
     url.pathname = path.startsWith("/admin") ? "/admin" : "/";
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
+
+  // With the public directory off, the home page is the registration page.
+  if (path === "/" && !isEnabled("directory")) {
+    const url = request.nextUrl.clone();
+    url.pathname = (await isAdmin()) ? "/admin" : "/list-your-school";
     url.search = "";
     return NextResponse.redirect(url);
   }
