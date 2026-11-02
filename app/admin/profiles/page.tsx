@@ -10,6 +10,7 @@ import {
   setProfileTier,
   geocodeAllProfiles,
 } from "../actions";
+import { deleteProfile } from "./actions";
 
 type ProfileRow = {
   id: string;
@@ -213,6 +214,30 @@ function ChangeDiff({ profile }: { profile: ProfileRow }) {
   );
 }
 
+// Two clicks, no JavaScript: "Delete" opens a small confirm, which submits.
+function DeleteButton({ profile }: { profile: ProfileRow }) {
+  return (
+    <details className="relative">
+      <summary className="cursor-pointer list-none rounded-lg border border-red-200 px-3 py-2 text-xs font-medium text-red-700 hover:bg-red-50">
+        Delete
+      </summary>
+      <form
+        action={deleteProfile}
+        className="absolute right-0 z-10 mt-2 w-64 rounded-xl border border-red-200 bg-white p-4 text-left shadow-lg"
+      >
+        <input type="hidden" name="profile_id" value={profile.id} />
+        <p className="text-xs text-gray-700">
+          Delete <strong>{profile.name}</strong>? This removes the profile, its
+          availability, notes and enquiries, and the school record. It can&apos;t be undone.
+        </p>
+        <button className="mt-3 w-full rounded-lg bg-red-700 px-3 py-2 text-xs font-medium text-white hover:bg-red-800">
+          Yes, delete this school
+        </button>
+      </form>
+    </details>
+  );
+}
+
 function PublishButton({ profile }: { profile: ProfileRow }) {
   return (
     <form action={togglePublish}>
@@ -307,7 +332,7 @@ export default async function AdminProfiles({
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const sp = await searchParams;
-  const { error: errorFlag, geocoded, of } = sp;
+  const { error: errorFlag, geocoded, of, deleted } = sp;
   const f = readFilters(sp);
   const supabase = await createClient();
 
@@ -422,6 +447,12 @@ export default async function AdminProfiles({
       {errorFlag && (
         <div className="mb-6 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
           {decodeURIComponent(errorFlag)}
+        </div>
+      )}
+
+      {deleted && (
+        <div className="mb-6 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          Deleted {decodeURIComponent(deleted)}.
         </div>
       )}
 
@@ -590,6 +621,7 @@ export default async function AdminProfiles({
                   </form>
                 )}
                 <PublishButton profile={p} />
+                <DeleteButton profile={p} />
               </div>
             </li>
           ))}
