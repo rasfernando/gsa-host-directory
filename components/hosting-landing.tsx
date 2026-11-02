@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Montserrat } from "next/font/google";
+import { StickyRegister } from "@/components/sticky-register";
 
 // "Become a host school" landing page — Heather's brief + mock-ups
 // (GSA Hosting Network sign up landing page.pdf, 2 Nov 2026). Served at /
@@ -110,9 +111,9 @@ function YellowButton({ href, children }: { href: string; children: React.ReactN
     <Link
       href={href}
       style={{ background: YELLOW, color: NAVY }}
-      className="inline-flex items-center gap-2 rounded-lg px-5 py-3 text-sm font-bold shadow-sm transition-opacity hover:opacity-90"
+      className="group inline-flex items-center gap-2 rounded-lg px-5 py-3 text-sm font-bold shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:shadow-sm"
     >
-      {children} <span aria-hidden>→</span>
+      {children} <span aria-hidden className="transition-transform duration-200 group-hover:translate-x-0.5">→</span>
     </Link>
   );
 }
@@ -129,9 +130,14 @@ export function HostingLanding() {
   return (
     <div className="-mt-10 -mb-16">
       {/* ── Hero ──────────────────────────────────────────────────────── */}
-      <Band style={{ background: NAVY }} className="text-white">
-        <div className="grid items-center gap-10 py-16 md:grid-cols-[1.05fr_1fr] md:py-20">
-          <div>
+      <Band id="hero" style={{ background: NAVY }} className="relative overflow-hidden text-white">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{ background: `radial-gradient(60% 70% at 85% 20%, ${PINK}33 0%, transparent 60%), radial-gradient(40% 50% at 10% 90%, ${CYAN}26 0%, transparent 60%)` }}
+        />
+        <div className="relative grid items-center gap-10 py-16 md:grid-cols-[1.05fr_1fr] md:py-20">
+          <div className="hero-in">
             <h1 className={`${display.className} text-4xl font-extrabold leading-[1.05] sm:text-5xl lg:text-6xl`}>
               Welcome the <span style={{ color: PINK }}>world</span> into your school
             </h1>
@@ -140,8 +146,8 @@ export function HostingLanding() {
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <YellowButton href={REGISTER}>Register your school</YellowButton>
-              <a href="#how-it-works" className="inline-flex items-center rounded-lg border border-white/70 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/10">
-                How hosting works
+              <a href="#how-it-works" className="group inline-flex items-center gap-2 rounded-lg border border-white/70 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/10">
+                How hosting works <span aria-hidden className="transition-transform duration-200 group-hover:translate-y-0.5">↓</span>
               </a>
             </div>
             <ul className="mt-10 flex flex-wrap gap-x-6 gap-y-3 text-xs text-white/90">
@@ -159,14 +165,16 @@ export function HostingLanding() {
               ))}
             </ul>
           </div>
-          <Image src="/hosting/hero.png" alt="Visiting students and host-school staff together in a school hall, at lunch and in class" width={800} height={700} priority className="w-full" />
+          <div className="hero-in-late">
+            <Image src="/hosting/hero.png" alt="Visiting students and host-school staff together in a school hall, at lunch and in class" width={800} height={700} priority className="float-slow w-full drop-shadow-[0_24px_40px_rgba(0,0,0,0.35)]" />
+          </div>
         </div>
       </Band>
 
       {/* ── Why schools host ──────────────────────────────────────────── */}
       <Band className="bg-stone-100">
         <div className="grid gap-10 py-16 md:grid-cols-[1fr_1.4fr] md:py-20">
-          <div>
+          <div className="reveal">
             <p style={{ color: PINK }} className="text-xs font-bold uppercase tracking-[0.2em]">Why schools host</p>
             <h2 className={`${display.className} mt-3 text-3xl font-extrabold leading-tight sm:text-4xl`} style={{ color: NAVY }}>
               Why schools <span style={{ color: PINK }}>choose</span> to host.
@@ -179,10 +187,10 @@ export function HostingLanding() {
             </div>
           </div>
           <div>
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="reveal-stagger grid gap-4 sm:grid-cols-3">
               {WHY.map((w) => (
-                <div key={w.title} className="rounded-2xl border border-stone-200/70 bg-white p-5 shadow-sm">
-                  <Circle colour={w.colour}>
+                <div key={w.title} className="group rounded-2xl border border-stone-200/70 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-stone-300 hover:shadow-lg">
+                  <Circle colour={w.colour} size="h-14 w-14 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6">
                     <svg viewBox="0 0 24 24" className="h-7 w-7" fill="currentColor" aria-hidden>{w.icon}</svg>
                   </Circle>
                   <h3 className={`${display.className} mt-4 text-sm font-bold leading-snug`} style={{ color: NAVY }}>{w.title}</h3>
@@ -190,7 +198,7 @@ export function HostingLanding() {
                 </div>
               ))}
             </div>
-            <dl className="mt-4 grid grid-cols-1 divide-y divide-sky-100 rounded-2xl border border-sky-100 bg-sky-50 px-5 py-3 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+            <dl className="reveal mt-4 grid grid-cols-1 divide-y divide-sky-100 rounded-2xl border border-sky-100 bg-sky-50 px-5 py-3 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
               {[
                 { c: PINK, big: "20 - 30", small: "visiting students" },
                 { c: CYAN, big: "3 - 5", small: "day programme" },
@@ -212,18 +220,18 @@ export function HostingLanding() {
       {/* ── How hosting works ─────────────────────────────────────────── */}
       <Band id="how-it-works" className="bg-white">
         <div className="py-16 md:py-20">
-          <h2 className={`${display.className} max-w-md text-3xl font-extrabold leading-tight sm:text-4xl`} style={{ color: NAVY }}>
+          <h2 className={`${display.className} reveal max-w-md text-3xl font-extrabold leading-tight sm:text-4xl`} style={{ color: NAVY }}>
             From registration to hosting in <span style={{ color: PINK }}>four steps.</span>
           </h2>
-          <ol className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+          <ol className="reveal-stagger mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
             {STEPS.map((s, i) => (
-              <li key={s.title} className="relative">
+              <li key={s.title} className="group relative">
                 <div className="flex items-center">
-                  <Circle colour={s.colour} size="h-11 w-11">
+                  <Circle colour={s.colour} size="h-11 w-11 shadow-md transition-transform duration-300 group-hover:scale-110">
                     <span className={`${display.className} text-sm font-extrabold`}>{i + 1}</span>
                   </Circle>
                   {i < STEPS.length - 1 && (
-                    <span aria-hidden className="ml-3 hidden flex-1 border-t-2 border-dashed lg:block" style={{ borderColor: CYAN }} />
+                    <span aria-hidden className="draw-line ml-3 hidden flex-1 border-t-2 border-dashed lg:block" style={{ borderColor: CYAN }} />
                   )}
                 </div>
                 <p style={{ color: PINK }} className="mt-5 text-[11px] font-bold uppercase tracking-[0.15em]">{s.when}</p>
@@ -239,7 +247,7 @@ export function HostingLanding() {
       <Band className="bg-stone-100">
         <div className="py-16 md:py-20">
           <div className="grid items-center gap-10 md:grid-cols-[1fr_1.3fr]">
-            <div>
+            <div className="reveal">
               <p style={{ color: PINK }} className="text-xs font-bold uppercase tracking-[0.2em]">School stories</p>
               <h2 className={`${display.className} mt-3 text-3xl font-extrabold leading-tight sm:text-4xl`} style={{ color: NAVY }}>
                 Real connections.<br /><span style={{ color: PINK }}>Lasting impact.</span>
@@ -248,11 +256,13 @@ export function HostingLanding() {
                 Hear from schools that have welcomed international students through our hosting programme and seen the positive impact on their students, staff and wider school community.
               </p>
             </div>
-            <Image src="/hosting/stories.png" alt="Host and visiting students drawing together, in the playground and sharing afternoon tea" width={800} height={500} className="w-full" />
+            <div className="reveal">
+              <Image src="/hosting/stories.png" alt="Host and visiting students drawing together, in the playground and sharing afternoon tea" width={800} height={500} className="w-full transition-transform duration-500 hover:scale-[1.02]" />
+            </div>
           </div>
-          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="reveal-stagger mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {STORIES.map((s) => (
-              <figure key={s.school} className="flex flex-col rounded-2xl border border-stone-200/70 bg-white p-5 shadow-sm">
+              <figure key={s.school} className="flex flex-col rounded-2xl border border-stone-200/70 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
                 <Circle colour={s.colour} size="h-8 w-8">
                   <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden><path d="M6 17h3l2-4V7H5v6h3zm8 0h3l2-4V7h-6v6h3z" /></svg>
                 </Circle>
@@ -269,8 +279,8 @@ export function HostingLanding() {
       </Band>
 
       {/* ── Final CTA ─────────────────────────────────────────────────── */}
-      <Band className="bg-stone-100 pb-16">
-        <div style={{ background: NAVY }} className="grid overflow-hidden rounded-3xl text-white md:grid-cols-[1.1fr_1fr]">
+      <Band id="final-cta" className="bg-stone-100 pb-16">
+        <div style={{ background: NAVY }} className="reveal group grid overflow-hidden rounded-3xl text-white shadow-xl md:grid-cols-[1.1fr_1fr]">
           <div className="p-8 sm:p-12">
             <h2 className={`${display.className} text-3xl font-extrabold leading-tight sm:text-4xl`}>
               Ready to be part of <span style={{ color: PINK }}>something bigger?</span>
@@ -280,13 +290,13 @@ export function HostingLanding() {
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <YellowButton href={REGISTER}>Register your school</YellowButton>
-              <a href={BOOK_A_CALL} target="_blank" rel="noopener" className="inline-flex items-center rounded-lg border border-white/70 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/10">
-                Speak to our team
+              <a href={BOOK_A_CALL} target="_blank" rel="noopener" className="inline-flex items-center gap-2 rounded-lg border border-white/70 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/10">
+                Speak to our team <span aria-hidden className="text-xs">↗</span>
               </a>
             </div>
           </div>
           <div className="relative min-h-64">
-            <Image src="/hosting/cta.png" alt="A teacher shows visiting students a nature display in an art classroom" fill sizes="(min-width: 768px) 40vw, 100vw" className="object-cover" />
+            <Image src="/hosting/cta.png" alt="A teacher shows visiting students a nature display in an art classroom" fill sizes="(min-width: 768px) 40vw, 100vw" className="object-cover transition-transform duration-700 group-hover:scale-[1.04]" />
           </div>
         </div>
       </Band>
@@ -294,7 +304,7 @@ export function HostingLanding() {
       {/* ── FAQ ───────────────────────────────────────────────────────── */}
       <Band className="bg-white">
         <div className="mx-auto max-w-3xl py-16 md:py-20">
-          <h2 className={`${display.className} text-3xl font-extrabold leading-tight sm:text-4xl`} style={{ color: NAVY }}>
+          <h2 className={`${display.className} reveal text-3xl font-extrabold leading-tight sm:text-4xl`} style={{ color: NAVY }}>
             Your questions,<br /><span style={{ color: PINK }}>answered.</span>
           </h2>
           <p className="mt-3 text-sm text-stone-600">
@@ -302,24 +312,29 @@ export function HostingLanding() {
           </p>
           <div className="mt-8 divide-y divide-stone-200">
             {FAQ.map(([q, a], i) => (
-              <details key={q} open={i < 2} className="group py-3">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-bold" style={{ color: NAVY }}>
+              <details key={q} open={i < 2} className="faq group py-3">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-bold transition-colors hover:text-[#e60063]" style={{ color: NAVY }}>
                   <span>{i + 1}. {q}</span>
-                  <span aria-hidden style={{ color: PINK }} className="shrink-0 text-xl leading-none">
-                    <span className="group-open:hidden">+</span>
-                    <span className="hidden group-open:inline">−</span>
+                  <span
+                    aria-hidden
+                    style={{ color: PINK }}
+                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-current text-base leading-none transition-transform duration-300 group-open:rotate-45"
+                  >
+                    +
                   </span>
                 </summary>
-                <p className="mt-2 pr-8 text-sm leading-relaxed text-stone-600">{a}</p>
+                <p className="faq-answer mt-2 pr-8 text-sm leading-relaxed text-stone-600">{a}</p>
               </details>
             ))}
           </div>
-          <div className="mt-10 flex flex-wrap items-center justify-between gap-4">
+          <div className="reveal mt-10 flex flex-wrap items-center justify-between gap-4">
             <p className={`${display.className} text-lg font-bold`} style={{ color: NAVY }}>Still have questions?</p>
             <YellowButton href={CONTACT}>Contact our team</YellowButton>
           </div>
         </div>
       </Band>
+
+      <StickyRegister heroId="hero" ctaId="final-cta" colours={{ navy: NAVY, yellow: YELLOW }} />
     </div>
   );
 }
