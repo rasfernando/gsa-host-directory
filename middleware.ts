@@ -1,6 +1,6 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { disabledModuleFor, isEnabled } from "@/lib/features";
+import { disabledModuleFor } from "@/lib/features";
 
 // Refreshes the Supabase auth session on every request,
 // and guards /admin and /apply behind login.
@@ -61,13 +61,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // With the public directory off, the home page is the registration page.
-  if (path === "/" && !isEnabled("directory")) {
-    const url = request.nextUrl.clone();
-    url.pathname = (await isAdmin()) ? "/admin" : "/list-your-school";
-    url.search = "";
-    return NextResponse.redirect(url);
-  }
+  // (With the public directory off, / renders the hosting-network landing
+  // page instead of the directory home — see app/page.tsx.)
 
   const needsAuth =
     path.startsWith("/admin") ||

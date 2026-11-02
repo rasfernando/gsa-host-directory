@@ -2,10 +2,17 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { SchoolCard } from "@/components/school-card";
+import { HostingLanding } from "@/components/hosting-landing";
+import { isEnabled } from "@/lib/features";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
+  // V1: the public directory is off, so the front door is the "become a host
+  // school" landing page (Heather's brief). The directory home below returns
+  // when GSA_MODULES switches the directory back on.
+  if (!isEnabled("directory")) return <HostingLanding />;
+
   const t = await getTranslations("home");
   const supabase = await createClient();
   const { data: featured } = await supabase
