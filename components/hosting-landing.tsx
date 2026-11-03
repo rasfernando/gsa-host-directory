@@ -138,6 +138,14 @@ export function HostingLanding() {
         />
         <div className="relative grid items-center gap-10 py-16 md:grid-cols-[1.05fr_1fr] md:py-20">
           <div className="hero-in">
+            <Image
+              src="/hosting/gsa-logo-white.png"
+              alt="Global School Alliance"
+              width={1200}
+              height={279}
+              priority
+              className="mb-8 h-auto w-44 sm:w-52"
+            />
             <h1 className={`${display.className} text-4xl font-extrabold leading-[1.05] sm:text-5xl lg:text-6xl`}>
               Welcome the <span style={{ color: PINK }}>world</span> into your school
             </h1>
