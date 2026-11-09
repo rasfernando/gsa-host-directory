@@ -86,14 +86,7 @@ export default async function ListYourSchoolPage({
         {t("intro")}
       </p>
       <p className="mt-2 text-sm leading-relaxed text-stone-500">
-        {t("signedInAs", { email: user?.email ?? "" })}{" "}
-        {t.rich("accreditationNote", {
-          link: (chunks) => (
-            <Link href="/apply" className="underline">
-              {chunks}
-            </Link>
-          ),
-        })}
+        {t("signedInAs", { email: user?.email ?? "" })}
       </p>
 
       {error && (

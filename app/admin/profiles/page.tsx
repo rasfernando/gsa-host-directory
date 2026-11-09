@@ -332,7 +332,7 @@ export default async function AdminProfiles({
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const sp = await searchParams;
-  const { error: errorFlag, geocoded, of, deleted } = sp;
+  const { error: errorFlag, geocoded, of, deleted, moved } = sp;
   const f = readFilters(sp);
   const supabase = await createClient();
 
@@ -453,6 +453,12 @@ export default async function AdminProfiles({
       {deleted && (
         <div className="mb-6 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
           Deleted {decodeURIComponent(deleted)}.
+        </div>
+      )}
+      {moved && (
+        <div className="mb-6 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          {moved} is now in Profiles, unpublished, and has been sent to HubSpot.
+          Use Edit to add anything the school didn&apos;t tell us.
         </div>
       )}
 

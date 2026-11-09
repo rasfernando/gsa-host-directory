@@ -35,21 +35,15 @@ export default async function YourSchoolPage({
       <div className="mx-auto max-w-xl py-16 text-center">
         <h1 className="text-3xl font-bold tracking-tight">Your school</h1>
         <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-stone-600">
-          You haven&apos;t registered a school yet. List your school to join the
-          directory, or apply for GSA accreditation.
+          You haven&apos;t registered a school yet. Register your school to
+          join the GSA hosting network.
         </p>
         <div className="mt-8 flex justify-center gap-3">
           <Link
             href="/list-your-school"
             className="rounded-lg bg-warm-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-warm-700"
           >
-            List your school
-          </Link>
-          <Link
-            href="/apply"
-            className="rounded-lg border border-stone-300 px-5 py-2.5 text-sm font-semibold text-stone-700 transition-colors duration-150 hover:border-stone-400"
-          >
-            Apply for accreditation
+            Register your school
           </Link>
         </div>
       </div>

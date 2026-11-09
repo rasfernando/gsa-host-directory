@@ -9,8 +9,12 @@ export default async function LoginPage({
   const { next: rawNext } = await searchParams;
   // Same-origin relative paths only — don't let ?next= carry an off-site URL
   // into the post-login redirect.
-  const raw = rawNext ?? "/apply";
-  const next = raw.startsWith("/") && !raw.startsWith("//") ? raw : "/apply";
+  // Default is the registration form (V1). It used to be /apply, which put
+  // schools that signed in from the header onto the accreditation form and
+  // into the review queue instead of Profiles.
+  const raw = rawNext ?? "/list-your-school";
+  const next =
+    raw.startsWith("/") && !raw.startsWith("//") ? raw : "/list-your-school";
 
   const t = await getTranslations("login");
 

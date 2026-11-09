@@ -14,9 +14,14 @@ export async function GET(request: NextRequest) {
   // Only allow same-origin relative redirects. `new URL(next, base)` would
   // happily resolve an absolute (`https://evil.com`) or protocol-relative
   // (`//evil.com`) target off-site — an open redirect after login.
-  const rawNext = searchParams.get("next") ?? "/apply";
+  // Default is the registration form (V1), not the accreditation form — an
+  // email-confirmation link carries no ?next=, so this is where every newly
+  // confirmed school lands.
+  const rawNext = searchParams.get("next") ?? "/list-your-school";
   const next =
-    rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/apply";
+    rawNext.startsWith("/") && !rawNext.startsWith("//")
+      ? rawNext
+      : "/list-your-school";
 
   const supabase = await createClient();
 

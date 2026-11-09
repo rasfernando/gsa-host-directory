@@ -29,7 +29,9 @@ const BASE = "https://api.hubapi.com";
 const TAG_PROPERTY = "gsa_host_directory_submission";
 
 export type SchoolContact = {
-  email: string;
+  // Optional: a school GSA staff create may have no contact yet — the company
+  // is still synced, just with no contact attached.
+  email?: string | null;
   firstName?: string | null;
   lastName?: string | null;
   role?: string | null;
@@ -78,7 +80,6 @@ export async function syncSchoolToHubspot(c: SchoolContact): Promise<void> {
     console.log(`[hubspot skipped — HUBSPOT_PRIVATE_APP_TOKEN not set] ${c.schoolName}`);
     return;
   }
-  if (!c.email) return;
 
   const headers = {
     Authorization: `Bearer ${token}`,
@@ -87,15 +88,18 @@ export async function syncSchoolToHubspot(c: SchoolContact): Promise<void> {
 
   try {
     // ── Contact ──────────────────────────────────────────────────────────
-    const email = c.email.toLowerCase();
-    const contactProps = clean({
-      email,
-      firstname: c.firstName,
-      lastname: c.lastName,
-      jobtitle: c.role,
-      phone: c.phone,
-    });
-    const contactId = await upsert("contacts", [{ property: "email", value: email }], contactProps, headers);
+    const email = (c.email ?? "").trim().toLowerCase();
+    let contactId: string | null = null;
+    if (email) {
+      const contactProps = clean({
+        email,
+        firstname: c.firstName,
+        lastname: c.lastName,
+        jobtitle: c.role,
+        phone: c.phone,
+      });
+      contactId = await upsert("contacts", [{ property: "email", value: email }], contactProps, headers);
+    }
 
     // ── Company ──────────────────────────────────────────────────────────
     let domain: string | null = null;

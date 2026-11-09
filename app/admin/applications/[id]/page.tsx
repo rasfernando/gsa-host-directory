@@ -7,6 +7,7 @@ import {
   approveApplication,
   rejectApplication,
   requestMoreInfo,
+  moveApplicationToProfiles,
 } from "../../actions";
 
 type EvidenceFile = { name: string; path: string; size: number; uploaded_at: string; category?: string };
@@ -45,6 +46,10 @@ export default async function ApplicationDetail({
   const school = Array.isArray(app.schools) ? app.schools[0] : app.schools;
   const answers = (app.answers ?? {}) as Record<string, unknown>;
   const decided = ["approved", "rejected"].includes(app.status);
+  // Set by "Move to Profiles": the school used this form when it meant to
+  // register for the hosting network.
+  const movedAt =
+    typeof answers.moved_to_profiles_at === "string" ? answers.moved_to_profiles_at : null;
 
   // Signed download links for any evidence the school uploaded (private bucket).
   const evidence = (app.evidence_files as EvidenceFile[] | null) ?? [];
@@ -86,6 +91,40 @@ export default async function ApplicationDetail({
           {app.status.replace("_", " ")}
         </span>
       </div>
+
+      {movedAt ? (
+        <div className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+          <p className="font-semibold">Moved to Profiles</p>
+          <p className="mt-1">
+            On {new Date(movedAt).toLocaleDateString("en-GB")} this school was
+            given a hosting-network profile from the answers below.{" "}
+            <Link href="/admin/profiles" className="font-medium underline">
+              Open Profiles
+            </Link>
+          </p>
+        </div>
+      ) : (
+        !decided && (
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-gray-200 bg-white p-4 text-sm">
+            <div className="max-w-md">
+              <p className="font-semibold text-gray-900">
+                Did this school only mean to register?
+              </p>
+              <p className="mt-1 text-gray-600">
+                Move it to Profiles. Its profile is created from the answers
+                below, unpublished, and the school is sent to HubSpot. Nothing
+                is emailed to the school.
+              </p>
+            </div>
+            <form action={moveApplicationToProfiles}>
+              <input type="hidden" name="application_id" value={app.id} />
+              <button className="rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-700">
+                Move to Profiles
+              </button>
+            </form>
+          </div>
+        )
+      )}
 
       {app.status === "info_requested" && (
         <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
@@ -134,7 +173,9 @@ export default async function ApplicationDetail({
           Application
         </h2>
         <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-3 rounded-lg border border-gray-100 p-5 text-sm">
-          {Object.entries(answers).map(([key, value]) => (
+          {Object.entries(answers)
+            .filter(([key]) => key !== "moved_to_profiles_at")
+            .map(([key, value]) => (
             <div key={key}>
               <dt className="text-xs uppercase tracking-wide text-gray-500">
                 {key.replace(/_/g, " ")}

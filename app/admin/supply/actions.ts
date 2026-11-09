@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { logEvent } from "@/lib/events";
 import { sendEmail, escapeHtml } from "@/lib/notify";
+import { syncSchoolToHubspot } from "@/lib/hubspot";
 
 async function requireAdmin() {
   const supabase = await createClient();
@@ -251,6 +252,22 @@ export async function staffCreateSchool(formData: FormData) {
   if (profileError) fail(profileError.message);
 
   await logEvent("school_staff_created", { school_id: school.id });
+
+  // Same HubSpot mirror as the public registration form, so a school Heather
+  // adds on its behalf doesn't have to be keyed into the CRM separately.
+  // Matched on contact email / company name first, so an existing record is
+  // tagged and topped up rather than duplicated. Never throws.
+  const contactName = String(formData.get("contact_name") || "").trim();
+  const [firstName, ...restOfName] = contactName.split(/\s+/).filter(Boolean);
+  await syncSchoolToHubspot({
+    email: String(formData.get("contact_email") || "").trim() || null,
+    firstName: firstName ?? null,
+    lastName: restOfName.join(" ") || null,
+    schoolName: name,
+    website: String(formData.get("website") || "") || null,
+    country,
+    city: String(formData.get("city") || "") || null,
+  });
 
   // Prepare an intake invite (held, not sent). Heather sends it from the
   // invite list once the school confirms it wants to be on the platform.
