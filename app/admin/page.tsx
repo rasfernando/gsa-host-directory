@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { VERIFICATION_CHECKS } from "@/lib/checklist";
+import { moveAllApplicationsToProfiles } from "./actions";
 
 const STATUS_STYLES: Record<string, string> = {
   submitted: "bg-blue-50 text-blue-700",
@@ -120,6 +121,17 @@ export default async function AdminQueue() {
         . If a school here only meant to register, open it and choose{" "}
         <strong className="font-medium text-gray-700">Move to Profiles</strong>.
       </p>
+      {needsReview.length > 0 && (
+        <form action={moveAllApplicationsToProfiles} className="-mt-4 mb-8">
+          <button className="rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-700">
+            Move all {needsReview.length} to Profiles
+          </button>
+          <span className="ml-3 text-xs text-gray-500">
+            Creates each profile from the answers given and sends it to HubSpot.
+            Nothing is emailed to the schools.
+          </span>
+        </form>
+      )}
 
       {needsReview.length === 0 ? (
         <p className="rounded-lg border border-dashed border-gray-200 p-10 text-center text-sm text-gray-500">

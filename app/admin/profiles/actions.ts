@@ -4,6 +4,10 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
+import { logEvent } from "@/lib/events";
+import { normalizeUrl } from "@/lib/forms";
+import { syncSchoolToHubspot } from "@/lib/hubspot";
+import { slugFor, randomSuffix } from "@/lib/listed-profile";
 
 // Availability windows and the internal notes log on a host profile.
 // Both tables come from supabase/migrations/20261027_directory_v1.sql and are
@@ -164,4 +168,96 @@ export async function deleteProfile(formData: FormData) {
 
   revalidatePath("/admin/profiles");
   redirect(`/admin/profiles?deleted=${encodeURIComponent(profile.name)}`);
+}
+
+// ── Add a school on its behalf ──────────────────────────────────────────────
+// Heather (9 Nov 2026): "add a school without needing them to complete /
+// without invite link". Creates the school and its unpublished listed profile
+// from what GSA already knows, mirrors it to HubSpot, and lands on the edit
+// page for the hosting details. No account, no invite, nothing emailed.
+export async function adminCreateSchool(formData: FormData) {
+  const { supabase } = await requireAdmin();
+  const txt = (k: string) => String(formData.get(k) || "").trim() || null;
+  const fail = (message: string): never =>
+    redirect(`/admin/profiles/new?error=${encodeURIComponent(message)}`);
+
+  const name = txt("name");
+  const country = txt("country");
+  if (!name || !country) return fail("School name and country are required");
+
+  const firstName = txt("contact_first_name");
+  const lastName = txt("contact_last_name");
+  const contactName = [firstName, lastName].filter(Boolean).join(" ") || null;
+  const email = txt("contact_email");
+  const phone = txt("contact_phone");
+  const role = txt("contact_role");
+  const city = txt("city");
+  const postcode = txt("postcode");
+  const schoolType = txt("school_type");
+  const website = normalizeUrl(txt("website"));
+
+  const { data: school, error: schoolError } = await supabase
+    .from("schools")
+    .insert({
+      name,
+      country,
+      city,
+      website,
+      contact_name: contactName,
+      contact_email: email,
+    })
+    .select("id")
+    .single();
+  if (schoolError || !school) return fail(schoolError?.message ?? "Could not create the school");
+
+  // Role and phone are later columns on schools: best effort, as elsewhere.
+  if (role || phone) {
+    const { error: extraError } = await supabase
+      .from("schools")
+      .update({ contact_role: role, contact_phone: phone })
+      .eq("id", school.id);
+    if (extraError) console.warn(`[add school: role/phone not saved: ${extraError.message}]`);
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from("host_profiles")
+    .insert({
+      school_id: school.id,
+      name,
+      slug: slugFor(name, randomSuffix()),
+      tier: "listed",
+      published: false,
+      country,
+      city: city ?? "",
+    })
+    .select("id")
+    .single();
+  if (profileError || !profile) return fail(profileError?.message ?? "Could not create the profile");
+
+  // Directory V1 columns, tolerant of a missing column like the other writers.
+  if (postcode || schoolType) {
+    const { error: v1Error } = await supabase
+      .from("host_profiles")
+      .update({ postcode, school_type: schoolType })
+      .eq("id", profile.id);
+    if (v1Error && v1Error.code !== "42703") console.warn(`[add school: v1 fields not saved: ${v1Error.message}]`);
+  }
+
+  await logEvent("school_staff_created", { school_id: school.id, profile_id: profile.id });
+  await syncSchoolToHubspot({
+    email,
+    firstName,
+    lastName,
+    role,
+    phone,
+    schoolName: name,
+    website,
+    country,
+    city,
+    postcode,
+    schoolType,
+  });
+
+  revalidatePath("/admin/profiles");
+  redirect(`/admin/profiles/${profile.id}/edit?saved=created`);
 }

@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import { notifyGsa, escapeHtml } from "@/lib/notify";
 import { logEvent } from "@/lib/events";
 import { normalizeUrl } from "@/lib/forms";
+import { syncSchoolToHubspot } from "@/lib/hubspot";
+import { ensureListedProfile, hubspotHostingFields } from "@/lib/listed-profile";
 
 // Submits a GSA-led intake: creates/links the school, files a verification
 // application carrying the template-specific answers, attaches it to the
@@ -129,6 +131,33 @@ export async function submitIntake(formData: FormData) {
     p_school: schoolId,
   });
   if (claimError) console.error("[intake] could not burn invite:", claimError.message);
+
+  // Every school shows in Profiles (Heather, 9 Nov 2026). A staff-created
+  // school already has its skeleton profile and is left alone; an invite sent
+  // on its own gets one here, plus the HubSpot mirror. Best effort.
+  const intakeSchoolName = String(formData.get("school_name") || invite.school_name || "").trim();
+  if (intakeSchoolName) {
+    const listed = await ensureListedProfile(supabase, {
+      schoolId,
+      schoolName: intakeSchoolName,
+      country: String(formData.get("country") || invite.country || "") || null,
+      city: String(formData.get("city") || "") || null,
+      answers,
+    });
+    if (listed.error) console.warn(`[intake: profile not created: ${listed.error}]`);
+    if (listed.created) {
+      await syncSchoolToHubspot({
+        email: String(formData.get("contact_email") || "") || user.email || null,
+        firstName: String(formData.get("contact_first_name") || "") || null,
+        lastName: String(formData.get("contact_last_name") || "") || null,
+        schoolName: intakeSchoolName,
+        website: normalizeUrl(String(formData.get("website") || "")),
+        country: String(formData.get("country") || invite.country || "") || null,
+        city: String(formData.get("city") || "") || null,
+        ...hubspotHostingFields(answers),
+      });
+    }
+  }
 
   await logEvent("intake_submitted", {
     school_id: schoolId,

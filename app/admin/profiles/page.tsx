@@ -11,6 +11,7 @@ import {
   geocodeAllProfiles,
 } from "../actions";
 import { deleteProfile } from "./actions";
+import { loadStartedAccounts, type StartedAccount } from "@/lib/started-accounts";
 
 type ProfileRow = {
   id: string;
@@ -326,6 +327,84 @@ function FilterBar({ f, countries, availabilityReady }: { f: Filters; countries:
   );
 }
 
+const shortDate = (iso: string | null) =>
+  iso ? new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : null;
+
+const FOLLOW_UP_SUBJECT = encodeURIComponent(
+  "Finishing your GSA hosting network registration"
+);
+
+// Accounts with no profile yet, so the team can follow up and help them finish.
+function StartedSection({ started }: { started: StartedAccount[] | null }) {
+  if (started === null) {
+    return (
+      <p className="mb-10 rounded-lg border border-dashed border-gray-200 px-4 py-3 text-sm text-gray-500">
+        Started-but-not-finished accounts can&apos;t be shown: the server is
+        missing its Supabase service key.
+      </p>
+    );
+  }
+  if (started.length === 0) return null;
+  return (
+    <section className="mb-10">
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+        Started, not finished ({started.length})
+      </h2>
+      <p className="mb-3 mt-1 text-sm text-gray-500">
+        These people created an account but there is no school profile yet.
+        Email them to help them finish, or add the school yourself.
+      </p>
+      <ul className="divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white">
+        {started.map((a) => (
+          <li key={a.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium text-gray-900">
+                {a.schoolName ?? a.email}
+              </p>
+              <p className="text-xs text-gray-500">
+                {a.schoolName ? `${a.email} · ` : ""}
+                signed up {shortDate(a.createdAt) ?? "—"}
+                {a.lastSignInAt ? ` · last signed in ${shortDate(a.lastSignInAt)}` : ""}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span
+                className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                  a.schoolName
+                    ? "bg-blue-50 text-blue-700"
+                    : a.confirmed
+                      ? "bg-amber-50 text-amber-700"
+                      : "bg-gray-100 text-gray-600"
+                }`}
+              >
+                {a.schoolName
+                  ? "Used the accreditation form"
+                  : a.confirmed
+                    ? "Form not submitted"
+                    : "Email not confirmed"}
+              </span>
+              {a.applicationId && (
+                <Link
+                  href={`/admin/applications/${a.applicationId}`}
+                  className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:border-gray-500"
+                >
+                  Move to Profiles
+                </Link>
+              )}
+              <a
+                href={`mailto:${a.email}?subject=${FOLLOW_UP_SUBJECT}`}
+                className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:border-gray-500"
+              >
+                Email
+              </a>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 export default async function AdminProfiles({
   searchParams,
 }: {
@@ -345,6 +424,10 @@ export default async function AdminProfiles({
 
   const all = (data ?? []) as ProfileRow[];
   let list = all;
+
+  // Accounts that started but have no profile yet. Not a profile list, so it
+  // is hidden while filters are narrowing the profiles below.
+  const started = isActive(f) ? [] : await loadStartedAccounts();
   const countries = [...new Set(all.map((p) => p.country).filter(Boolean))].sort();
 
   // Upcoming availability for every school, shown inline and used for the
@@ -422,11 +505,19 @@ export default async function AdminProfiles({
             {isActive(f) ? ` · ${list.length} match` : ""}
           </p>
         </div>
-        <form action={geocodeAllProfiles}>
-          <button className="rounded-lg border border-gray-300 px-3.5 py-2 text-xs font-medium text-gray-600 hover:border-gray-500">
-            Geocode schools for the map
-          </button>
-        </form>
+        <div className="flex flex-wrap items-center gap-2">
+          <form action={geocodeAllProfiles}>
+            <button className="rounded-lg border border-gray-300 px-3.5 py-2 text-xs font-medium text-gray-600 hover:border-gray-500">
+              Geocode schools for the map
+            </button>
+          </form>
+          <Link
+            href="/admin/profiles/new"
+            className="rounded-lg bg-gray-900 px-3.5 py-2 text-xs font-medium text-white hover:bg-gray-700"
+          >
+            + Add a school
+          </Link>
+        </div>
       </div>
 
       <FilterBar f={f} countries={countries} availabilityReady={availabilityReady} />
@@ -457,10 +548,12 @@ export default async function AdminProfiles({
       )}
       {moved && (
         <div className="mb-6 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          {moved} is now in Profiles, unpublished, and has been sent to HubSpot.
-          Use Edit to add anything the school didn&apos;t tell us.
+          Moved to Profiles: {moved}. Unpublished, and sent to HubSpot. Use
+          Edit to add anything the school didn&apos;t tell us.
         </div>
       )}
+
+      <StartedSection started={started} />
 
       {pendingEdits.length > 0 && (
         <section className="mb-10">

@@ -27,6 +27,8 @@ const ERRORS: Record<string, string> = {
 const SAVED: Record<string, string> = {
   availability: "Availability updated.",
   note: "Note saved.",
+  created:
+    "School added and sent to HubSpot. It is unpublished. Fill in the hosting details below.",
 };
 
 const inputCls =

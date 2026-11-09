@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import { notifyGsa, escapeHtml } from "@/lib/notify";
 import { logEvent } from "@/lib/events";
 import { normalizeUrl } from "@/lib/forms";
+import { syncSchoolToHubspot } from "@/lib/hubspot";
+import { ensureListedProfile, hubspotHostingFields, splitName } from "@/lib/listed-profile";
 
 // Creates the school (if first time), links it to the user,
 // and submits the host application with form answers stored as JSON.
@@ -90,6 +92,33 @@ export async function submitApplication(formData: FormData) {
   if (appError) throw new Error(`Could not submit application: ${appError.message}`);
 
   await logEvent("accreditation_applied", { school_id: schoolId });
+
+  // Every school shows in Profiles (Heather, 9 Nov 2026): an application alone
+  // used to appear only in the review queue. Give the school the same
+  // unpublished listed profile the registration form creates, and mirror it to
+  // HubSpot. Best effort — neither may fail an accreditation submission.
+  const schoolName = String(formData.get("school_name") || "").trim();
+  if (schoolName) {
+    const listed = await ensureListedProfile(supabase, {
+      schoolId,
+      schoolName,
+      country: String(formData.get("country") || "") || null,
+      city: String(formData.get("city") || "") || null,
+      answers,
+    });
+    if (listed.error) console.warn(`[apply: profile not created: ${listed.error}]`);
+    if (listed.created) {
+      await syncSchoolToHubspot({
+        email: user.email ?? null,
+        ...splitName(String(formData.get("contact_name") || "")),
+        schoolName,
+        website: normalizeUrl(formData.get("website") as string),
+        country: String(formData.get("country") || "") || null,
+        city: String(formData.get("city") || "") || null,
+        ...hubspotHostingFields(answers),
+      });
+    }
+  }
   await notifyGsa(
     `New host application: ${escapeHtml(formData.get("school_name") || "a school")}`,
     `<p><strong>${escapeHtml(formData.get("school_name"))}</strong> (${escapeHtml(formData.get("country"))}) has applied to become a GSA host school.</p>

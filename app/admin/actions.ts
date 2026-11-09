@@ -9,6 +9,7 @@ import { geocodeSchool } from "@/lib/geocode";
 import { translateAndStoreProfile } from "@/lib/translate";
 import { awardCredits } from "@/lib/credits";
 import { syncSchoolToHubspot } from "@/lib/hubspot";
+import { ensureListedProfile, hubspotHostingFields, splitName } from "@/lib/listed-profile";
 
 // Pin a profile to the map (no-op without GOOGLE_PLACES_API_KEY).
 async function geocodeProfile(
@@ -189,10 +190,10 @@ export async function approveApplication(formData: FormData) {
 // The application is kept, not deleted: it is only marked
 // (answers.moved_to_profiles_at) so the queue stops counting it. `answers` is
 // free-form JSON, so this needs no migration.
-export async function moveApplicationToProfiles(formData: FormData) {
-  const { supabase } = await requireAdmin();
-  const applicationId = String(formData.get("application_id"));
-
+async function moveOneToProfiles(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  applicationId: string
+): Promise<string> {
   const { data: app, error: appError } = await supabase
     .from("host_applications")
     .select(
@@ -206,84 +207,32 @@ export async function moveApplicationToProfiles(formData: FormData) {
   const answers = (app.answers ?? {}) as Record<string, unknown>;
   const schoolName = school?.name ?? "School";
 
-  const text = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : null);
-  const count = (v: unknown) =>
-    typeof v === "number" && Number.isFinite(v) && v > 0 ? v : null;
-  const items = (v: unknown) =>
-    Array.isArray(v) ? v.map(String).map((s) => s.trim()).filter(Boolean) : [];
-  const hostedBefore =
-    typeof answers.hosted_before === "boolean" ? answers.hosted_before : null;
-
   // A school that already has a profile (it registered as well, or the button
-  // was pressed twice) keeps it exactly as it is — never overwrite edits.
-  const { data: existing } = await supabase
-    .from("host_profiles")
-    .select("id")
-    .eq("school_id", app.school_id)
-    .limit(1);
+  // was pressed twice) keeps it exactly as it is — ensureListedProfile never
+  // overwrites.
+  const profile = await ensureListedProfile(supabase, {
+    schoolId: app.school_id,
+    schoolName,
+    country: school?.country,
+    city: school?.city,
+    answers,
+    slugSuffix: applicationId.slice(0, 4),
+  });
+  if (profile.error) throw new Error(`Could not create the profile: ${profile.error}`);
 
-  if (!existing || existing.length === 0) {
-    const slug = schoolName
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "");
-    const { data: created, error: profileError } = await supabase
-      .from("host_profiles")
-      .insert({
-        school_id: app.school_id,
-        name: schoolName,
-        slug: `${slug}-${applicationId.slice(0, 4)}`,
-        tier: "listed",
-        published: false,
-        country: school?.country ?? "",
-        state: text(answers.state),
-        city: school?.city ?? "",
-        why_host: text(answers.why_host),
-        languages: items(answers.languages),
-        age_band: text(answers.age_band),
-        age_range_min: count(answers.age_range_min),
-        age_range_max: count(answers.age_range_max),
-        subject_strengths: items(answers.subject_strengths),
-        focus_tags: items(answers.focus_areas),
-        boarding: Boolean(answers.boarding),
-        homestay: Boolean(answers.homestay),
-        hosted_before: hostedBefore,
-        host_months: items(answers.host_months),
-        capacity: count(answers.capacity),
-        typical_hosting_windows: text(answers.typical_hosting_windows),
-      })
-      .select("id")
-      .single();
-    if (profileError) throw new Error(`Could not create the profile: ${profileError.message}`);
-
+  if (profile.created) {
     await logEvent("application_moved_to_profiles", {
       school_id: app.school_id,
-      profile_id: created?.id,
+      profile_id: profile.id ?? undefined,
     });
-
-    const [firstName, ...restOfName] = (school?.contact_name ?? "")
-      .trim()
-      .split(/\s+/)
-      .filter(Boolean);
     await syncSchoolToHubspot({
       email: school?.contact_email ?? null,
-      firstName: firstName ?? null,
-      lastName: restOfName.join(" ") || null,
-      role: text(answers.role_at_school),
+      ...splitName(school?.contact_name),
       schoolName,
       website: school?.website ?? null,
       country: school?.country ?? null,
       city: school?.city ?? null,
-      whyHost: text(answers.why_host),
-      ageBand: text(answers.age_band),
-      agesFrom: count(answers.age_range_min),
-      agesTo: count(answers.age_range_max),
-      capacity: count(answers.capacity),
-      subjects: items(answers.subject_strengths),
-      boarding: Boolean(answers.boarding),
-      homestay: Boolean(answers.homestay),
-      hostedBefore,
-      hostMonths: items(answers.host_months),
+      ...hubspotHostingFields(answers),
     });
   }
 
@@ -293,9 +242,39 @@ export async function moveApplicationToProfiles(formData: FormData) {
     .eq("id", applicationId);
   if (markError) throw new Error(markError.message);
 
+  return schoolName;
+}
+
+export async function moveApplicationToProfiles(formData: FormData) {
+  const { supabase } = await requireAdmin();
+  const applicationId = String(formData.get("application_id"));
+  const schoolName = await moveOneToProfiles(supabase, applicationId);
+
   revalidatePath("/admin");
   revalidatePath(`/admin/applications/${applicationId}`);
   redirect(`/admin/profiles?moved=${encodeURIComponent(schoolName)}`);
+}
+
+// Everything still waiting in the queue, in one press.
+export async function moveAllApplicationsToProfiles() {
+  const { supabase } = await requireAdmin();
+
+  const { data: rows, error } = await supabase
+    .from("host_applications")
+    .select("id, status, answers")
+    .in("status", ["submitted", "under_review", "info_requested", "draft"]);
+  if (error) throw new Error(error.message);
+
+  const names: string[] = [];
+  for (const row of rows ?? []) {
+    const answers = (row.answers ?? {}) as Record<string, unknown>;
+    if (typeof answers.moved_to_profiles_at === "string") continue;
+    names.push(await moveOneToProfiles(supabase, row.id as string));
+  }
+
+  revalidatePath("/admin");
+  if (names.length === 0) redirect("/admin");
+  redirect(`/admin/profiles?moved=${encodeURIComponent(names.join(", "))}`);
 }
 
 // ── Admin direct profile editing ────────────────────────────────────────────
