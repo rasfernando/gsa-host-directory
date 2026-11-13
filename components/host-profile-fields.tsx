@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   AGE_BANDS,
   CONTACT_ROLES,
@@ -337,17 +337,45 @@ export function LanguagesField({ defaultValue = [] }: { defaultValue?: string[] 
   );
 }
 
-export function HostMonthsField({ defaultValue = [] }: { defaultValue?: string[] }) {
+// `required` (Heather, 13 Nov 2026): the months are pill buttons backed by
+// hidden inputs, which the browser's `required` can't see. A visually hidden
+// checkbox that is only "checked" once a month is chosen gives the native
+// "please choose" prompt on submit; the server checks again in submitListing.
+export function HostMonthsField({
+  defaultValue = [],
+  required = false,
+}: {
+  defaultValue?: string[];
+  required?: boolean;
+}) {
   const [chosen, setChosen] = useState<string[]>(defaultValue);
-  const toggle = (m: string) =>
+  const guard = useRef<HTMLInputElement>(null);
+  const toggle = (m: string) => {
+    guard.current?.setCustomValidity("");
     setChosen((c) => (c.includes(m) ? c.filter((x) => x !== m) : [...c, m]));
+  };
   return (
-    <div>
+    <div className="relative">
       <label className={labelCls}>When can you typically host?</label>
-      <p className="mt-0.5 text-xs text-stone-500">Select all the months that usually work.</p>
+      <p className="mt-0.5 text-xs text-stone-500">
+        {required ? "Choose at least one month that usually works." : "Select all the months that usually work."}
+      </p>
       {chosen.map((m) => (
         <input key={m} type="hidden" name="host_months" value={m} />
       ))}
+      {required && (
+        <input
+          ref={guard}
+          type="checkbox"
+          required
+          tabIndex={-1}
+          aria-hidden
+          checked={chosen.length > 0}
+          onChange={() => {}}
+          onInvalid={(e) => e.currentTarget.setCustomValidity("Choose at least one month.")}
+          className="pointer-events-none absolute left-0 top-12 h-px w-px opacity-0"
+        />
+      )}
       <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4">
         {MONTHS.map((m) => {
           const on = chosen.includes(m);

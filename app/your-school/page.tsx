@@ -6,6 +6,7 @@ import { formatDate } from "@/lib/trips";
 import { getBookedWindows } from "@/lib/availability";
 import { creditHistory, CREDIT_REASON_LABELS } from "@/lib/credits";
 import { updateContact } from "./actions";
+import { isEnabled } from "@/lib/features";
 
 export const dynamic = "force-dynamic";
 
@@ -210,8 +211,12 @@ export default async function YourSchoolPage({
             <p className="mt-2 text-sm text-stone-600">
               {profile
                 ? profile.published
-                  ? "Your listing is live in the directory."
-                  : "Your listing is with the GSA team for review before it goes live."
+                  ? isEnabled("directory")
+                    ? "Your listing is live in the directory."
+                    : "Your registration has been verified by the GSA team."
+                  : isEnabled("directory")
+                    ? "Your listing is with the GSA team for review before it goes live."
+                    : "Your registration is with the GSA team for review."
                 : "No directory listing yet."}
             </p>
             <div className="mt-3 flex flex-wrap gap-3 text-sm">
@@ -223,7 +228,7 @@ export default async function YourSchoolPage({
                   Edit listing &amp; photos →
                 </Link>
               )}
-              {profile?.published && (
+              {profile?.published && isEnabled("directory") && (
                 <Link
                   href={`/directory/${profile.slug}`}
                   className="text-stone-500 underline transition-colors duration-150 hover:text-stone-900"
@@ -402,7 +407,7 @@ function StatusBadge({
     );
   return profile.published ? (
     <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-800">
-      Live
+      {isEnabled("directory") ? "Live" : "Verified"}
     </span>
   ) : (
     <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-semibold text-amber-800">

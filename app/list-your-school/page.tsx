@@ -168,7 +168,7 @@ export default async function ListYourSchoolPage({
         </div>
         <HostedBeforeField />
         <HostMultipleField />
-        <HostMonthsField />
+        <HostMonthsField required />
         <div>
           <label className={labelCls} htmlFor="photo">
             {t("photoLabel")} <span className="font-normal text-stone-500">{t("photoHint")}</span>

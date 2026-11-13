@@ -44,6 +44,12 @@ export async function submitListing(formData: FormData) {
   const num = (k: string) => (formData.get(k) ? Number(formData.get(k)) : null);
   const list = (k: string) => formData.getAll(k).map(String).filter(Boolean);
 
+  // Months available are required (Heather, 13 Nov 2026). The form enforces
+  // this too; this is the backstop for anything that bypasses it.
+  if (list("host_months").length === 0) {
+    redirect(`/list-your-school?error=${encodeURIComponent("Please choose at least one month when you can host")}`);
+  }
+
   if (!schoolId) {
     // Atomic create-and-link via RPC: a fresh user can't INSERT…RETURNING on
     // schools directly (the new row isn't visible to them until linked).
